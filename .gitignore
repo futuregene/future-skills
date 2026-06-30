@@ -1,0 +1,9 @@
+# Build artifacts
+*.zip
+*.tmp
+
+# Skill review
+pending-review/
+
+# macOS
+.DS_Store
