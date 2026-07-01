@@ -7,23 +7,31 @@
 download:
 	@bash scripts/download.sh $(filter-out $@,$(MAKECMDGOALS))
 
-# Publish a single skill to future-server via the admin API.
+# Publish a skill or all skills to future-server via the admin API.
 # OVERWRITE defaults to false.
 #
 # Usage:
-#   make publish future/future-account
-#   make publish third-party/some-skill
-#   OVERWRITE=true make publish future/future-account
+#   make publish future/future-account          # single skill
+#   make publish third-party/some-skill         # single third-party skill
+#   make publish all                            # all skills in future/ and third-party/
+#   OVERWRITE=true make publish all             # overwrite all
 publish:
-	@bash scripts/publish.sh $(filter-out $@,$(MAKECMDGOALS)) $(OVERWRITE)
+	@skill="$(filter-out $@,$(MAKECMDGOALS))"; \
+	if [ "$$skill" = "all" ]; then \
+		for d in future/*/ third-party/*/; do \
+			[ -d "$$d" ] || continue; \
+			echo "=== Publishing $$d ==="; \
+			bash scripts/publish.sh "$$d" $(OVERWRITE) || echo "=== SKIPPED (failed): $$d ==="; \
+		done; \
+	else \
+		bash scripts/publish.sh "$$skill" $(OVERWRITE); \
+	fi
 
-# Publish all skills in the future/ directory.
+# Publish all skills in future/ and third-party/ directories.
+# Convenience alias for "make publish all".
 # OVERWRITE=true make publish-all
 publish-all:
-	@for d in future/*/; do \
-		echo "=== Publishing $$d ==="; \
-		bash scripts/publish.sh "$$d" $(OVERWRITE); \
-	done
+	@$(MAKE) publish all OVERWRITE=$(OVERWRITE)
 
 # Clean up generated artifacts in future-server/data/skills/
 clean:

@@ -5,5 +5,9 @@
 # Skill review
 pending-review/
 
+# Import tooling
+repos/
+.gitmodules
+
 # macOS
 .DS_Store

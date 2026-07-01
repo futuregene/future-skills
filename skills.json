@@ -1,108 +1,1039 @@
 {
   "admin": {
-    "base_url": "http://localhost:7001",
+    "base_url": "https://test.future-os.cn",
     "token": "future-admin-dev-token"
   },
   "future-account": {
-    "category": "utility",
+    "category": "future",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-browser": {
-    "category": "utility",
+    "category": "future",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-database-lookup": {
-    "category": "research",
+    "category": "future",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-deep-research": {
-    "category": "research",
+    "category": "future",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-document": {
-    "category": "utility",
+    "category": "future",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-experimental-design": {
-    "category": "research",
+    "category": "future",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-hand-drawn-posters": {
-    "category": "creative",
+    "category": "future",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-hand-drawn-slides": {
-    "category": "creative",
+    "category": "future",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-image": {
-    "category": "creative",
+    "category": "future",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-paper": {
-    "category": "research",
+    "category": "future",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-peer-review": {
-    "category": "research",
+    "category": "future",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-scientific-writing": {
-    "category": "research",
+    "category": "future",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-skill-creator": {
-    "category": "development",
+    "category": "future",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-subagent": {
-    "category": "orchestration",
+    "category": "future",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-web": {
-    "category": "research",
+    "category": "future",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "adaptyv": {
+    "category": "wet-lab",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "aeon": {
+    "category": "data-ml",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "anndata": {
+    "category": "bioinformatics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "arbor": {
+    "category": "neuroscience",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "arboreto": {
+    "category": "bioinformatics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "astropy": {
+    "category": "physics-quantum",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "autoskill": {
+    "category": "tools",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "benchling-integration": {
+    "category": "wet-lab",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "bids": {
+    "category": "neuroscience",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "biopython": {
+    "category": "bioinformatics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "bioservices": {
+    "category": "databases",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "bulk-rnaseq": {
+    "category": "bioinformatics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "cellxgene-census": {
+    "category": "bioinformatics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "cirq": {
+    "category": "physics-quantum",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "clinical-decision-support": {
+    "category": "clinical",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "clinical-reports": {
+    "category": "clinical",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "cobrapy": {
+    "category": "other",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "consciousness-council": {
+    "category": "methodology",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "dask": {
+    "category": "workflow",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "database-lookup": {
+    "category": "databases",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "datamol": {
+    "category": "chemistry-drug",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "deepchem": {
+    "category": "chemistry-drug",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "deeptools": {
+    "category": "bioinformatics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "depmap": {
+    "category": "clinical",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "dhdna-profiler": {
+    "category": "bioinformatics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "diffdock": {
+    "category": "chemistry-drug",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "dnanexus-integration": {
+    "category": "bioinformatics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "esm": {
+    "category": "tools",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "etetoolkit": {
+    "category": "bioinformatics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "experimental-design": {
+    "category": "other",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "exploratory-data-analysis": {
+    "category": "statistics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "flowio": {
+    "category": "neuroscience",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "fluidsim": {
+    "category": "physics-quantum",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "geniml": {
+    "category": "databases",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "geomaster": {
+    "category": "materials",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "geopandas": {
+    "category": "data-ml",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "get-available-resources": {
+    "category": "databases",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "gget": {
+    "category": "databases",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "ginkgo-cloud-lab": {
+    "category": "wet-lab",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "glycoengineering": {
+    "category": "bioinformatics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "gtars": {
+    "category": "bioinformatics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "histolab": {
+    "category": "medical-imaging",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "hugging-science": {
+    "category": "data-ml",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "hypogenic": {
+    "category": "methodology",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "hypothesis-generation": {
+    "category": "methodology",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "imaging-data-commons": {
+    "category": "databases",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "iso-13485-certification": {
+    "category": "other",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "labarchive-integration": {
+    "category": "wet-lab",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "lamindb": {
+    "category": "wet-lab",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "latchbio-integration": {
+    "category": "bioinformatics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "latex-posters": {
+    "category": "tools",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "markdown-mermaid-writing": {
+    "category": "tools",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "market-research-reports": {
+    "category": "other",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "matchms": {
+    "category": "chemistry-drug",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "matlab": {
+    "category": "tools",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "matplotlib": {
+    "category": "data-ml",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "medchem": {
+    "category": "chemistry-drug",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "modal": {
+    "category": "workflow",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "molecular-dynamics": {
+    "category": "chemistry-drug",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "molfeat": {
+    "category": "chemistry-drug",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "networkx": {
+    "category": "tools",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "neurokit2": {
+    "category": "neuroscience",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "neuropixels-analysis": {
+    "category": "neuroscience",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "nextflow": {
+    "category": "workflow",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "omero-integration": {
+    "category": "medical-imaging",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "onekgpd": {
+    "category": "bioinformatics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "open-notebook": {
+    "category": "wet-lab",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "opentrons-integration": {
+    "category": "wet-lab",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "optimize-for-gpu": {
+    "category": "workflow",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "pacsomatic": {
+    "category": "medical-imaging",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "paperzilla": {
+    "category": "tools",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "pathml": {
+    "category": "medical-imaging",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "pathway-enrichment": {
+    "category": "clinical",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "peer-review": {
+    "category": "other",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "pennylane": {
+    "category": "physics-quantum",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "phylogenetics": {
+    "category": "bioinformatics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "pi-agent": {
+    "category": "tools",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "polars": {
+    "category": "data-ml",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "polars-bio": {
+    "category": "bioinformatics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "primekg": {
+    "category": "clinical",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "protocolsio-integration": {
+    "category": "wet-lab",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "pufferlib": {
+    "category": "data-ml",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "pydeseq2": {
+    "category": "statistics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "pydicom": {
+    "category": "medical-imaging",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "pyhealth": {
+    "category": "clinical",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "pylabrobot": {
+    "category": "wet-lab",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "pymatgen": {
+    "category": "materials",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "pymc": {
+    "category": "data-ml",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "pymoo": {
+    "category": "statistics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "pyopenms": {
+    "category": "chemistry-drug",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "pysam": {
+    "category": "bioinformatics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "pytdc": {
+    "category": "chemistry-drug",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "pytorch-lightning": {
+    "category": "data-ml",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "pyzotero": {
+    "category": "tools",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "qiskit": {
+    "category": "physics-quantum",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "qutip": {
+    "category": "physics-quantum",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "rdkit": {
+    "category": "chemistry-drug",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "research-grants": {
+    "category": "other",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "rowan": {
+    "category": "physics-quantum",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "scanpy": {
+    "category": "bioinformatics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "scholar-evaluation": {
+    "category": "methodology",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "scientific-brainstorming": {
+    "category": "methodology",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "scientific-critical-thinking": {
+    "category": "methodology",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "scientific-schematics": {
+    "category": "tools",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "scientific-visualization": {
+    "category": "tools",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "scientific-writing": {
+    "category": "other",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "scikit-bio": {
+    "category": "bioinformatics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "scikit-learn": {
+    "category": "data-ml",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "scikit-survival": {
+    "category": "statistics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "scvelo": {
+    "category": "bioinformatics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "scvi-tools": {
+    "category": "bioinformatics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "seaborn": {
+    "category": "data-ml",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "shap": {
+    "category": "data-ml",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "simpy": {
+    "category": "statistics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "stable-baselines3": {
+    "category": "data-ml",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "statistical-analysis": {
+    "category": "statistics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "statistical-power": {
+    "category": "statistics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "statsmodels": {
+    "category": "statistics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "sympy": {
+    "category": "tools",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "tamarind": {
+    "category": "tools",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "tiledbvcf": {
+    "category": "bioinformatics",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "timesfm-forecasting": {
+    "category": "data-ml",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "torch-geometric": {
+    "category": "data-ml",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "torchdrug": {
+    "category": "chemistry-drug",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "transformers": {
+    "category": "data-ml",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "treatment-plans": {
+    "category": "clinical",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "umap-learn": {
+    "category": "data-ml",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "usfiscaldata": {
+    "category": "other",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "vaex": {
+    "category": "data-ml",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "venue-templates": {
+    "category": "tools",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "what-if-oracle": {
+    "category": "methodology",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "xlsx": {
+    "category": "tools",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  },
+  "zarr-python": {
+    "category": "workflow",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",

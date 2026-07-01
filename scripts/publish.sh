@@ -47,6 +47,69 @@ parse_frontmatter() {
     ' "$file"
 }
 
+# Parse version from SKILL.md frontmatter.
+# Compatible with two formats:
+#   1. Top-level:  version: 2.5.0  (Future skills)
+#   2. Nested JSON: metadata: {"version": "1.3", ...}  (third-party skills)
+parse_version() {
+    local file="$1"
+    local ver
+    # 1. Try top-level version first
+    ver=$(parse_frontmatter "$file" "version")
+    if [ -n "$ver" ]; then
+        echo "$ver"
+        return
+    fi
+    # 2. Fallback: extract version from metadata block.
+    #    Supports two formats:
+    #      a. inline JSON:  metadata: {"version": "1.3", ...}
+    #      b. multi-line YAML:
+    #           metadata:
+    #             version: "1.1"
+    #             skill-author: "..."
+    python3 -c "
+import sys, json
+text = open('$file').read()
+parts = text.split('---')
+if len(parts) >= 3:
+    fm = parts[1]
+    lines = fm.split('\n')
+    in_meta = False
+    meta_lines = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith('metadata:'):
+            # Try inline JSON first
+            rest = stripped.split(':', 1)[1].strip()
+            if rest:
+                try:
+                    meta = json.loads(rest)
+                    v = meta.get('version', '')
+                    if v:
+                        print(v)
+                        break
+                except Exception:
+                    pass
+            # Fall through to multi-line parsing
+            in_meta = True
+            continue
+        if in_meta:
+            if line and line[0] in (' ', '\t'):
+                meta_lines.append(stripped)
+            else:
+                # End of metadata block
+                in_meta = False
+                # Parse collected lines as simple key: value pairs
+                for ml in meta_lines:
+                    if ml.startswith('version:'):
+                        v = ml.split(':', 1)[1].strip().strip('\"')
+                        if v:
+                            print(v)
+                            break
+                break
+" 2>/dev/null
+}
+
 # ---- main ----
 
 SKILL_DIR="$REPO_ROOT/$SKILL_PATH"
@@ -61,7 +124,7 @@ echo "Publishing $SKILL_PATH..."
 
 # 1. Extract metadata from SKILL.md frontmatter
 NAME=$(parse_frontmatter "$SKILL_MD" "name")
-VERSION=$(parse_frontmatter "$SKILL_MD" "version")
+VERSION=$(parse_version "$SKILL_MD")
 DESC=$(parse_frontmatter "$SKILL_MD" "description")
 
 [ -n "$NAME" ]    || die "Could not parse 'name' from SKILL.md frontmatter"
