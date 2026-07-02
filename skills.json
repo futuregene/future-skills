@@ -4,105 +4,105 @@
     "token": "future-admin-dev-token"
   },
   "future-account": {
-    "category": "future",
+    "category": "builtin",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-browser": {
-    "category": "future",
+    "category": "builtin",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-database-lookup": {
-    "category": "future",
+    "category": "builtin",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-deep-research": {
-    "category": "future",
+    "category": "builtin",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-document": {
-    "category": "future",
+    "category": "builtin",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-experimental-design": {
-    "category": "future",
+    "category": "builtin",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-hand-drawn-posters": {
-    "category": "future",
+    "category": "builtin",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-hand-drawn-slides": {
-    "category": "future",
+    "category": "builtin",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-image": {
-    "category": "future",
+    "category": "builtin",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-paper": {
-    "category": "future",
+    "category": "builtin",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-peer-review": {
-    "category": "future",
+    "category": "builtin",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-scientific-writing": {
-    "category": "future",
+    "category": "builtin",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-skill-creator": {
-    "category": "future",
+    "category": "builtin",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-subagent": {
-    "category": "future",
+    "category": "builtin",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true
   },
   "future-web": {
-    "category": "future",
+    "category": "builtin",
     "price": "Free",
     "formats": "SKILL.md",
     "limit": "None",

@@ -2,7 +2,7 @@
 # Publish a skill from future-skills to future-server via the admin API.
 # Usage: bash scripts/publish.sh <skill-path> [overwrite]
 #
-#   skill-path: path relative to repo root, e.g. "future/future-account"
+#   skill-path: path relative to repo root, e.g. "builtin/future-account"
 #               or "third-party/my-skill".
 #   overwrite:  "true" or "false" (default: false).
 #

@@ -11,14 +11,14 @@ download:
 # OVERWRITE defaults to false.
 #
 # Usage:
-#   make publish future/future-account          # single skill
+#   make publish builtin/future-account          # single skill
 #   make publish third-party/some-skill         # single third-party skill
-#   make publish all                            # all skills in future/ and third-party/
+#   make publish all                            # all skills in builtin/ and third-party/
 #   OVERWRITE=true make publish all             # overwrite all
 publish:
 	@skill="$(filter-out $@,$(MAKECMDGOALS))"; \
 	if [ "$$skill" = "all" ]; then \
-		for d in future/*/ third-party/*/; do \
+		for d in builtin/*/ third-party/*/; do \
 			[ -d "$$d" ] || continue; \
 			echo "=== Publishing $$d ==="; \
 			bash scripts/publish.sh "$$d" $(OVERWRITE) || echo "=== SKIPPED (failed): $$d ==="; \
@@ -27,7 +27,7 @@ publish:
 		bash scripts/publish.sh "$$skill" $(OVERWRITE); \
 	fi
 
-# Publish all skills in future/ and third-party/ directories.
+# Publish all skills in builtin/ and third-party/ directories.
 # Convenience alias for "make publish all".
 # OVERWRITE=true make publish-all
 publish-all:
