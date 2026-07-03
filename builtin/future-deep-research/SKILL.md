@@ -287,9 +287,9 @@ allowed-tools: Bash(future:*)
 
   Step 4: 抓取降级（对 ❌ 和 ⚠️ 的 URL）
     对空内容/过短的 URL，用浏览器降级重试：
-      future tools call browser_start --args '{"url": "..."}'
-      future tools call browser_snapshot --args '{"limit": 100}'
-      future tools call browser_screenshot --args '{"fullPage": true, "path": "./page.png"}'
+      future tools call browser --args '{"command":"start","url": "..."}'
+      future tools call browser --args '{"command":"snapshot","limit": 100}'
+      future tools call browser --args '{"command":"screenshot","fullPage": true, "path": "./page.png"}'
     
     浏览器抓取后再次检查内容充分性：
       - 内容充分 → 标记 ✅
@@ -732,19 +732,19 @@ allowed-tools: Bash(future:*)
 
 ```bash
 # Step 1: 启动或检查浏览器
-future tools call browser_start --args '{"url": "<目标URL>"}'
+future tools call browser --args '{"command":"start","url": "<目标URL>"}'
 
 # Step 2: 打开页面
-future tools call browser_open --args '{"url": "<目标URL>"}'
+future tools call browser --args '{"command":"open","url": "<目标URL>"}'
 
 # Step 3: 等待渲染后获取 DOM 快照
-future tools call browser_snapshot --args '{"limit": 100}'
+future tools call browser --args '{"command":"snapshot","limit": 100}'
 
 # Step 4: 如需完整页面内容，截图保存
-future tools call browser_screenshot --args '{"fullPage": true, "path": "./deep-research-page.png"}'
+future tools call browser --args '{"command":"screenshot","fullPage": true, "path": "./deep-research-page.png"}'
 
 # Step 5: 检测控制台错误
-future tools call browser_console --args '{"level": "error"}'
+future tools call browser --args '{"command":"console","level": "error"}'
 ```
 
 ### 降级与补抓记录
