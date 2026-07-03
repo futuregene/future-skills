@@ -4,8 +4,8 @@ version: "0.0.1"
 description: Core skill for the deep research and writing tool. Write scientific manuscripts in full paragraphs (never bullet points). Use two-stage process with (1) section outlines with key points using research-lookup then (2) convert to flowing prose. IMRAD structure, citations (APA/AMA/Vancouver), figures/tables, reporting guidelines (CONSORT/STROBE/PRISMA), for research papers and journal submissions.
 allowed-tools: Read Write Edit Bash
 license: MIT license
-required_environment_variables: [{"name": "OPENROUTER_API_KEY", "prompt": "OpenRouter API key for the skill's LLM-powered steps.", "required_for": "optional features"}]
-metadata: {"skill-author": "K-Dense Inc.", "openclaw": {"primaryEnv": "OPENROUTER_API_KEY", "envVars": [{"name": "OPENROUTER_API_KEY", "required": false, "description": "OpenRouter API key for the skill's LLM-powered steps."}]}}
+required_environment_variables: []
+metadata: {"skill-author": "K-Dense Inc.", "openclaw": {"primaryEnv": "FUTURE_AUTH_CREDENTIAL", "envVars": [{"name": "FUTURE_AUTH_CREDENTIAL", "required": false, "description": "Uses `future auth credential` CLI for API key and endpoint. Run `future auth login` first."}]}}
 ---
 
 # Scientific Writing

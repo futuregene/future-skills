@@ -1,222 +1,116 @@
 #!/usr/bin/env python3
 """
-Generate and edit images using OpenRouter API with various image generation models.
+Generate and edit images using the future CLI image tools.
 
-Supports models like:
-- google/gemini-3.1-flash-image-preview (generation and editing)
-- black-forest-labs/flux.2-pro (generation and editing)
-- black-forest-labs/flux.2-flex (generation)
-- And more image generation models available on OpenRouter
+Supports:
+- Image generation from text prompts (future tools call image_gen)
+- Image editing from text prompts + input image (future tools call image_edit)
 
-For image editing, provide an input image along with an editing prompt.
+Authentication is automatic — the future CLI reads credentials from ~/.future/agent/auth.json.
 """
 
-import sys
-import json
-import base64
 import argparse
+import json
+import subprocess
+import sys
 from pathlib import Path
-from typing import Optional
 
 
-def check_env_file() -> Optional[str]:
-    """Check if .env file exists and contains OPENROUTER_API_KEY."""
-    # Look for .env in current directory and parent directories
-    current_dir = Path.cwd()
-    for parent in [current_dir] + list(current_dir.parents):
-        env_file = parent / ".env"
-        if env_file.exists():
-            with open(env_file, 'r') as f:
-                for line in f:
-                    if line.startswith('OPENROUTER_API_KEY='):
-                        api_key = line.split('=', 1)[1].strip().strip('"').strip("'")
-                        if api_key:
-                            return api_key
-    return None
-
-
-def load_image_as_base64(image_path: str) -> str:
-    """Load an image file and return it as a base64 data URL."""
-    path = Path(image_path)
-    if not path.exists():
-        print(f"❌ Error: Image file not found: {image_path}")
+def _run_future(args: list, timeout: int = 600) -> subprocess.CompletedProcess:
+    """Run a future CLI command and return the result."""
+    try:
+        result = subprocess.run(
+            ["future"] + args,
+            capture_output=True, text=True, timeout=timeout
+        )
+        return result
+    except subprocess.TimeoutExpired:
+        print("❌ Error: Command timed out")
         sys.exit(1)
-    
-    # Determine MIME type from extension
-    ext = path.suffix.lower()
-    mime_types = {
-        '.png': 'image/png',
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.gif': 'image/gif',
-        '.webp': 'image/webp',
-    }
-    mime_type = mime_types.get(ext, 'image/png')
-    
-    with open(path, 'rb') as f:
-        image_data = f.read()
-    
-    base64_data = base64.b64encode(image_data).decode('utf-8')
-    return f"data:{mime_type};base64,{base64_data}"
-
-
-def save_base64_image(base64_data: str, output_path: str) -> None:
-    """Save base64 encoded image to file."""
-    # Remove data URL prefix if present
-    if ',' in base64_data:
-        base64_data = base64_data.split(',', 1)[1]
-
-    # Decode and save
-    image_data = base64.b64decode(base64_data)
-    with open(output_path, 'wb') as f:
-        f.write(image_data)
+    except FileNotFoundError:
+        print("❌ Error: `future` CLI not found. Please install it first.")
+        sys.exit(1)
 
 
 def generate_image(
     prompt: str,
-    model: str = "google/gemini-3.1-flash-image-preview",
     output_path: str = "generated_image.png",
-    api_key: Optional[str] = None,
-    input_image: Optional[str] = None
+    size: str = "1024x1024",
+    quality: str = "high",
+    input_image: str | None = None
 ) -> dict:
     """
-    Generate or edit an image using OpenRouter API.
+    Generate or edit an image using the future CLI.
 
     Args:
-        prompt: Text description of the image to generate, or editing instructions
-        model: OpenRouter model ID (default: google/gemini-3.1-flash-image-preview)
+        prompt: Text description or editing instructions
         output_path: Path to save the generated image
-        api_key: OpenRouter API key (will check .env if not provided)
+        size: Image size (1024x1024, 1792x1024, 1024x1792, 2560x1440, 3840x2160)
+        quality: Image quality (low, medium, high)
         input_image: Path to an input image for editing (optional)
 
     Returns:
-        dict: Response from OpenRouter API
+        dict: Parsed JSON response from the CLI
     """
-    try:
-        import requests
-    except ImportError:
-        print("Error: 'requests' library not found. Install with: pip install requests")
-        sys.exit(1)
-
-    # Check for API key
-    if not api_key:
-        api_key = check_env_file()
-
-    if not api_key:
-        print("❌ Error: OPENROUTER_API_KEY not found!")
-        print("\nPlease create a .env file in your project directory with:")
-        print("OPENROUTER_API_KEY=your-api-key-here")
-        print("\nOr set the environment variable:")
-        print("export OPENROUTER_API_KEY=your-api-key-here")
-        print("\nGet your API key from: https://openrouter.ai/keys")
-        sys.exit(1)
-
-    # Determine if this is generation or editing
-    is_editing = input_image is not None
-    
-    if is_editing:
-        print(f"✏️ Editing image with model: {model}")
-        print(f"📷 Input image: {input_image}")
-        print(f"📝 Edit prompt: {prompt}")
-        
-        # Load input image as base64
-        image_data_url = load_image_as_base64(input_image)
-        
-        # Build multimodal message content for image editing
-        message_content = [
-            {
-                "type": "text",
-                "text": prompt
-            },
-            {
-                "type": "image_url",
-                "image_url": {
-                    "url": image_data_url
-                }
-            }
-        ]
-    else:
-        print(f"🎨 Generating image with model: {model}")
-        print(f"📝 Prompt: {prompt}")
-        message_content = prompt
-
-    # Make API request
-    response = requests.post(
-        url="https://openrouter.ai/api/v1/chat/completions",
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
-        json={
-            "model": model,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": message_content
-                }
-            ],
-            "modalities": ["image", "text"]
+    if input_image:
+        tool = "image_edit"
+        args_dict = {
+            "prompt": prompt,
+            "image_path": str(Path(input_image).resolve()),
+            "quality": quality,
+            "output_format": Path(output_path).suffix.lstrip(".") or "png"
         }
-    )
+        print(f"✏️ Editing image: {input_image}")
+        print(f"📝 Edit prompt: {prompt}")
+    else:
+        tool = "image_gen"
+        args_dict = {
+            "prompt": prompt,
+            "size": size,
+            "quality": quality,
+            "output_format": Path(output_path).suffix.lstrip(".") or "png"
+        }
+        print(f"🎨 Generating image")
+        print(f"📝 Prompt: {prompt}")
+        print(f"📐 Size: {size}")
 
-    # Check for errors
-    if response.status_code != 200:
-        print(f"❌ API Error ({response.status_code}): {response.text}")
+    print(f"⏳ Working (this may take a few minutes)...")
+
+    result = _run_future([
+        "tools", "call", tool,
+        "--args", json.dumps(args_dict),
+        "--output", output_path
+    ])
+
+    if result.returncode != 0:
+        # Try to parse error from stderr or stdout
+        error_msg = result.stderr.strip() or result.stdout.strip()
+        try:
+            error_json = json.loads(error_msg)
+            error_msg = error_json.get("error", error_json.get("message", str(error_json)))
+        except (json.JSONDecodeError, TypeError):
+            pass
+        print(f"❌ CLI Error: {error_msg}")
         sys.exit(1)
 
-    result = response.json()
+    # Parse JSON output for any warnings/notes
+    try:
+        response = json.loads(result.stdout.strip()) if result.stdout.strip() else {}
+    except json.JSONDecodeError:
+        response = {"raw": result.stdout.strip()}
 
-    # Extract and save image
-    if result.get("choices"):
-        message = result["choices"][0]["message"]
-
-        # Handle both 'images' and 'content' response formats
-        images = []
-
-        if message.get("images"):
-            images = message["images"]
-        elif message.get("content"):
-            # Some models return content as array with image parts
-            content = message["content"]
-            if isinstance(content, list):
-                for part in content:
-                    if isinstance(part, dict) and part.get("type") == "image":
-                        images.append(part)
-
-        if images:
-            # Save the first image
-            image = images[0]
-            if "image_url" in image:
-                image_url = image["image_url"]["url"]
-                save_base64_image(image_url, output_path)
-                print(f"✅ Image saved to: {output_path}")
-            elif "url" in image:
-                save_base64_image(image["url"], output_path)
-                print(f"✅ Image saved to: {output_path}")
-            else:
-                print(f"⚠️ Unexpected image format: {image}")
-        else:
-            print("⚠️ No image found in response")
-            if message.get("content"):
-                print(f"Response content: {message['content']}")
-    else:
-        print("❌ No choices in response")
-        print(f"Response: {json.dumps(result, indent=2)}")
-
-    return result
+    print(f"✅ Image saved to: {output_path}")
+    return response
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate or edit images using OpenRouter API",
+        description="Generate or edit images using future CLI image tools",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Generate with default model (Gemini 3.1 Flash Image Preview)
+  # Generate an image
   python generate_image.py "A beautiful sunset over mountains"
-
-  # Use a specific model
-  python generate_image.py "A cat in space" --model "black-forest-labs/flux.2-pro"
 
   # Specify output path
   python generate_image.py "Abstract art" --output my_image.png
@@ -224,13 +118,16 @@ Examples:
   # Edit an existing image
   python generate_image.py "Make the sky purple" --input photo.jpg --output edited.png
 
-  # Edit with a specific model
-  python generate_image.py "Add a hat to the person" --input portrait.png -m "black-forest-labs/flux.2-pro"
+  # Custom size
+  python generate_image.py "A wide landscape" --size 1792x1024
 
-Popular image models:
-  - google/gemini-3.1-flash-image-preview (default, high quality, generation + editing)
-  - black-forest-labs/flux.2-pro (fast, high quality, generation + editing)
-  - black-forest-labs/flux.2-flex (development version)
+  # Fast generation (lower quality)
+  python generate_image.py "Quick sketch" --quality low
+
+Sizes: 1024x1024 (default), 1792x1024, 1024x1792, 2560x1440, 3840x2160
+
+Authentication is automatic via `~/.future/agent/auth.json`.
+No API key needed.
         """
     )
 
@@ -238,13 +135,6 @@ Popular image models:
         "prompt",
         type=str,
         help="Text description of the image to generate, or editing instructions"
-    )
-
-    parser.add_argument(
-        "--model", "-m",
-        type=str,
-        default="google/gemini-3.1-flash-image-preview",
-        help="OpenRouter model ID (default: google/gemini-3.1-flash-image-preview)"
     )
 
     parser.add_argument(
@@ -261,18 +151,28 @@ Popular image models:
     )
 
     parser.add_argument(
-        "--api-key",
+        "--size", "-s",
         type=str,
-        help="OpenRouter API key (will check .env if not provided)"
+        default="1024x1024",
+        choices=["1024x1024", "1792x1024", "1024x1792", "2560x1440", "3840x2160"],
+        help="Image size (default: 1024x1024)"
+    )
+
+    parser.add_argument(
+        "--quality", "-q",
+        type=str,
+        default="high",
+        choices=["low", "medium", "high"],
+        help="Image quality (default: high)"
     )
 
     args = parser.parse_args()
 
     generate_image(
         prompt=args.prompt,
-        model=args.model,
         output_path=args.output,
-        api_key=args.api_key,
+        size=args.size,
+        quality=args.quality,
         input_image=args.input
     )
 

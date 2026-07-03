@@ -4,8 +4,8 @@ version: "0.0.1"
 description: Structured manuscript/grant review with checklist-based evaluation. Use when writing formal peer reviews with specific criteria methodology assessment, statistical validity, reporting standards compliance (CONSORT/STROBE), and constructive feedback. Best for actual review writing, manuscript revision. For evaluating claims/evidence quality use scientific-critical-thinking; for quantitative scoring frameworks use scholar-evaluation.
 allowed-tools: Read Write Edit Bash
 license: MIT license
-required_environment_variables: [{"name": "OPENROUTER_API_KEY", "prompt": "OpenRouter API key for the skill's LLM-powered steps.", "required_for": "optional features"}]
-metadata: {"skill-author": "K-Dense Inc.", "openclaw": {"primaryEnv": "OPENROUTER_API_KEY", "envVars": [{"name": "OPENROUTER_API_KEY", "required": false, "description": "OpenRouter API key for the skill's LLM-powered steps."}]}}
+required_environment_variables: []
+metadata: {"skill-author": "K-Dense Inc.", "openclaw": {"primaryEnv": "FUTURE_AUTH_CREDENTIAL", "envVars": [{"name": "FUTURE_AUTH_CREDENTIAL", "required": false, "description": "Uses `future auth credential` CLI for API key and endpoint. Run `future auth login` first."}]}}
 ---
 
 # Scientific Critical Evaluation and Peer Review

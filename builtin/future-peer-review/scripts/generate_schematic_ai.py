@@ -1,77 +1,77 @@
 #!/usr/bin/env python3
 """
-AI-powered scientific schematic generation using Nano Banana 2.
+AI-powered scientific schematic generation with smart iterative refinement.
 
-This script uses a smart iterative refinement approach:
-1. Generate initial image with Nano Banana 2
-2. AI quality review using Gemini 3.1 Pro Preview for scientific critique
+Pipeline:
+1. Generate initial image via `future tools call image_gen`
+2. AI quality review via `future tools call read_image`
 3. Only regenerate if quality is below threshold for document type
-4. Repeat until quality meets standards (max iterations)
+4. Repeat until quality meets standards (max 2 iterations)
 
-Requirements:
-    - OPENROUTER_API_KEY environment variable
-    - requests library
+Authentication is automatic — the future CLI reads credentials from ~/.future/agent/auth.json.
 
 Usage:
-    python generate_schematic_ai.py "Create a flowchart showing CONSORT participant flow" -o flowchart.png
-    python generate_schematic_ai.py "Neural network architecture diagram" -o architecture.png --iterations 2
-    python generate_schematic_ai.py "Simple block diagram" -o diagram.png --doc-type poster
+    python generate_schematic_ai.py "CONSORT participant flow diagram" -o flowchart.png
+    python generate_schematic_ai.py "Neural network architecture" -o arch.png --doc-type poster
 """
 
 import argparse
-import base64
 import json
 import os
+import re
+import shutil
+import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Any
 
-try:
-    import requests
-except ImportError:
-    print("Error: requests library not found. Install with: pip install requests")
-    sys.exit(1)
 
-# Try to load .env file from multiple potential locations
-def _load_env_file():
-    """Load .env file from current directory or script directory only."""
+def _run_future(args: list, timeout: int = 600) -> subprocess.CompletedProcess:
+    """Run a future CLI command. Exits on fatal errors."""
     try:
-        from dotenv import load_dotenv
-    except ImportError:
-        return False
+        result = subprocess.run(
+            ["future"] + args,
+            capture_output=True, text=True, timeout=timeout
+        )
+        return result
+    except subprocess.TimeoutExpired:
+        print("❌ Error: Command timed out")
+        sys.exit(1)
+    except FileNotFoundError:
+        print("❌ Error: `future` CLI not found. Please install it first.")
+        sys.exit(1)
 
-    for candidate in [Path.cwd() / ".env", Path(__file__).resolve().parent / ".env"]:
-        if candidate.exists():
-            load_dotenv(dotenv_path=candidate, override=False)
-            return True
 
-    return False
+def _parse_cli_json(result: subprocess.CompletedProcess) -> dict:
+    """Parse JSON from CLI stdout, fall back to raw text."""
+    out = result.stdout.strip() if result.stdout else ""
+    try:
+        return json.loads(out) if out else {}
+    except json.JSONDecodeError:
+        return {"raw": out}
 
 
 class ScientificSchematicGenerator:
     """Generate scientific schematics using AI with smart iterative refinement.
-    
-    Uses Gemini 3.1 Pro Preview for quality review to determine if regeneration is needed.
+
+    Uses future CLI image_gen for generation and read_image for quality review.
     Multiple passes only occur if the generated schematic doesn't meet the
     quality threshold for the target document type.
     """
-    
-    # Quality thresholds by document type (score out of 10)
-    # Higher thresholds for more formal publications
+
     QUALITY_THRESHOLDS = {
-        "journal": 8.5,      # Nature, Science, etc. - highest standards
-        "conference": 8.0,   # Conference papers - high standards
-        "poster": 7.0,       # Academic posters - good quality
-        "presentation": 6.5, # Slides/talks - clear but less formal
-        "report": 7.5,       # Technical reports - professional
-        "grant": 8.0,        # Grant proposals - must be compelling
-        "thesis": 8.0,       # Dissertations - formal academic
-        "preprint": 7.5,     # arXiv, etc. - good quality
-        "default": 7.5,      # Default threshold
+        "journal": 8.5,
+        "conference": 8.0,
+        "poster": 7.0,
+        "presentation": 6.5,
+        "report": 7.5,
+        "grant": 8.0,
+        "thesis": 8.0,
+        "preprint": 7.5,
+        "default": 7.5,
     }
-    
-    # Scientific diagram best practices prompt template
+
     SCIENTIFIC_DIAGRAM_GUIDELINES = """
 Create a high-quality scientific diagram with these requirements:
 
@@ -115,314 +115,59 @@ IMPORTANT - NO FIGURE NUMBERS:
 - Figure numbers and captions are added separately in the document/LaTeX
 - The diagram should contain only the visual content itself
 """
-    
-    def __init__(self, api_key: Optional[str] = None, verbose: bool = False):
-        """
-        Initialize the generator.
-        
-        Args:
-            api_key: OpenRouter API key (or use OPENROUTER_API_KEY env var)
-            verbose: Print detailed progress information
-        """
-        # Priority: 1) explicit api_key param, 2) environment variable, 3) .env file
-        self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
-        
-        # If not found in environment, try loading from .env file
-        if not self.api_key:
-            _load_env_file()
-            self.api_key = os.getenv("OPENROUTER_API_KEY")
-        
-        if not self.api_key:
-            raise ValueError(
-                "OPENROUTER_API_KEY not found. Please either:\n"
-                "  1. Set the OPENROUTER_API_KEY environment variable\n"
-                "  2. Add OPENROUTER_API_KEY to your .env file\n"
-                "  3. Pass api_key parameter to the constructor\n"
-                "Get your API key from: https://openrouter.ai/keys"
-            )
-        
+
+    def __init__(self, verbose: bool = False):
         self.verbose = verbose
-        self._last_error = None  # Track last error for better reporting
-        self.base_url = "https://openrouter.ai/api/v1"
-        # Nano Banana 2 - Google's advanced image generation model
-        # https://openrouter.ai/google/gemini-3-pro-image-preview
-        self.image_model = "google/gemini-3.1-flash-image-preview"
-        # Gemini 3.1 Pro Preview for quality review - excellent vision and reasoning
-        self.review_model = "google/gemini-3.1-pro-preview"
-        
+        self._last_error: Optional[str] = None
+
     def _log(self, message: str):
-        """Log message if verbose mode is enabled."""
         if self.verbose:
             print(f"[{time.strftime('%H:%M:%S')}] {message}")
-    
-    def _make_request(self, model: str, messages: List[Dict[str, Any]], 
-                     modalities: Optional[List[str]] = None) -> Dict[str, Any]:
-        """
-        Make a request to OpenRouter API.
-        
-        Args:
-            model: Model identifier
-            messages: List of message dictionaries
-            modalities: Optional list of modalities (e.g., ["image", "text"])
-            
-        Returns:
-            API response as dictionary
-        """
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://github.com/scientific-writer",
-            "X-Title": "Scientific Schematic Generator"
+
+    def generate_image(self, prompt: str, output_path: str, size: str = "1024x1024") -> bool:
+        """Generate image via future CLI image_gen. Returns True on success."""
+        self._last_error = None
+
+        args_dict = {
+            "prompt": prompt,
+            "size": size,
+            "quality": "high",
+            "output_format": Path(output_path).suffix.lstrip(".") or "png",
         }
-        
-        payload = {
-            "model": model,
-            "messages": messages
-        }
-        
-        if modalities:
-            payload["modalities"] = modalities
-        
-        self._log(f"Making request to {model}...")
-        
-        try:
-            response = requests.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=120
-            )
-            
-            # Try to get response body even on error
+
+        self._log(f"Calling image_gen (size={size})...")
+        result = _run_future([
+            "tools", "call", "image_gen",
+            "--args", json.dumps(args_dict),
+            "--output", output_path,
+        ])
+
+        if result.returncode != 0:
+            error_msg = result.stderr.strip() or result.stdout.strip()
             try:
-                response_json = response.json()
-            except json.JSONDecodeError:
-                response_json = {"raw_text": response.text[:500]}
-            
-            # Check for HTTP errors but include response body in error message
-            if response.status_code != 200:
-                error_detail = response_json.get("error", response_json)
-                self._log(f"HTTP {response.status_code}: {error_detail}")
-                raise RuntimeError(f"API request failed (HTTP {response.status_code}): {error_detail}")
-            
-            return response_json
-        except requests.exceptions.Timeout:
-            raise RuntimeError("API request timed out after 120 seconds")
-        except requests.exceptions.RequestException as e:
-            raise RuntimeError(f"API request failed: {str(e)}")
-    
-    def _extract_image_from_response(self, response: Dict[str, Any]) -> Optional[bytes]:
-        """
-        Extract base64-encoded image from API response.
-        
-        For Nano Banana 2, images are returned in the 'images' field of the message,
-        not in the 'content' field.
-        
-        Args:
-            response: API response dictionary
-            
-        Returns:
-            Image bytes or None if not found
-        """
-        try:
-            choices = response.get("choices", [])
-            if not choices:
-                self._log("No choices in response")
-                return None
-            
-            message = choices[0].get("message", {})
-            
-            # IMPORTANT: Nano Banana 2 returns images in the 'images' field
-            images = message.get("images", [])
-            if images and len(images) > 0:
-                self._log(f"Found {len(images)} image(s) in 'images' field")
-                
-                # Get first image
-                first_image = images[0]
-                if isinstance(first_image, dict):
-                    # Extract image_url
-                    if first_image.get("type") == "image_url":
-                        url = first_image.get("image_url", {})
-                        if isinstance(url, dict):
-                            url = url.get("url", "")
-                        
-                        if url and url.startswith("data:image"):
-                            # Extract base64 data after comma
-                            if "," in url:
-                                base64_str = url.split(",", 1)[1]
-                                # Clean whitespace
-                                base64_str = base64_str.replace('\n', '').replace('\r', '').replace(' ', '')
-                                self._log(f"Extracted base64 data (length: {len(base64_str)})")
-                                return base64.b64decode(base64_str)
-            
-            # Fallback: check content field (for other models or future changes)
-            content = message.get("content", "")
-            
-            if self.verbose:
-                self._log(f"Content type: {type(content)}, length: {len(str(content))}")
-            
-            # Handle string content
-            if isinstance(content, str) and "data:image" in content:
-                import re
-                match = re.search(r'data:image/[^;]+;base64,([A-Za-z0-9+/=\n\r]+)', content, re.DOTALL)
-                if match:
-                    base64_str = match.group(1).replace('\n', '').replace('\r', '').replace(' ', '')
-                    self._log(f"Found image in content field (length: {len(base64_str)})")
-                    return base64.b64decode(base64_str)
-            
-            # Handle list content
-            if isinstance(content, list):
-                for i, block in enumerate(content):
-                    if isinstance(block, dict) and block.get("type") == "image_url":
-                        url = block.get("image_url", {})
-                        if isinstance(url, dict):
-                            url = url.get("url", "")
-                        if url and url.startswith("data:image") and "," in url:
-                            base64_str = url.split(",", 1)[1].replace('\n', '').replace('\r', '').replace(' ', '')
-                            self._log(f"Found image in content block {i}")
-                            return base64.b64decode(base64_str)
-            
-            self._log("No image data found in response")
-            return None
-            
-        except Exception as e:
-            self._log(f"Error extracting image: {str(e)}")
-            import traceback
-            if self.verbose:
-                traceback.print_exc()
-            return None
-    
-    def _image_to_base64(self, image_path: str) -> str:
-        """
-        Convert image file to base64 data URL.
-        
-        Args:
-            image_path: Path to image file
-            
-        Returns:
-            Base64 data URL string
-        """
-        with open(image_path, "rb") as f:
-            image_data = f.read()
-        
-        # Determine image type from extension
-        ext = Path(image_path).suffix.lower()
-        mime_type = {
-            ".png": "image/png",
-            ".jpg": "image/jpeg",
-            ".jpeg": "image/jpeg",
-            ".gif": "image/gif",
-            ".webp": "image/webp"
-        }.get(ext, "image/png")
-        
-        base64_data = base64.b64encode(image_data).decode("utf-8")
-        return f"data:{mime_type};base64,{base64_data}"
-    
-    def generate_image(self, prompt: str) -> Optional[bytes]:
-        """
-        Generate an image using Nano Banana 2.
-        
-        Args:
-            prompt: Description of the diagram to generate
-            
-        Returns:
-            Image bytes or None if generation failed
-        """
-        self._last_error = None  # Reset error
-        
-        messages = [
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-        
-        try:
-            response = self._make_request(
-                model=self.image_model,
-                messages=messages,
-                modalities=["image", "text"]
-            )
-            
-            # Debug: print response structure if verbose
-            if self.verbose:
-                self._log(f"Response keys: {response.keys()}")
-                if "error" in response:
-                    self._log(f"API Error: {response['error']}")
-                if "choices" in response and response["choices"]:
-                    msg = response["choices"][0].get("message", {})
-                    self._log(f"Message keys: {msg.keys()}")
-                    # Show content preview without printing huge base64 data
-                    content = msg.get("content", "")
-                    if isinstance(content, str):
-                        preview = content[:200] + "..." if len(content) > 200 else content
-                        self._log(f"Content preview: {preview}")
-                    elif isinstance(content, list):
-                        self._log(f"Content is list with {len(content)} items")
-                        for i, item in enumerate(content[:3]):
-                            if isinstance(item, dict):
-                                self._log(f"  Item {i}: type={item.get('type')}")
-            
-            # Check for API errors in response
-            if "error" in response:
-                error_msg = response["error"]
-                if isinstance(error_msg, dict):
-                    error_msg = error_msg.get("message", str(error_msg))
-                self._last_error = f"API Error: {error_msg}"
-                print(f"✗ {self._last_error}")
-                return None
-            
-            image_data = self._extract_image_from_response(response)
-            if image_data:
-                self._log(f"✓ Generated image ({len(image_data)} bytes)")
-            else:
-                self._last_error = "No image data in API response - model may not support image generation"
-                self._log(f"✗ {self._last_error}")
-                # Additional debug info when image extraction fails
-                if self.verbose and "choices" in response:
-                    msg = response["choices"][0].get("message", {})
-                    self._log(f"Full message structure: {json.dumps({k: type(v).__name__ for k, v in msg.items()})}")
-            
-            return image_data
-        except RuntimeError as e:
-            self._last_error = str(e)
+                err = json.loads(error_msg)
+                error_msg = err.get("error", err.get("message", str(err)))
+            except (json.JSONDecodeError, TypeError):
+                pass
+            self._last_error = f"CLI Error: {error_msg}"
             self._log(f"✗ Generation failed: {self._last_error}")
-            return None
-        except Exception as e:
-            self._last_error = f"Unexpected error: {str(e)}"
-            self._log(f"✗ Generation failed: {self._last_error}")
-            import traceback
-            if self.verbose:
-                traceback.print_exc()
-            return None
-    
-    def review_image(self, image_path: str, original_prompt: str, 
-                    iteration: int, doc_type: str = "default",
-                    max_iterations: int = 2) -> Tuple[str, float, bool]:
-        """
-        Review generated image using Gemini 3.1 Pro Preview for quality analysis.
-        
-        Uses Gemini 3.1 Pro Preview's superior vision and reasoning capabilities to
-        evaluate the schematic quality and determine if regeneration is needed.
-        
-        Args:
-            image_path: Path to the generated image
-            original_prompt: Original user prompt
-            iteration: Current iteration number
-            doc_type: Document type (journal, poster, presentation, etc.)
-            max_iterations: Maximum iterations allowed
-            
+            return False
+
+        self._log(f"✓ Generated image -> {output_path}")
+        return True
+
+    def review_image(self, image_path: str, original_prompt: str,
+                     iteration: int, doc_type: str = "default",
+                     max_iterations: int = 2) -> tuple[str, float, bool]:
+        """Review generated image via future CLI read_image.
+
         Returns:
             Tuple of (critique text, quality score 0-10, needs_improvement bool)
         """
-        # Use Gemini 3.1 Pro Preview for review - excellent vision and analysis
-        image_data_url = self._image_to_base64(image_path)
-        
-        # Get quality threshold for this document type
-        threshold = self.QUALITY_THRESHOLDS.get(doc_type.lower(), 
-                                                 self.QUALITY_THRESHOLDS["default"])
-        
-        review_prompt = f"""You are an expert reviewer evaluating a scientific diagram for publication quality.
+        threshold = self.QUALITY_THRESHOLDS.get(doc_type.lower(),
+                                                self.QUALITY_THRESHOLDS["default"])
+
+        review_question = f"""You are an expert reviewer evaluating a scientific diagram for publication quality.
 
 ORIGINAL REQUEST: {original_prompt}
 
@@ -431,30 +176,11 @@ ITERATION: {iteration}/{max_iterations}
 
 Carefully evaluate this diagram on these criteria:
 
-1. **Scientific Accuracy** (0-2 points)
-   - Correct representation of concepts
-   - Proper notation and symbols
-   - Accurate relationships shown
-
-2. **Clarity and Readability** (0-2 points)
-   - Easy to understand at a glance
-   - Clear visual hierarchy
-   - No ambiguous elements
-
-3. **Label Quality** (0-2 points)
-   - All important elements labeled
-   - Labels are readable (appropriate font size)
-   - Consistent labeling style
-
-4. **Layout and Composition** (0-2 points)
-   - Logical flow (top-to-bottom or left-to-right)
-   - Balanced use of space
-   - No overlapping elements
-
-5. **Professional Appearance** (0-2 points)
-   - Publication-ready quality
-   - Clean, crisp lines and shapes
-   - Appropriate colors/contrast
+1. **Scientific Accuracy** (0-2 points) — Correct representation, proper notation, accurate relationships
+2. **Clarity and Readability** (0-2 points) — Easy to understand, clear hierarchy, no ambiguity
+3. **Label Quality** (0-2 points) — All elements labeled, readable fonts, consistent style
+4. **Layout and Composition** (0-2 points) — Logical flow, balanced space, no overlaps
+5. **Professional Appearance** (0-2 points) — Publication-ready, clean lines, appropriate colors
 
 RESPOND IN THIS EXACT FORMAT:
 SCORE: [total score 0-10]
@@ -472,98 +198,52 @@ VERDICT: [ACCEPTABLE or NEEDS_IMPROVEMENT]
 If score >= {threshold}, the diagram is ACCEPTABLE for {doc_type} publication.
 If score < {threshold}, mark as NEEDS_IMPROVEMENT with specific suggestions."""
 
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": review_prompt
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": image_data_url
-                        }
-                    }
-                ]
-            }
-        ]
-        
-        try:
-            # Use Gemini 3.1 Pro Preview for high-quality review
-            response = self._make_request(
-                model=self.review_model,
-                messages=messages
-            )
-            
-            # Extract text response
-            choices = response.get("choices", [])
-            if not choices:
-                return "Image generated successfully", 8.0
-            
-            message = choices[0].get("message", {})
-            content = message.get("content", "")
-            
-            # Check reasoning field (Nano Banana 2 puts analysis here)
-            reasoning = message.get("reasoning", "")
-            if reasoning and not content:
-                content = reasoning
-            
-            if isinstance(content, list):
-                # Extract text from content blocks
-                text_parts = []
-                for block in content:
-                    if isinstance(block, dict) and block.get("type") == "text":
-                        text_parts.append(block.get("text", ""))
-                content = "\n".join(text_parts)
-            
-            # Try to extract score
-            score = 7.5  # Default score if extraction fails
-            import re
-            
-            # Look for SCORE: X or SCORE: X/10 format
-            score_match = re.search(r'SCORE:\s*(\d+(?:\.\d+)?)', content, re.IGNORECASE)
-            if score_match:
-                score = float(score_match.group(1))
-            else:
-                # Fallback: look for any score pattern
-                score_match = re.search(r'(?:score|rating|quality)[:\s]+(\d+(?:\.\d+)?)\s*(?:/\s*10)?', content, re.IGNORECASE)
-                if score_match:
-                    score = float(score_match.group(1))
-            
-            # Determine if improvement is needed based on verdict or score
-            needs_improvement = False
-            if "NEEDS_IMPROVEMENT" in content.upper():
-                needs_improvement = True
-            elif score < threshold:
-                needs_improvement = True
-            
-            self._log(f"✓ Review complete (Score: {score}/10, Threshold: {threshold}/10)")
-            self._log(f"  Verdict: {'Needs improvement' if needs_improvement else 'Acceptable'}")
-            
-            return (content if content else "Image generated successfully", 
-                    score, 
-                    needs_improvement)
-        except Exception as e:
-            self._log(f"Review skipped: {str(e)}")
-            # Don't fail the whole process if review fails - assume acceptable
-            return "Image generated successfully (review skipped)", 7.5, False
-    
-    def improve_prompt(self, original_prompt: str, critique: str, 
-                      iteration: int) -> str:
-        """
-        Improve the generation prompt based on critique.
-        
-        Args:
-            original_prompt: Original user prompt
-            critique: Review critique from previous iteration
-            iteration: Current iteration number
-            
-        Returns:
-            Improved prompt for next generation
-        """
-        improved_prompt = f"""{self.SCIENTIFIC_DIAGRAM_GUIDELINES}
+        args_dict = {
+            "image_path": str(Path(image_path).resolve()),
+            "question": review_question,
+        }
+
+        self._log(f"Calling read_image for review...")
+        result = _run_future([
+            "tools", "call", "read_image",
+            "--args", json.dumps(args_dict),
+        ])
+
+        if result.returncode != 0:
+            self._log(f"Review skipped: CLI error (treating as acceptable)")
+            return "Image generated (review skipped due to error)", 7.5, False
+
+        response = _parse_cli_json(result)
+        # read_image returns {"answer": "...", "question": "...", "usage": {...}}
+        content = response.get("answer", response.get("text", response.get("raw", "")))
+        if isinstance(content, list):
+            content = "\n".join(str(c) for c in content)
+
+        if not content:
+            self._log("Review returned no content, treating as acceptable")
+            return "Image generated successfully", 7.5, False
+
+        # Extract score
+        score = 7.5
+        score_match = re.search(r'SCORE:\s*(\d+(?:\.\d+)?)', content, re.IGNORECASE)
+        if score_match:
+            score = float(score_match.group(1))
+
+        # Determine verdict
+        needs_improvement = False
+        if "NEEDS_IMPROVEMENT" in content.upper():
+            needs_improvement = True
+        elif score < threshold:
+            needs_improvement = True
+
+        self._log(f"✓ Review complete (Score: {score}/10, Threshold: {threshold}/10)")
+        self._log(f"  Verdict: {'Needs improvement' if needs_improvement else 'Acceptable'}")
+
+        return content, score, needs_improvement
+
+    def improve_prompt(self, original_prompt: str, critique: str, iteration: int) -> str:
+        """Improve the generation prompt based on critique."""
+        return f"""{self.SCIENTIFIC_DIAGRAM_GUIDELINES}
 
 USER REQUEST: {original_prompt}
 
@@ -571,39 +251,25 @@ ITERATION {iteration}: Based on previous feedback, address these specific improv
 {critique}
 
 Generate an improved version that addresses all the critique points while maintaining scientific accuracy and professional quality."""
-        
-        return improved_prompt
-    
+
     def generate_iterative(self, user_prompt: str, output_path: str,
-                          iterations: int = 2, 
-                          doc_type: str = "default") -> Dict[str, Any]:
-        """
-        Generate scientific schematic with smart iterative refinement.
-        
-        Only regenerates if the quality score is below the threshold for the
-        specified document type. This saves API calls and time when the first
-        generation is already good enough.
-        
-        Args:
-            user_prompt: User's description of desired diagram
-            output_path: Path to save final image
-            iterations: Maximum refinement iterations (default: 2, max: 2)
-            doc_type: Document type for quality threshold (journal, poster, etc.)
-            
-        Returns:
-            Dictionary with generation results and metadata
+                          iterations: int = 2,
+                          doc_type: str = "default",
+                          size: str = "1024x1024") -> dict[str, Any]:
+        """Generate scientific schematic with smart iterative refinement.
+
+        Only regenerates if quality is below threshold for the specified document type.
         """
         output_path = Path(output_path)
         output_dir = output_path.parent
         output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         base_name = output_path.stem
         extension = output_path.suffix or ".png"
-        
-        # Get quality threshold for this document type
-        threshold = self.QUALITY_THRESHOLDS.get(doc_type.lower(), 
-                                                 self.QUALITY_THRESHOLDS["default"])
-        
+
+        threshold = self.QUALITY_THRESHOLDS.get(doc_type.lower(),
+                                                self.QUALITY_THRESHOLDS["default"])
+
         results = {
             "user_prompt": user_prompt,
             "doc_type": doc_type,
@@ -613,15 +279,15 @@ Generate an improved version that addresses all the critique points while mainta
             "final_score": 0.0,
             "success": False,
             "early_stop": False,
-            "early_stop_reason": None
+            "early_stop_reason": None,
         }
-        
+
         current_prompt = f"""{self.SCIENTIFIC_DIAGRAM_GUIDELINES}
 
 USER REQUEST: {user_prompt}
 
 Generate a publication-quality scientific diagram that meets all the guidelines above."""
-        
+
         print(f"\n{'='*60}")
         print(f"Generating Scientific Schematic")
         print(f"{'='*60}")
@@ -631,51 +297,46 @@ Generate a publication-quality scientific diagram that meets all the guidelines 
         print(f"Max Iterations: {iterations}")
         print(f"Output: {output_path}")
         print(f"{'='*60}\n")
-        
+
         for i in range(1, iterations + 1):
             print(f"\n[Iteration {i}/{iterations}]")
             print("-" * 40)
-            
+
             # Generate image
             print(f"Generating image...")
-            image_data = self.generate_image(current_prompt)
-            
-            if not image_data:
-                error_msg = getattr(self, '_last_error', 'Image generation failed - no image data returned')
-                print(f"✗ Generation failed: {error_msg}")
+            iter_path = output_dir / f"{base_name}_v{i}{extension}"
+            success = self.generate_image(current_prompt, str(iter_path), size=size)
+
+            if not success:
+                print(f"✗ Generation failed: {self._last_error}")
                 results["iterations"].append({
                     "iteration": i,
                     "success": False,
-                    "error": error_msg
+                    "error": self._last_error,
                 })
                 continue
-            
-            # Save iteration image
-            iter_path = output_dir / f"{base_name}_v{i}{extension}"
-            with open(iter_path, "wb") as f:
-                f.write(image_data)
+
             print(f"✓ Saved: {iter_path}")
-            
-            # Review image using Gemini 3.1 Pro Preview
-            print(f"Reviewing image with Gemini 3.1 Pro Preview...")
+
+            # Review image
+            print(f"Reviewing image quality...")
             critique, score, needs_improvement = self.review_image(
                 str(iter_path), user_prompt, i, doc_type, iterations
             )
             print(f"✓ Score: {score}/10 (threshold: {threshold}/10)")
-            
-            # Save iteration results
-            iteration_result = {
+
+            iter_result = {
                 "iteration": i,
                 "image_path": str(iter_path),
                 "prompt": current_prompt,
                 "critique": critique,
                 "score": score,
                 "needs_improvement": needs_improvement,
-                "success": True
+                "success": True,
             }
-            results["iterations"].append(iteration_result)
-            
-            # Check if quality is acceptable - STOP EARLY if so
+            results["iterations"].append(iter_result)
+
+            # Check if quality is acceptable — stop early if so
             if not needs_improvement:
                 print(f"\n✓ Quality meets {doc_type} threshold ({score} >= {threshold})")
                 print(f"  No further iterations needed!")
@@ -683,48 +344,49 @@ Generate a publication-quality scientific diagram that meets all the guidelines 
                 results["final_score"] = score
                 results["success"] = True
                 results["early_stop"] = True
-                results["early_stop_reason"] = f"Quality score {score} meets threshold {threshold} for {doc_type}"
+                results["early_stop_reason"] = (
+                    f"Quality score {score} meets threshold {threshold} for {doc_type}"
+                )
                 break
-            
-            # If this is the last iteration, we're done regardless
+
+            # Last iteration — ship it
             if i == iterations:
                 print(f"\n⚠ Maximum iterations reached")
                 results["final_image"] = str(iter_path)
                 results["final_score"] = score
                 results["success"] = True
                 break
-            
-            # Quality below threshold - improve prompt for next iteration
+
+            # Quality below threshold — improve prompt
             print(f"\n⚠ Quality below threshold ({score} < {threshold})")
             print(f"Improving prompt based on feedback...")
             current_prompt = self.improve_prompt(user_prompt, critique, i + 1)
-        
+
         # Copy final version to output path
         if results["success"] and results["final_image"]:
             final_iter_path = Path(results["final_image"])
             if final_iter_path != output_path:
-                import shutil
                 shutil.copy(final_iter_path, output_path)
                 print(f"\n✓ Final image: {output_path}")
-        
+
         # Save review log
         log_path = output_dir / f"{base_name}_review_log.json"
         with open(log_path, "w") as f:
             json.dump(results, f, indent=2)
         print(f"✓ Review log: {log_path}")
-        
+
         print(f"\n{'='*60}")
         print(f"Generation Complete!")
         print(f"Final Score: {results['final_score']}/10")
         if results["early_stop"]:
-            print(f"Iterations Used: {len([r for r in results['iterations'] if r.get('success')])}/{iterations} (early stop)")
+            used = len([r for r in results["iterations"] if r.get("success")])
+            print(f"Iterations Used: {used}/{iterations} (early stop)")
         print(f"{'='*60}\n")
-        
+
         return results
 
 
 def main():
-    """Command-line interface."""
     parser = argparse.ArgumentParser(
         description="Generate scientific schematics using AI with smart iterative refinement",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -732,15 +394,12 @@ def main():
 Examples:
   # Generate a flowchart for a journal paper
   python generate_schematic_ai.py "CONSORT participant flow diagram" -o flowchart.png --doc-type journal
-  
+
   # Generate neural network architecture for presentation (lower threshold)
   python generate_schematic_ai.py "Transformer encoder-decoder architecture" -o transformer.png --doc-type presentation
-  
-  # Generate with custom max iterations for poster
-  python generate_schematic_ai.py "Biological signaling pathway" -o pathway.png --iterations 2 --doc-type poster
-  
-  # Verbose output
-  python generate_schematic_ai.py "Circuit diagram" -o circuit.png -v
+
+  # Generate with custom size
+  python generate_schematic_ai.py "Biological signaling pathway" -o pathway.png --size 1792x1024
 
 Document Types (quality thresholds):
   journal      8.5/10  - Nature, Science, peer-reviewed journals
@@ -754,55 +413,48 @@ Document Types (quality thresholds):
   default      7.5/10  - General purpose
 
 Note: Multiple iterations only occur if quality is BELOW the threshold.
-      If the first generation meets the threshold, no extra API calls are made.
+      If the first generation meets the threshold, no extra iterations are made.
 
-Environment:
-  OPENROUTER_API_KEY    OpenRouter API key (required)
+Authentication is automatic via ~/.future/agent/auth.json. No API key needed.
         """
     )
-    
+
     parser.add_argument("prompt", help="Description of the diagram to generate")
-    parser.add_argument("-o", "--output", required=True, 
+    parser.add_argument("-o", "--output", required=True,
                        help="Output image path (e.g., diagram.png)")
     parser.add_argument("--iterations", type=int, default=2,
                        help="Maximum refinement iterations (default: 2, max: 2)")
     parser.add_argument("--doc-type", default="default",
-                       choices=["journal", "conference", "poster", "presentation", 
+                       choices=["journal", "conference", "poster", "presentation",
                                "report", "grant", "thesis", "preprint", "default"],
                        help="Document type for quality threshold (default: default)")
-    parser.add_argument("--api-key", help="OpenRouter API key (or set OPENROUTER_API_KEY)")
+    parser.add_argument("--size", default="1024x1024",
+                       choices=["1024x1024", "1792x1024", "1024x1792", "2560x1440", "3840x2160"],
+                       help="Image size (default: 1024x1024)")
     parser.add_argument("-v", "--verbose", action="store_true",
                        help="Verbose output")
-    
+
     args = parser.parse_args()
-    
-    # Check for API key
-    api_key = args.api_key or os.getenv("OPENROUTER_API_KEY")
-    if not api_key:
-        print("Error: OPENROUTER_API_KEY environment variable not set")
-        print("\nSet it with:")
-        print("  export OPENROUTER_API_KEY='your_api_key'")
-        print("\nOr provide via --api-key flag")
-        sys.exit(1)
-    
-    # Validate iterations - enforce max of 2
+
     if args.iterations < 1 or args.iterations > 2:
         print("Error: Iterations must be between 1 and 2")
         sys.exit(1)
-    
+
     try:
-        generator = ScientificSchematicGenerator(api_key=api_key, verbose=args.verbose)
+        generator = ScientificSchematicGenerator(verbose=args.verbose)
         results = generator.generate_iterative(
             user_prompt=args.prompt,
             output_path=args.output,
             iterations=args.iterations,
-            doc_type=args.doc_type
+            doc_type=args.doc_type,
+            size=args.size,
         )
-        
+
         if results["success"]:
             print(f"\n✓ Success! Image saved to: {args.output}")
             if results.get("early_stop"):
-                print(f"  (Completed in {len([r for r in results['iterations'] if r.get('success')])} iteration(s) - quality threshold met)")
+                used = len([r for r in results["iterations"] if r.get("success")])
+                print(f"  (Completed in {used} iteration(s) - quality threshold met)")
             sys.exit(0)
         else:
             print(f"\n✗ Generation failed. Check review log for details.")
@@ -814,4 +466,3 @@ Environment:
 
 if __name__ == "__main__":
     main()
-
