@@ -9,8 +9,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "账户管理",
+    "description_zh": "查看 Future 账户信息和余额，通过 Future CLI 创建充值订单"
   },
   "future-browser": {
     "category": "builtin",
@@ -18,8 +18,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "浏览器控制",
+    "description_zh": "通过 Future CLI 控制本地 Chrome 或 Edge 浏览器，用于打开本地应用和网页操作"
   },
   "future-database-lookup": {
     "category": "builtin",
@@ -27,8 +27,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "科学数据库查询",
+    "description_zh": "确定性查询 78 个公开科学数据库，包括生物医学、材料科学、监管、金融等领域"
   },
   "future-deep-research": {
     "category": "builtin",
@@ -36,8 +36,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "深度研究",
+    "description_zh": "执行多轮深度研究任务，自动搜索、分析并综合多源信息生成研究报告"
   },
   "future-document": {
     "category": "builtin",
@@ -45,8 +45,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "文档解析",
+    "description_zh": "将 PDF 和 Word 文档解析为结构化 Markdown，保留标题层级、表格和图片结构"
   },
   "future-experimental-design": {
     "category": "builtin",
@@ -54,8 +54,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "实验设计",
+    "description_zh": "设计科学实验方案，包括对照组、样本量计算、随机化和统计分析计划"
   },
   "future-hand-drawn-posters": {
     "category": "builtin",
@@ -63,8 +63,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "手绘风格海报",
+    "description_zh": "从文本、文章或研究内容生成日式手绘插画风格的科研信息图海报"
   },
   "future-hand-drawn-slides": {
     "category": "builtin",
@@ -72,8 +72,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "手绘风格幻灯片",
+    "description_zh": "从 Markdown 报告生成手绘素描笔记风格的演示幻灯片"
   },
   "future-image": {
     "category": "builtin",
@@ -81,8 +81,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "图像生成与编辑",
+    "description_zh": "文本到图像生成、自然语言图像编辑和图像分析"
   },
   "future-paper": {
     "category": "builtin",
@@ -90,8 +90,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "文献搜索与获取",
+    "description_zh": "跨多数据库搜索学术文献，按标识符获取全文内容"
   },
   "future-peer-review": {
     "category": "builtin",
@@ -99,8 +99,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "同行评审",
+    "description_zh": "结构化稿件/基金评审，基于清单的系统性评估方法"
   },
   "future-scientific-writing": {
     "category": "builtin",
@@ -108,8 +108,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "科研写作",
+    "description_zh": "深度研究与写作核心工具，生成完整段落的科学论文"
   },
   "future-skill-creator": {
     "category": "builtin",
@@ -117,8 +117,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "自定义技能创建",
+    "description_zh": "在本地创建或更新自定义技能，采用成熟的技能设计模式"
   },
   "future-subagent": {
     "category": "builtin",
@@ -126,8 +126,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "子代理调度",
+    "description_zh": "创建和管理子代理以并行执行复杂任务的各子任务"
   },
   "future-web": {
     "category": "builtin",
@@ -135,8 +135,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "网页搜索",
+    "description_zh": "搜索公开网络获取最新信息，返回页面标题、URL 和内容摘要"
   },
   "adaptyv": {
     "category": "wet-lab",
@@ -144,8 +144,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Adaptyv 生物实验",
+    "description_zh": "使用 Adaptyv Bio Foundry API 和 Python SDK 进行蛋白质实验设计、提交和结果获取"
   },
   "aeon": {
     "category": "data-ml",
@@ -153,8 +153,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "时间序列机器学习",
+    "description_zh": "时间序列分类、回归、聚类、预测、异常检测等 ML 任务的专用工具包"
   },
   "anndata": {
     "category": "bioinformatics",
@@ -162,8 +162,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "单细胞数据格式",
+    "description_zh": "单细胞分析中的注释矩阵数据结构，支持 .h5ad 文件读写及 scverse 生态集成"
   },
   "arbor": {
     "category": "neuroscience",
@@ -171,8 +171,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Arbor 迭代改进",
+    "description_zh": "自主改进代码、训练配方、Agent 框架、数据管线等实际工件"
   },
   "arboreto": {
     "category": "bioinformatics",
@@ -180,8 +180,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "基因调控网络推断",
+    "description_zh": "从基因表达数据推断基因调控网络，支持 GRNBoost2 和 GENIE3 算法"
   },
   "astropy": {
     "category": "physics-quantum",
@@ -189,8 +189,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "天文物理计算",
+    "description_zh": "天文和天体物理工作流核心库，涵盖单位转换、坐标、星表、时间、WCS 等"
   },
   "autoskill": {
     "category": "tools",
@@ -198,8 +198,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "自动技能生成",
+    "description_zh": "通过 screenpipe 观察用户屏幕，检测重复研究工作流并自动生成匹配技能"
   },
   "benchling-integration": {
     "category": "wet-lab",
@@ -207,8 +207,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Benchling 实验平台",
+    "description_zh": "Benchling Python SDK 与 REST API 集成，管理注册实体、库存、ELN、工作流等"
   },
   "bids": {
     "category": "neuroscience",
@@ -216,8 +216,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "脑影像数据标准",
+    "description_zh": "BIDS 神经影像数据格式规范，用于组织 MRI、EEG、MEG 等脑成像数据"
   },
   "biopython": {
     "category": "bioinformatics",
@@ -225,8 +225,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "生物信息学工具包",
+    "description_zh": "全面的分子生物学工具包，支持序列操作、文件解析（FASTA/GenBank）、BLAST、PDB 结构等"
   },
   "bioservices": {
     "category": "databases",
@@ -234,8 +234,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "生物信息学服务集成",
+    "description_zh": "40+ 生物信息学服务的统一 Python 接口，支持 UniProt、KEGG、ChEBI 等多数据库查询"
   },
   "bulk-rnaseq": {
     "category": "bioinformatics",
@@ -243,8 +243,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "批量 RNA-seq 分析",
+    "description_zh": "端到端批量 RNA-seq 流程：从 FASTQ 到 QC、比对、定量、差异表达和功能富集分析"
   },
   "cellxgene-census": {
     "category": "bioinformatics",
@@ -252,8 +252,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "单细胞数据查询",
+    "description_zh": "通过 CZ CELLxGENE Census 编程查询公开单细胞和空间转录组数据"
   },
   "cirq": {
     "category": "physics-quantum",
@@ -261,8 +261,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Google 量子计算",
+    "description_zh": "Google 量子计算框架，用于设计噪声感知量子电路、在 Google 量子硬件上运行及模拟"
   },
   "clinical-decision-support": {
     "category": "clinical",
@@ -270,8 +270,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "临床决策支持",
+    "description_zh": "生成专业临床决策支持文档，适用于制药和临床研究场景"
   },
   "clinical-reports": {
     "category": "clinical",
@@ -279,8 +279,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "临床报告撰写",
+    "description_zh": "撰写综合临床报告：病例报告、诊断报告、影像学报告等专业医学文档"
   },
   "cobrapy": {
     "category": "other",
@@ -288,8 +288,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "代谢网络建模",
+    "description_zh": "基于约束的代谢建模（COBRA）：FBA、FVA、基因敲除、通量采样、SBML 模型"
   },
   "consciousness-council": {
     "category": "methodology",
@@ -297,8 +297,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "思维委员会审议",
+    "description_zh": "运行多视角思维委员会审议，对任意问题、决策或创意挑战进行多角度探讨"
   },
   "dask": {
     "category": "workflow",
@@ -306,8 +306,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "大规模分布式计算",
+    "description_zh": "超内存规模的 pandas/NumPy 分布式计算框架，无缝扩展现有数据分析代码"
   },
   "database-lookup": {
     "category": "databases",
@@ -315,8 +315,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "数据库查询",
+    "description_zh": "查询公开科学数据库获取结构化数据"
   },
   "datamol": {
     "category": "chemistry-drug",
@@ -324,8 +324,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "分子化学信息学",
+    "description_zh": "RDKit 的 Pythonic 封装，简化分子操作接口，适用于标准化化学信息学任务"
   },
   "deepchem": {
     "category": "chemistry-drug",
@@ -333,8 +333,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "分子深度学习",
+    "description_zh": "分子机器学习工具包，用于性质预测（ADMET、毒性）、药物-靶点相互作用等"
   },
   "deeptools": {
     "category": "bioinformatics",
@@ -342,8 +342,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "NGS 数据分析",
+    "description_zh": "NGS 分析工具包：BAM 转 bigWig、QC、热图/谱图、峰注释等"
   },
   "depmap": {
     "category": "clinical",
@@ -351,8 +351,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "癌症依赖图谱",
+    "description_zh": "查询 Cancer Dependency Map，获取癌细胞系基因依赖性评分（CRISPR Chronos）"
   },
   "dhdna-profiler": {
     "category": "bioinformatics",
@@ -360,8 +360,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "认知模式分析",
+    "description_zh": "从文本中提取认知模式和思维指纹，分析思维风格和认知特征"
   },
   "diffdock": {
     "category": "chemistry-drug",
@@ -369,8 +369,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "分子对接",
+    "description_zh": "DiffDock 和 DiffDock-L 分子对接工具，从 PDB 结构预测蛋白质-小分子结合姿态"
   },
   "dnanexus-integration": {
     "category": "bioinformatics",
@@ -378,8 +378,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "DNAnexus 云基因组",
+    "description_zh": "DNAnexus 云基因组平台：构建应用、管理数据、dxpy Python SDK 集成"
   },
   "esm": {
     "category": "tools",
@@ -387,8 +387,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "蛋白质语言模型",
+    "description_zh": "使用 ESM3/ESMC 等蛋白质语言模型进行结构预测、功能注释和突变分析"
   },
   "etetoolkit": {
     "category": "bioinformatics",
@@ -396,8 +396,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "系统发育树分析",
+    "description_zh": "系统发育树工具包：树操作（Newick/NHX）、进化事件检测、同源性分析、可视化"
   },
   "experimental-design": {
     "category": "other",
@@ -405,8 +405,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "实验设计",
+    "description_zh": "科学实验方案设计，包括对照组、样本量、随机化和统计分析"
   },
   "exploratory-data-analysis": {
     "category": "statistics",
@@ -414,8 +414,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "探索性数据分析",
+    "description_zh": "对 200+ 文件格式的科学数据进行全面探索性分析，生成统计摘要和可视化"
   },
   "flowio": {
     "category": "neuroscience",
@@ -423,8 +423,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "流式细胞数据解析",
+    "description_zh": "解析 FCS 流式细胞标准文件，提取事件为 NumPy 数组，读取元数据"
   },
   "fluidsim": {
     "category": "physics-quantum",
@@ -432,8 +432,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "流体力学模拟",
+    "description_zh": "计算流体力学模拟框架，用于湍流、多相流等 CFD 模拟"
   },
   "geniml": {
     "category": "databases",
@@ -441,8 +441,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "基因组区间机器学习",
+    "description_zh": "处理基因组区间数据（BED 文件）的机器学习工具包"
   },
   "geomaster": {
     "category": "materials",
@@ -450,8 +450,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "地理空间科学",
+    "description_zh": "综合地理空间科学技能：遥感、GIS、空间分析、机器学习应用于地理数据"
   },
   "geopandas": {
     "category": "data-ml",
@@ -459,8 +459,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "地理空间数据处理",
+    "description_zh": "处理矢量地理空间数据的 Python 库，支持 shapefile、GeoJSON、GeoPackage"
   },
   "get-available-resources": {
     "category": "databases",
@@ -468,8 +468,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "计算资源检测",
+    "description_zh": "在计算密集型任务开始前检测系统可用资源（CPU/GPU/内存/磁盘）"
   },
   "gget": {
     "category": "databases",
@@ -477,8 +477,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "生物数据库快速查询",
+    "description_zh": "20+ 生物信息学数据库的快速 CLI/Python 查询工具"
   },
   "ginkgo-cloud-lab": {
     "category": "wet-lab",
@@ -486,8 +486,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Ginkgo 云实验室",
+    "description_zh": "通过 Ginkgo Bioworks Cloud Lab 提交和管理湿实验协议"
   },
   "glycoengineering": {
     "category": "bioinformatics",
@@ -495,8 +495,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "糖基化工程",
+    "description_zh": "分析和工程化蛋白质糖基化：N-糖基化位点扫描、糖型预测和改造"
   },
   "gtars": {
     "category": "bioinformatics",
@@ -504,8 +504,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "基因组区间分析",
+    "description_zh": "基于 Rust 的高性能基因组区间分析工具包，含 Python 绑定"
   },
   "histolab": {
     "category": "medical-imaging",
@@ -513,8 +513,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "病理切片预处理",
+    "description_zh": "轻量级全切片图像瓦片提取和预处理工具"
   },
   "hugging-science": {
     "category": "data-ml",
@@ -522,8 +522,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "HuggingFace 科研模型",
+    "description_zh": "在生物、化学、物理等科学领域使用 HuggingFace 预训练模型"
   },
   "hypogenic": {
     "category": "methodology",
@@ -531,8 +531,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "自动假设生成",
+    "description_zh": "基于表格数据的自动化 LLM 驱动假设生成和检验"
   },
   "hypothesis-generation": {
     "category": "methodology",
@@ -540,8 +540,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "科学假设构建",
+    "description_zh": "从实验观察出发，系统化构建和评价科学假设"
   },
   "imaging-data-commons": {
     "category": "databases",
@@ -549,8 +549,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "癌症影像数据",
+    "description_zh": "从 NCI Imaging Data Commons 查询和下载公开癌症影像数据"
   },
   "iso-13485-certification": {
     "category": "other",
@@ -558,8 +558,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "ISO 13485 认证",
+    "description_zh": "医疗器械质量管理体系 ISO 13485 认证文档准备工具包"
   },
   "labarchive-integration": {
     "category": "wet-lab",
@@ -567,8 +567,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "LabArchive 电子实验本",
+    "description_zh": "电子实验本 API 集成：管理笔记本、条目、附件和数据备份"
   },
   "lamindb": {
     "category": "wet-lab",
@@ -576,8 +576,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "LaminDB 数据湖仓",
+    "description_zh": "开源血缘感知的生物数据库，管理数据集和模型训练的完整数据链路"
   },
   "latchbio-integration": {
     "category": "bioinformatics",
@@ -585,8 +585,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Latch 生信平台",
+    "description_zh": "Latch 生物信息学工作流平台：构建管线、管理数据和云资源"
   },
   "latex-posters": {
     "category": "tools",
@@ -594,8 +594,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "LaTeX 学术海报",
+    "description_zh": "使用 beamerposter、tikzposter 或 baposter 创建专业研究海报"
   },
   "markdown-mermaid-writing": {
     "category": "tools",
@@ -603,8 +603,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Markdown 与图表写作",
+    "description_zh": "全面的 Markdown 和 Mermaid 图表写作技能，适用于科学文档"
   },
   "market-research-reports": {
     "category": "other",
@@ -612,8 +612,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "市场研究报告",
+    "description_zh": "生成 McKinsey/BCG/Bain 风格的 50+ 页综合市场研究报告"
   },
   "matchms": {
     "category": "chemistry-drug",
@@ -621,8 +621,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "质谱相似性分析",
+    "description_zh": "代谢组学质谱相似性和化合物鉴定工具"
   },
   "matlab": {
     "category": "tools",
@@ -630,8 +630,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "MATLAB/Octave 计算",
+    "description_zh": "MATLAB 和 GNU Octave 数值计算：矩阵运算、数据分析、可视化和科学计算"
   },
   "matplotlib": {
     "category": "data-ml",
@@ -639,8 +639,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Python 绑图",
+    "description_zh": "底层绑图库，提供对图形元素完全自定义的科学绑图能力"
   },
   "medchem": {
     "category": "chemistry-drug",
@@ -648,8 +648,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "药物化学筛选",
+    "description_zh": "药物化学过滤规则：类药性、毒性基团、结构警报等化合物筛选"
   },
   "modal": {
     "category": "workflow",
@@ -657,8 +657,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Modal 无服务器计算",
+    "description_zh": "Modal 无服务器云平台：按需运行 Python，支持 GPU 实例"
   },
   "molecular-dynamics": {
     "category": "chemistry-drug",
@@ -666,8 +666,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "分子动力学模拟",
+    "description_zh": "使用 OpenMM 和 MDAnalysis 运行和分析分子动力学模拟"
   },
   "molfeat": {
     "category": "chemistry-drug",
@@ -675,8 +675,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "分子特征化",
+    "description_zh": "100+ 分子特征化方法：ECFP、MACCS、描述符、预训练模型"
   },
   "networkx": {
     "category": "tools",
@@ -684,8 +684,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "复杂网络分析",
+    "description_zh": "创建、分析和可视化复杂网络和图结构的 Python 工具"
   },
   "neurokit2": {
     "category": "neuroscience",
@@ -693,8 +693,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "生理信号处理",
+    "description_zh": "全面的生物信号处理工具包：ECG、EEG、EDA、EMG 等生理数据分析"
   },
   "neuropixels-analysis": {
     "category": "neuroscience",
@@ -702,8 +702,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Neuropixels 记录分析",
+    "description_zh": "使用 SpikeInterface 端到端分析 Neuropixels 细胞外电生理记录"
   },
   "nextflow": {
     "category": "workflow",
@@ -711,8 +711,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Nextflow 工作流",
+    "description_zh": "构建、运行和调试 Nextflow 数据管线及 nf-core 工作流"
   },
   "omero-integration": {
     "category": "medical-imaging",
@@ -720,8 +720,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "OMERO 显微镜数据",
+    "description_zh": "显微镜数据管理平台，通过 Python 访问图像、分析像素和元数据"
   },
   "onekgpd": {
     "category": "bioinformatics",
@@ -729,8 +729,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "千人基因组计划",
+    "description_zh": "千人基因组计划数据查询和分析，获取人群遗传变异信息"
   },
   "open-notebook": {
     "category": "wet-lab",
@@ -738,8 +738,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Open Notebook AI",
+    "description_zh": "自托管开源 AI 研究助手，替代 Google NotebookLM 进行文档分析"
   },
   "opentrons-integration": {
     "category": "wet-lab",
@@ -747,8 +747,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Opentrons 移液机器人",
+    "description_zh": "Opentrons OT-2 和 Flex 液体处理机器人协议编写"
   },
   "optimize-for-gpu": {
     "category": "workflow",
@@ -756,8 +756,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "GPU 加速优化",
+    "description_zh": "使用 CuPy、Numba CUDA、cuDF 等将 Python 代码 GPU 加速"
   },
   "pacsomatic": {
     "category": "medical-imaging",
@@ -765,8 +765,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "肿瘤-正常体细胞分析",
+    "description_zh": "nf-core/pacsomatic 配对肿瘤-正常样本体细胞变异分析工具"
   },
   "paperzilla": {
     "category": "tools",
@@ -774,8 +774,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Paperzilla 文献推荐",
+    "description_zh": "与 Paperzilla 中的文献推荐和项目交互，管理研究论文"
   },
   "pathml": {
     "category": "medical-imaging",
@@ -783,8 +783,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "计算病理学",
+    "description_zh": "全特征计算病理学工具包：多重免疫荧光、H&E 染色分析"
   },
   "pathway-enrichment": {
     "category": "clinical",
@@ -792,8 +792,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "通路富集分析",
+    "description_zh": "对基因列表进行通路和基因集富集分析，解释生物学意义"
   },
   "peer-review": {
     "category": "other",
@@ -801,8 +801,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "同行评审",
+    "description_zh": "结构化稿件和基金申请评审，基于清单的系统性评估"
   },
   "pennylane": {
     "category": "physics-quantum",
@@ -810,8 +810,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "量子机器学习",
+    "description_zh": "硬件无关的量子机器学习框架，支持自动微分和量子电路训练"
   },
   "phylogenetics": {
     "category": "bioinformatics",
@@ -819,8 +819,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "系统发育分析",
+    "description_zh": "使用 MAFFT、IQ-TREE 2 和 BEAST2 构建和分析系统发育树"
   },
   "pi-agent": {
     "category": "tools",
@@ -828,8 +828,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Pi 终端 AI 编程",
+    "description_zh": "使用 Pi 极简终端编程框架进行编码和任务自动化"
   },
   "polars": {
     "category": "data-ml",
@@ -837,8 +837,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Polars 高性能数据",
+    "description_zh": "高性能 DataFrame 库，用于 Python ETL、分析和 pandas 迁移"
   },
   "polars-bio": {
     "category": "bioinformatics",
@@ -846,8 +846,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Polars 基因组区间",
+    "description_zh": "基于 Polars 的高性能基因组区间操作和生物信息学文件 I/O"
   },
   "primekg": {
     "category": "clinical",
@@ -855,8 +855,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "精准医学知识图谱",
+    "description_zh": "查询 PrimeKG 精准医学知识图谱，获取多尺度生物数据"
   },
   "protocolsio-integration": {
     "category": "wet-lab",
@@ -864,8 +864,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "protocols.io 协议",
+    "description_zh": "集成 protocols.io API，管理和分享科学实验协议"
   },
   "pufferlib": {
     "category": "data-ml",
@@ -873,8 +873,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "强化学习框架",
+    "description_zh": "高性能强化学习框架，专为速度和规模化优化"
   },
   "pydeseq2": {
     "category": "statistics",
@@ -882,8 +882,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "差异表达分析",
+    "description_zh": "使用 PyDESeq2 进行批量 RNA-seq 差异基因表达分析"
   },
   "pydicom": {
     "category": "medical-imaging",
@@ -891,8 +891,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "DICOM 医学影像",
+    "description_zh": "处理 DICOM 医学影像文件的 Python 库"
   },
   "pyhealth": {
     "category": "clinical",
@@ -900,8 +900,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "临床深度学习",
+    "description_zh": "构建临床/医疗深度学习管线：EHR、信号、影像数据处理"
   },
   "pylabrobot": {
     "category": "wet-lab",
@@ -909,8 +909,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "实验室自动化",
+    "description_zh": "跨厂商实验室自动化框架，支持 Hamilton、Tecan 等多种设备"
   },
   "pymatgen": {
     "category": "materials",
@@ -918,8 +918,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "材料科学分析",
+    "description_zh": "材料科学工具包：晶体结构、相图、能带结构、态密度等"
   },
   "pymc": {
     "category": "data-ml",
@@ -927,8 +927,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "贝叶斯建模",
+    "description_zh": "贝叶斯统计建模：层次模型、MCMC（NUTS）、变分推断"
   },
   "pymoo": {
     "category": "statistics",
@@ -936,8 +936,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "多目标优化",
+    "description_zh": "多目标优化框架：NSGA-II、NSGA-III、MOEA/D、Pareto 前沿"
   },
   "pyopenms": {
     "category": "chemistry-drug",
@@ -945,8 +945,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "质谱分析平台",
+    "description_zh": "完整质谱分析平台：蛋白质组学和代谢组学特征检测、定量和鉴定"
   },
   "pysam": {
     "category": "bioinformatics",
@@ -954,8 +954,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "基因组文件处理",
+    "description_zh": "基因组文件工具包：SAM/BAM/CRAM、VCF/BCF、FASTA/FASTQ"
   },
   "pytdc": {
     "category": "chemistry-drug",
@@ -963,8 +963,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "药物发现数据集",
+    "description_zh": "Therapeutics Data Commons：AI 就绪的药物发现数据集和基准"
   },
   "pytorch-lightning": {
     "category": "data-ml",
@@ -972,8 +972,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "PyTorch Lightning 训练",
+    "description_zh": "深度学习框架：将 PyTorch 代码组织为 Lightning 模块，简化训练流程"
   },
   "pyzotero": {
     "category": "tools",
@@ -981,8 +981,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Zotero 文献管理",
+    "description_zh": "使用 pyzotero 操作 Zotero 参考文献库：检索、创建和管理文献条目"
   },
   "qiskit": {
     "category": "physics-quantum",
@@ -990,8 +990,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "IBM 量子计算",
+    "description_zh": "IBM 量子计算框架，在 IBM 量子硬件上运行量子电路和算法"
   },
   "qutip": {
     "category": "physics-quantum",
@@ -999,8 +999,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "量子系统模拟",
+    "description_zh": "开放量子系统模拟库：主方程、Lindblad 算符、量子动力学"
   },
   "rdkit": {
     "category": "chemistry-drug",
@@ -1008,8 +1008,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "RDKit 化学信息学",
+    "description_zh": "化学信息学工具包：SMILES/SDF 解析、分子描述符、药效团、子结构搜索"
   },
   "research-grants": {
     "category": "other",
@@ -1017,8 +1017,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "研究基金申请",
+    "description_zh": "撰写 NSF、NIH、DOE、DARPA 和台湾 NSTC 等基金申请书"
   },
   "rowan": {
     "category": "physics-quantum",
@@ -1026,8 +1026,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Rowan 分子建模",
+    "description_zh": "云原生分子建模和药物化学工作流平台，含 Python API"
   },
   "scanpy": {
     "category": "bioinformatics",
@@ -1035,8 +1035,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "单细胞 RNA-seq",
+    "description_zh": "标准单细胞 RNA-seq 分析：QC、标准化、降维、聚类、差异表达"
   },
   "scholar-evaluation": {
     "category": "methodology",
@@ -1044,8 +1044,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "学术评价",
+    "description_zh": "使用 ScholarEval 框架系统评估学术工作的质量与影响"
   },
   "scientific-brainstorming": {
     "category": "methodology",
@@ -1053,8 +1053,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "科学头脑风暴",
+    "description_zh": "开放式研究创意探索，跨学科联想和创新研究方向的灵感激发"
   },
   "scientific-critical-thinking": {
     "category": "methodology",
@@ -1062,8 +1062,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "科学批判思维",
+    "description_zh": "评估科学证据和方法论质量：实验设计有效性、逻辑推理和潜在偏差"
   },
   "scientific-schematics": {
     "category": "tools",
@@ -1071,8 +1071,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "科学示意图",
+    "description_zh": "使用 AI 创建发表级科学示意图、机制图和图形摘要"
   },
   "scientific-visualization": {
     "category": "tools",
@@ -1080,8 +1080,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "科学可视化",
+    "description_zh": "创建发表级图表：包含多子图和高级绑图元素的综合可视化"
   },
   "scientific-writing": {
     "category": "other",
@@ -1089,8 +1089,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "科研写作",
+    "description_zh": "撰写科学论文、报告和基金申请书"
   },
   "scikit-bio": {
     "category": "bioinformatics",
@@ -1098,8 +1098,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "生物数据分析",
+    "description_zh": "生物数据工具包：序列分析、比对、系统发育、多样性指标"
   },
   "scikit-learn": {
     "category": "data-ml",
@@ -1107,8 +1107,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "机器学习",
+    "description_zh": "Python 机器学习：分类、回归、聚类、降维、模型选择和预处理"
   },
   "scikit-survival": {
     "category": "statistics",
@@ -1116,8 +1116,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "生存分析",
+    "description_zh": "全面的生存分析和时间到事件建模 Python 工具包"
   },
   "scvelo": {
     "category": "bioinformatics",
@@ -1125,8 +1125,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "RNA 速率分析",
+    "description_zh": "使用 scVelo 从未剪接/已剪接 mRNA 动态估计细胞状态转换"
   },
   "scvi-tools": {
     "category": "bioinformatics",
@@ -1134,8 +1134,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "单细胞生成模型",
+    "description_zh": "单细胞组学深度生成模型：批效应校正、数据整合、差异表达"
   },
   "seaborn": {
     "category": "data-ml",
@@ -1143,8 +1143,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "统计可视化",
+    "description_zh": "与 pandas 集成的统计可视化库，快速探索数据分布和关系"
   },
   "shap": {
     "category": "data-ml",
@@ -1152,8 +1152,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "模型可解释性",
+    "description_zh": "使用 SHAP 值进行模型预测解释和特征重要性分析"
   },
   "simpy": {
     "category": "statistics",
@@ -1161,8 +1161,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "离散事件模拟",
+    "description_zh": "基于进程的离散事件模拟框架，用于排队系统、供应链等仿真"
   },
   "stable-baselines3": {
     "category": "data-ml",
@@ -1170,8 +1170,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "强化学习算法",
+    "description_zh": "生产级强化学习算法实现：PPO、SAC、DQN、TD3 等"
   },
   "statistical-analysis": {
     "category": "statistics",
@@ -1179,8 +1179,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "统计分析指导",
+    "description_zh": "引导式统计分析：测试选择、假设检验、效应量报告"
   },
   "statistical-power": {
     "category": "statistics",
@@ -1188,8 +1188,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "统计功效计算",
+    "description_zh": "样本量和统计功效计算：实验规划和研究设计"
   },
   "statsmodels": {
     "category": "statistics",
@@ -1197,8 +1197,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "统计建模",
+    "description_zh": "Python 统计模型库：OLS、GLM、混合模型、时间序列分析"
   },
   "sympy": {
     "category": "tools",
@@ -1206,8 +1206,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "符号数学",
+    "description_zh": "Python 符号数学：代数、微积分、方程求解、符号线性代数"
   },
   "tamarind": {
     "category": "tools",
@@ -1215,8 +1215,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Tamarind 分子设计",
+    "description_zh": "访问 Tamarind Bio 开源分子设计和结构生物学工具集"
   },
   "tiledbvcf": {
     "category": "bioinformatics",
@@ -1224,8 +1224,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "变异数据存储",
+    "description_zh": "使用 TileDB 高效存储和检索基因组变异数据（VCF/BCF）"
   },
   "timesfm-forecasting": {
     "category": "data-ml",
@@ -1233,8 +1233,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "时间序列预测",
+    "description_zh": "使用 Google TimesFM 基础模型进行零样本时间序列预测"
   },
   "torch-geometric": {
     "category": "data-ml",
@@ -1242,8 +1242,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "图神经网络",
+    "description_zh": "PyTorch Geometric：节点/边/图分类、消息传递、图卷积"
   },
   "torchdrug": {
     "category": "chemistry-drug",
@@ -1251,8 +1251,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "药物分子 GNN",
+    "description_zh": "PyTorch 原生分子和蛋白质图神经网络，自定义 GNN 架构"
   },
   "transformers": {
     "category": "data-ml",
@@ -1260,8 +1260,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "HuggingFace Transformers",
+    "description_zh": "加载 Hub 模型、运行管线推理、文本生成的 Transformers 库"
   },
   "treatment-plans": {
     "category": "clinical",
@@ -1269,8 +1269,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "治疗方案",
+    "description_zh": "生成简洁聚焦的 3-4 页 LaTeX/PDF 格式治疗方案"
   },
   "umap-learn": {
     "category": "data-ml",
@@ -1278,8 +1278,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "UMAP 降维",
+    "description_zh": "UMAP 非线性降维：2D/3D 嵌入、聚类预处理、高维数据可视化"
   },
   "usfiscaldata": {
     "category": "other",
@@ -1287,8 +1287,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "美国财政数据",
+    "description_zh": "查询美国财政部 REST API 获取联邦财政数据"
   },
   "vaex": {
     "category": "data-ml",
@@ -1296,8 +1296,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "十亿级数据处理",
+    "description_zh": "处理和可视化数十亿行的大型表格数据，超出内存限制"
   },
   "venue-templates": {
     "category": "tools",
@@ -1305,8 +1305,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "期刊模板",
+    "description_zh": "各大期刊和会议的 LaTeX 模板、格式要求和投稿指南"
   },
   "what-if-oracle": {
     "category": "methodology",
@@ -1314,8 +1314,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "多情景分析",
+    "description_zh": "运行结构化 What-If 情景分析：4-6 分支（最佳、可能、最坏、黑天鹅）"
   },
   "xlsx": {
     "category": "tools",
@@ -1323,8 +1323,8 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Excel 电子表格",
+    "description_zh": "创建、编辑、分析或转换 Excel 电子表格文件"
   },
   "zarr-python": {
     "category": "workflow",
@@ -1332,7 +1332,7 @@
     "formats": "SKILL.md",
     "limit": "None",
     "enabled": true,
-    "name_zh": "",
-    "description_zh": ""
+    "name_zh": "Zarr 多维数组",
+    "description_zh": "云存储分块 N-D 数组：压缩存储、并行 I/O、S3/GCS 兼容"
   }
 }
