@@ -132,13 +132,22 @@ DESC_ZH=$(parse_frontmatter "$SKILL_MD" "description_zh")
 [ -n "$NAME" ]    || die "Could not parse 'name' from SKILL.md frontmatter"
 [ -n "$VERSION" ] || die "Could not parse 'version' from SKILL.md frontmatter"
 [ -n "$DESC" ]    || die "Could not parse 'description' from SKILL.md frontmatter"
-[ -n "$NAME_ZH" ] || die "Could not parse 'name_zh' from SKILL.md frontmatter"
-[ -n "$DESC_ZH" ] || die "Could not parse 'description_zh' from SKILL.md frontmatter"
 
 # 2. Read skills.json config
 [ -f "$SKILLS_JSON" ] || die "skills.json not found at $SKILLS_JSON"
 
 CATEGORY=$(python3 -c "import json; d=json.load(open('$SKILLS_JSON')); print(d['$NAME']['category'])")
+
+# Fallback: use skills.json for name_zh/description_zh if not in SKILL.md
+if [ -z "$NAME_ZH" ]; then
+  NAME_ZH=$(python3 -c "import json; d=json.load(open('$SKILLS_JSON')); print(d['$NAME'].get('name_zh',''))")
+fi
+if [ -z "$DESC_ZH" ]; then
+  DESC_ZH=$(python3 -c "import json; d=json.load(open('$SKILLS_JSON')); print(d['$NAME'].get('description_zh',''))")
+fi
+
+[ -n "$NAME_ZH" ] || die "No 'name_zh' found in SKILL.md or skills.json"
+[ -n "$DESC_ZH" ] || die "No 'description_zh' found in SKILL.md or skills.json"
 
 # Read admin config (env vars override skills.json)
 ADMIN_BASE_URL="${FUTURE_ADMIN_BASE_URL:-$(python3 -c "import json; d=json.load(open('$SKILLS_JSON')); print(d['admin']['base_url'])")}"
