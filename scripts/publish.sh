@@ -126,10 +126,14 @@ echo "Publishing $SKILL_PATH..."
 NAME=$(parse_frontmatter "$SKILL_MD" "name")
 VERSION=$(parse_version "$SKILL_MD")
 DESC=$(parse_frontmatter "$SKILL_MD" "description")
+NAME_ZH=$(parse_frontmatter "$SKILL_MD" "name_zh")
+DESC_ZH=$(parse_frontmatter "$SKILL_MD" "description_zh")
 
 [ -n "$NAME" ]    || die "Could not parse 'name' from SKILL.md frontmatter"
 [ -n "$VERSION" ] || die "Could not parse 'version' from SKILL.md frontmatter"
 [ -n "$DESC" ]    || die "Could not parse 'description' from SKILL.md frontmatter"
+[ -n "$NAME_ZH" ] || die "Could not parse 'name_zh' from SKILL.md frontmatter"
+[ -n "$DESC_ZH" ] || die "Could not parse 'description_zh' from SKILL.md frontmatter"
 
 # 2. Read skills.json config
 [ -f "$SKILLS_JSON" ] || die "skills.json not found at $SKILLS_JSON"
@@ -165,6 +169,8 @@ HTTP_CODE=$(curl -s -o /tmp/future-publish-response.json -w "%{http_code}" \
     -F "name=${NAME}" \
     -F "version=${VERSION}" \
     -F "description=${DESC}" \
+    -F "name_zh=${NAME_ZH}" \
+    -F "description_zh=${DESC_ZH}" \
     -F "category=${CATEGORY}" \
     -F "price=${PRICE}" \
     -F "formats=${FORMATS}" \
