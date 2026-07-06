@@ -139,9 +139,6 @@ DESC_ZH=$(parse_frontmatter "$SKILL_MD" "description_zh")
 [ -f "$SKILLS_JSON" ] || die "skills.json not found at $SKILLS_JSON"
 
 CATEGORY=$(python3 -c "import json; d=json.load(open('$SKILLS_JSON')); print(d['$NAME']['category'])")
-PRICE=$(python3 -c "import json; d=json.load(open('$SKILLS_JSON')); print(d['$NAME']['price'])")
-FORMATS=$(python3 -c "import json; d=json.load(open('$SKILLS_JSON')); print(d['$NAME']['formats'])")
-LIMIT=$(python3 -c "import json; d=json.load(open('$SKILLS_JSON')); print(d['$NAME']['limit'])")
 
 # Read admin config (env vars override skills.json)
 ADMIN_BASE_URL="${FUTURE_ADMIN_BASE_URL:-$(python3 -c "import json; d=json.load(open('$SKILLS_JSON')); print(d['admin']['base_url'])")}"
@@ -172,9 +169,6 @@ HTTP_CODE=$(curl -s -o /tmp/future-publish-response.json -w "%{http_code}" \
     -F "name_zh=${NAME_ZH}" \
     -F "description_zh=${DESC_ZH}" \
     -F "category=${CATEGORY}" \
-    -F "price=${PRICE}" \
-    -F "formats=${FORMATS}" \
-    -F "limit=${LIMIT}" \
     -F "overwrite=${OVERWRITE}" \
     -F "file=@${ZIP_PATH}" \
     2>/dev/null || die "Failed to connect to $API_URL. Is the platform service running?")
