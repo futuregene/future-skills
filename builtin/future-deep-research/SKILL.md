@@ -2,17 +2,16 @@
 name: future-deep-research
 version: 2.5.0
 description: >
-  对用户指定的主题进行端到端深度研究。自动编排多源数据采集（网页搜索、学术论文、YouTube视频、本地文档），
-  支持用户提供 PDF/Word/URL/论文ID/视频/笔记/CSV 等素材，通过交叉验证和引证校验确保信息可靠性，
+  对用户指定的主题进行端到端深度研究。自动编排多源数据采集（网页搜索、学术论文、本地文档），
+  支持用户提供 PDF/Word/URL/论文ID/笔记/CSV 等素材，通过交叉验证和引证校验确保信息可靠性，
   最终输出一份完整的 Markdown（可选 PDF）研究报告。
   当用户需要做深度调研、文献综述、行业分析、技术调研、竞品分析、写研究报告时使用。
 metadata:
   requires:
-    bins: ["future", "node"]
+    bins: ["future"]
   orchestrates:
     - future-web
     - future-paper
-    - youtube-transcript
     - future-document
     - future-browser
     - future-image
@@ -25,7 +24,6 @@ allowed-tools: Bash(future:*)
 
 ---
 
-> **前置条件：** 确保 `future` CLI 已认证（`~/.future/agent/auth.json`）。`youtube-transcript` 需要 Node.js。
 
 ## 一、编排的资源总览
 
@@ -33,7 +31,6 @@ allowed-tools: Bash(future:*)
 |------|------|----------------|
 | **`future-web`** | `web_search` / `fetch_url` | Phase 1 网页搜索 + Phase 2 页面精读 |
 | **`future-paper`** | `search_paper` / `get_paper` | Phase 1/2 学术论文检索与全文获取 |
-| **`youtube-transcript`** | `transcript.js` | Phase 2d 视频字幕提取 |
 | **`future-document`** | `parse_doc` | Phase 0 用户提供的 PDF/Word 文档解析 |
 | **`future-browser`** | `browser_*` | Phase 1 **抓取降级**: 当 fetch_url 返回空内容时自动用浏览器重试 |
 | **`future-image`** | image_generation / 分析 | Phase 5 配图生成（可选） |
@@ -51,7 +48,6 @@ allowed-tools: Bash(future:*)
 | 页面精读 | 仅摘要/关键段 | Tier1 全文 | Tier1+Tier2 全文 |
 | 学术论文 | 不检索 | 搜索摘要 | 搜索+全文获取 |
 | Python 分析 | ❌ | ❌ | ✅ |
-| YouTube | ❌ | ❌ | ✅ (按需) |
 | 交叉验证 | 基础 | 中等 | 深度+引证校验 |
 | 适用场景 | 快速了解/事实核查 | 行业调研/竞品概览 | 学术综述/技术深潜 |
 
@@ -75,7 +71,6 @@ allowed-tools: Bash(future:*)
   ├─ 🌐 信息来源
   │   ├─ "更关注学术论文、行业报告、还是两者都要？"
   │   ├─ "信源语言偏好？默认英文搜索（除非主题本身更适合中文，如中国本土政策、中文社区话题）"
-  │   └─ "需要纳入 YouTube 视频讲解素材吗？"
   │
   ├─ 📝 输出语言
   │   └─ "报告输出语言？默认中文（除非用户的提问本身是用英文做的，此时默认英文）"
@@ -97,7 +92,6 @@ allowed-tools: Bash(future:*)
 | 📑 PDF/Word 文档 | 本地文件路径 | `future tools call parse_doc --args '{"doc_path": "/path/to/file.pdf"}'` |
 | 🔗 网页 URL | 一个或多个 URL | `future tools call fetch_url --args '{"url": "..."}'` |
 | 📄 论文 ID | DOI / PMID / ArXiv ID | `future tools call get_paper --args '{"paper_id": "DOI:..."}'` |
-| 🎬 YouTube 链接 | 视频 URL | `{baseDir}/transcript.js <url>` |
 | 📝 笔记/大纲 | 直接粘贴文本 | 直接纳入研究基础 |
 | 📊 CSV/Excel 数据 | 本地文件路径 | 供 Phase 2b 分析 |
 | 🖼️ 截图/图片 | 本地文件路径 | 供 Phase 2d 分析 |
@@ -399,7 +393,6 @@ allowed-tools: Bash(future:*)
     └─ 提取：方法、结果、局限性
 
   2d：多媒体补充（策略C + 按需）
-    ├─ YouTube: {baseDir}/transcript.js <video-url>
     └─ 图片分析：通过 future-image 进行 OCR/图表理解
 
 输出: 《深度研读笔记》— 核心发现 + 精确引证 + 🔴 疑点清单
@@ -550,7 +543,7 @@ allowed-tools: Bash(future:*)
   ├─ 📋 执行摘要（含置信度总览）
   ├─ 📑 目录
   ├─ 结论与建议
-  ├─ 📚 参考资料（分类：网络/论文/视频/文档）
+  ├─ 📚 参考资料（分类：网络/论文/文档）
   └─ 📎 附录
       ├─ 引证验证报告（🚨 所有可疑引证列出）
       ├─ 抓取降级记录
