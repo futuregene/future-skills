@@ -48,16 +48,15 @@ description: Search, download, and analyze scientific papers.
 
 ## skills.json
 
-`skills.json` 维护每个 skill 的元数据（`category`、`price`、`formats`、`limit`、`enabled` 等），供 Future 平台使用：
+`skills.json` 维护每个 skill 的元数据（`category`、`enabled`、`name_zh`、`description_zh` 等），供 Future 平台使用：
 
 ```json
 {
   "future-paper": {
     "category": "builtin",
-    "price": "Free",
-    "formats": "SKILL.md",
-    "limit": "None",
-    "enabled": true
+    "enabled": true,
+    "name_zh": "文献搜索与获取",
+    "description_zh": "跨多数据库搜索学术文献，按标识符获取全文内容"
   }
 }
 ```
@@ -74,4 +73,4 @@ description: Search, download, and analyze scientific papers.
 
 ## 许可
 
-[Apache 2.0](LICENSE)
+[MIT](LICENSE)
