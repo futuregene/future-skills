@@ -1,47 +1,77 @@
 # Future Skills
 
-Future 平台的 Skills 集合。包含 Future 平台内置 skills 和经过审核的第三方 skills。
+[Future](https://github.com/future-gene/future) 平台的 Skills 集合，面向科研场景的 AI 辅助技能库。
+
+## 什么是 Skill？
+
+Skill 是一个轻量级的 AI 指令包，由一个 `SKILL.md` 文件定义，告诉 AI 如何高效完成特定领域任务。每个 skill 包含 YAML frontmatter 元数据（`name`、`version`、`description`）和具体的操作指南。
 
 ## 目录结构
 
 ```
 future-skills/
-├── builtin/          # Future 平台内置 skills（Builtin）
+├── builtin/          # Future 平台内置 skills
 │   ├── future-account/
 │   ├── future-browser/
+│   ├── future-database-lookup/
 │   ├── future-deep-research/
 │   ├── future-document/
+│   ├── future-experimental-design/
 │   ├── future-hand-drawn-posters/
 │   ├── future-hand-drawn-slides/
 │   ├── future-image/
 │   ├── future-paper/
+│   ├── future-peer-review/
+│   ├── future-scientific-writing/
 │   ├── future-skill-creator/
 │   ├── future-subagent/
 │   └── future-web/
-├── third-party/      # 审核过的第三方 skills
-├── skills.json       # Skill 元数据配置（category、price 等）
-├── scripts/
-│   └── download.sh   # 从 GitHub 下载 skill 到 pending-review/
-├── Makefile
+├── third-party/      # 社区贡献的第三方 skills（130+）
+├── skills.json       # Skill 元数据配置
 └── README.md
 ```
 
-每个 skill 目录包含一个 `SKILL.md` 入口文件，带 YAML frontmatter（`name`、`version`、`description`）。前端元数据以外的字段（`category`、`price` 等）统一在 `skills.json` 中维护。
+## Skill 格式
 
-## 添加新 skill
+每个 skill 目录包含一个 `SKILL.md` 入口文件：
 
-### Future 平台内置 skill
+```markdown
+---
+name: future-account
+version: 1.0.0
+description: View Future account profile and balance.
+---
+# Future Account
 
-在 `builtin/` 下创建目录，放入 `SKILL.md`（必须包含 YAML frontmatter 中的 `name`、`version`、`description`），然后在 `skills.json` 中添加元数据。
-
-### 第三方 skill
-
-在 `third-party/` 下创建目录，结构同上。审核通过后即可发布。
-
-## 下载 skill 进行审核
-
-```bash
-make download https://github.com/owner/repo/tree/branch/path/to/skill
+具体操作指南...
 ```
 
-这会将 skill 下载到 `pending-review/<skill-name>/`。审核通过后，将其移动到 `builtin/` 或 `third-party/` 并在 `skills.json` 中添加元数据。
+## skills.json
+
+`skills.json` 维护每个 skill 的元数据（`category`、`price`、`formats`、`limit`、`enabled` 等），供 Future 平台使用：
+
+```json
+{
+  "future-account": {
+    "category": "builtin",
+    "price": "Free",
+    "formats": "SKILL.md",
+    "limit": "None",
+    "enabled": true
+  }
+}
+```
+
+## 贡献
+
+欢迎提交新的 skill 或改进现有 skill。
+
+1. 在 `third-party/` 下创建目录，放入 `SKILL.md`
+2. 在 `skills.json` 中添加对应的元数据
+3. 提交 PR
+
+`SKILL.md` 必须包含 YAML frontmatter 中的 `name`、`version`、`description` 字段。
+
+## 许可
+
+[Apache 2.0](LICENSE)
