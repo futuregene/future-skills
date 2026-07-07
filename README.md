@@ -1,6 +1,6 @@
 # Future Skills
 
-[Future](https://github.com/future-gene/future) 平台的 Skills 集合，面向科研场景的 AI 辅助技能库。
+[Future](https://github.com/futuregene/future-os) 平台的 Skills 集合，面向科研场景的 AI 辅助技能库。
 
 ## 什么是 Skill？
 
@@ -26,7 +26,7 @@ future-skills/
 │   ├── future-skill-creator/
 │   ├── future-subagent/
 │   └── future-web/
-├── third-party/      # 社区贡献的第三方 skills（130+）
+├── third-party/      # 精选的第三方 skills
 ├── skills.json       # Skill 元数据配置
 └── README.md
 ```
@@ -37,11 +37,11 @@ future-skills/
 
 ```markdown
 ---
-name: future-account
+name: future-paper
 version: 1.0.0
-description: View Future account profile and balance.
+description: Search, download, and analyze scientific papers.
 ---
-# Future Account
+# Future Paper
 
 具体操作指南...
 ```
@@ -52,7 +52,7 @@ description: View Future account profile and balance.
 
 ```json
 {
-  "future-account": {
+  "future-paper": {
     "category": "builtin",
     "price": "Free",
     "formats": "SKILL.md",
