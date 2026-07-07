@@ -1,8 +1,4 @@
 {
-  "admin": {
-    "base_url": "https://test.future-os.cn",
-    "token": "future-admin-dev-token"
-  },
   "future-account": {
     "category": "builtin",
     "price": "Free",
