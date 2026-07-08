@@ -1,6 +1,6 @@
 # Future Skills
 
-FutureOS Skills 集合，面向科研场景的 AI 辅助技能库。
+面向科研场景的 AI 辅助技能库，为 [FutureOS](https://github.com/futuregene/future-os/tree/main) 构建。
 
 [English](README.md)
 
@@ -50,7 +50,7 @@ description: Search, download, and analyze scientific papers.
 
 ## skills.json
 
-`skills.json` 维护每个 skill 的元数据（`category`、`enabled`、`name_zh`、`description_zh` 等），供 FutureOS 使用：
+`skills.json` 维护每个 skill 的元数据（`category`、`enabled`、`name_zh`、`description_zh` 等），供 [FutureOS](https://github.com/futuregene/future-os/tree/main) 使用：
 
 ```json
 {

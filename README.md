@@ -1,6 +1,6 @@
 # Future Skills
 
-A collection of AI-assisted skills for scientific research, built for FutureOS.
+A collection of AI-assisted skills for scientific research, built for [FutureOS](https://github.com/futuregene/future-os/tree/main).
 
 [中文版](README.zh-CN.md)
 
@@ -50,7 +50,7 @@ Usage guidance...
 
 ## skills.json
 
-`skills.json` maintains metadata for each skill (`category`, `enabled`, `name`, `description`, etc.), consumed by FutureOS:
+`skills.json` maintains metadata for each skill (`category`, `enabled`, `name`, `description`, etc.), consumed by [FutureOS](https://github.com/futuregene/future-os/tree/main):
 
 ```json
 {
