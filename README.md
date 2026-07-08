@@ -1,16 +1,18 @@
 # Future Skills
 
-[Future](https://github.com/futuregene/future-os) 平台的 Skills 集合，面向科研场景的 AI 辅助技能库。
+A collection of AI-assisted skills for scientific research, built for the [Future](https://github.com/futuregene/future-os) platform.
 
-## 什么是 Skill？
+[中文版](README.zh-CN.md)
 
-Skill 是一个轻量级的 AI 指令包，由一个 `SKILL.md` 文件定义，告诉 AI 如何高效完成特定领域任务。每个 skill 包含 YAML frontmatter 元数据（`name`、`version`、`description`）和具体的操作指南。
+## What is a Skill?
 
-## 目录结构
+A skill is a lightweight AI instruction package defined by a `SKILL.md` file that teaches an AI agent how to accomplish specific domain tasks efficiently. Each skill includes YAML frontmatter metadata (`name`, `version`, `description`) and actionable guidance.
+
+## Directory Structure
 
 ```
 future-skills/
-├── builtin/          # Future 平台内置 skills
+├── builtin/          # Future platform built-in skills
 │   ├── future-account/
 │   ├── future-browser/
 │   ├── future-database-lookup/
@@ -26,14 +28,14 @@ future-skills/
 │   ├── future-skill-creator/
 │   ├── future-subagent/
 │   └── future-web/
-├── third-party/      # 精选的第三方 skills
-├── skills.json       # Skill 元数据配置
+├── third-party/      # Curated third-party skills
+├── skills.json       # Skill metadata configuration
 └── README.md
 ```
 
-## Skill 格式
+## Skill Format
 
-每个 skill 目录包含一个 `SKILL.md` 入口文件：
+Each skill directory contains a `SKILL.md` entry file:
 
 ```markdown
 ---
@@ -43,34 +45,34 @@ description: Search, download, and analyze scientific papers.
 ---
 # Future Paper
 
-具体操作指南...
+Usage guidance...
 ```
 
 ## skills.json
 
-`skills.json` 维护每个 skill 的元数据（`category`、`enabled`、`name_zh`、`description_zh` 等），供 Future 平台使用：
+`skills.json` maintains metadata for each skill (`category`, `enabled`, `name`, `description`, etc.), consumed by the Future platform:
 
 ```json
 {
   "future-paper": {
     "category": "builtin",
     "enabled": true,
-    "name_zh": "文献搜索与获取",
-    "description_zh": "跨多数据库搜索学术文献，按标识符获取全文内容"
+    "name": "Literature Search",
+    "description": "Search academic papers across multiple databases and retrieve full-text by identifier"
   }
 }
 ```
 
-## 贡献
+## Contributing
 
-欢迎提交新的 skill 或改进现有 skill。
+New skills and improvements are welcome.
 
-1. 在 `third-party/` 下创建目录，放入 `SKILL.md`
-2. 在 `skills.json` 中添加对应的元数据
-3. 提交 PR
+1. Create a directory under `third-party/` with a `SKILL.md` file
+2. Add corresponding metadata in `skills.json`
+3. Submit a PR
 
-`SKILL.md` 必须包含 YAML frontmatter 中的 `name`、`version`、`description` 字段。
+`SKILL.md` must include `name`, `version`, and `description` fields in its YAML frontmatter.
 
-## 许可
+## License
 
 [MIT](LICENSE)
