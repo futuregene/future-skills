@@ -1,6 +1,6 @@
 # Future Skills
 
-A collection of AI-assisted skills for scientific research, built for the [Future](https://github.com/futuregene/future-os) platform.
+A collection of AI-assisted skills for scientific research, built for FutureOS.
 
 [中文版](README.zh-CN.md)
 
@@ -12,7 +12,7 @@ A skill is a lightweight AI instruction package defined by a `SKILL.md` file tha
 
 ```
 future-skills/
-├── builtin/          # Future platform built-in skills
+├── builtin/          # FutureOS built-in skills
 │   ├── future-account/
 │   ├── future-browser/
 │   ├── future-database-lookup/
@@ -50,7 +50,7 @@ Usage guidance...
 
 ## skills.json
 
-`skills.json` maintains metadata for each skill (`category`, `enabled`, `name`, `description`, etc.), consumed by the Future platform:
+`skills.json` maintains metadata for each skill (`category`, `enabled`, `name`, `description`, etc.), consumed by FutureOS:
 
 ```json
 {
