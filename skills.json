@@ -203,12 +203,6 @@
     "name_zh": "大规模分布式计算",
     "description_zh": "超内存规模的 pandas/NumPy 分布式计算框架，无缝扩展现有数据分析代码"
   },
-  "database-lookup": {
-    "category": "databases",
-    "enabled": true,
-    "name_zh": "数据库查询",
-    "description_zh": "查询公开科学数据库获取结构化数据"
-  },
   "datamol": {
     "category": "chemistry-drug",
     "enabled": true,
@@ -262,12 +256,6 @@
     "enabled": true,
     "name_zh": "系统发育树分析",
     "description_zh": "系统发育树工具包：树操作（Newick/NHX）、进化事件检测、同源性分析、可视化"
-  },
-  "experimental-design": {
-    "category": "other",
-    "enabled": true,
-    "name_zh": "实验设计",
-    "description_zh": "科学实验方案设计，包括对照组、样本量、随机化和统计分析"
   },
   "exploratory-data-analysis": {
     "category": "statistics",
@@ -527,12 +515,6 @@
     "name_zh": "通路富集分析",
     "description_zh": "对基因列表进行通路和基因集富集分析，解释生物学意义"
   },
-  "peer-review": {
-    "category": "other",
-    "enabled": true,
-    "name_zh": "同行评审",
-    "description_zh": "结构化稿件和基金申请评审，基于清单的系统性评估"
-  },
   "pennylane": {
     "category": "physics-quantum",
     "enabled": true,
@@ -718,12 +700,6 @@
     "enabled": true,
     "name_zh": "科学可视化",
     "description_zh": "创建发表级图表：包含多子图和高级绑图元素的综合可视化"
-  },
-  "scientific-writing": {
-    "category": "other",
-    "enabled": true,
-    "name_zh": "科研写作",
-    "description_zh": "撰写科学论文、报告和基金申请书"
   },
   "scikit-bio": {
     "category": "bioinformatics",
