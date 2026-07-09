@@ -25,17 +25,23 @@ Load this skill when the user asks to:
 All tools are called via the `future` CLI using the `bash` tool. Use `--output` to save images to files.
 
 ```bash
-# Generate an image from a text prompt
-future tools call image_gen --args '{"prompt": "A red fox in an autumn forest", "size": "1024x1024"}' --output ./output.png
+# Generate an image from a text prompt (can take 2–20 minutes; --timeout 600 sets a 10-minute HTTP timeout)
+future tools call image_gen --args '{"prompt": "A red fox in an autumn forest", "size": "1024x1024"}' --output ./output.png --timeout 600
 
-# Edit an existing image (use image_path, not base64!)
-future tools call image_edit --args '{"prompt": "Convert to watercolor painting", "image_path": "/path/to/photo.png"}' --output ./edited.png
+# Edit an existing image
+future tools call image_edit --args '{"prompt": "Convert to watercolor painting", "image_path": "/path/to/photo.png"}' --output ./edited.png --timeout 600
 
-# Analyze an image — use image_path, the CLI handles base64 automatically:
+# Analyze an image
 future tools call read_image --args '{"image_path": "/Users/fgbot/gundam.png", "question": "Describe this image"}'
 ```
 
-**Always use `image_path` instead of `image_b64`.** The CLI reads the file and encodes it automatically — no Python, no base64, no pipe, no size limits.
+**For `image_gen` and `image_edit`, always add `--timeout 600` to the `future tools call` command.** Generation takes 2–20 minutes, and the CLI defaults to a 60-second HTTP timeout. The bash tool's own `timeout` parameter (default 120s) must also be set accordingly:
+
+```json
+{"command": "future tools call image_gen --args '...' --output ./out.png --timeout 600", "timeout": 600}
+```
+
+**Always use `image_path` instead of `image_b64`.** The CLI reads the file and encodes it automatically.
 
 ## Error handling
 
