@@ -39,7 +39,7 @@
     "category": "builtin",
     "enabled": true,
     "name_zh": "手绘风格海报",
-    "description_zh": "从文本、文章或研究内容生成日式手绘插画风格的科研信息图海报"
+    "description_zh": "从文本、文章或研究内容生成手绘插画风格的科研信息图海报"
   },
   "future-hand-drawn-slides": {
     "category": "builtin",
