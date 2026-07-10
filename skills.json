@@ -41,11 +41,11 @@
     "name_zh": "手绘风格海报",
     "description_zh": "从文本、文章或研究内容生成手绘插画风格的科研信息图海报"
   },
-  "future-hand-drawn-slides": {
+  "future-slides": {
     "category": "builtin",
     "enabled": true,
-    "name_zh": "手绘风格幻灯片",
-    "description_zh": "从 Markdown 报告生成手绘素描笔记风格的演示幻灯片"
+    "name_zh": "幻灯片生成",
+    "description_zh": "从 Markdown 报告生成演示幻灯片，支持极简、深色、手绘、商务、多彩等多种视觉风格，也可自定义风格"
   },
   "future-image": {
     "category": "builtin",

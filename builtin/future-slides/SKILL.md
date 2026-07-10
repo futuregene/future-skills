@@ -1,16 +1,14 @@
 ---
-version: 1.0.0
-name: future-hand-drawn-slides
-description: Generate hand-drawn sketchnote style presentation slides from a Markdown report using Future OS image tools. Default style is Japanese illustration with ink splatters, pastel watercolor, and comic sketch texture. Triggered when the user asks to create PPT/slides in hand-drawn, sketchnote, or Japanese illustration style.
+version: 2.0.0
+name: future-slides
+description: Generate presentation slides as images from a Markdown report using Future OS image tools. Supports multiple visual styles (clean, dark, sketched, corporate, vibrant, or user-defined). The user picks or describes a style before generation. Triggered when the user asks to create PPT/slides/presentation from content.
 allowed-tools: Bash(future:*)
 category: creative
 ---
 
-# Future Hand-Drawn Sketchnote Slides Generator
+# Future Slides Generator
 
-Convert a Markdown report into PNG slides with a unified hand-drawn aesthetic, then optionally package them as a lossless PDF.
-
-**Default style:** Japanese illustration with watercolor, ink splatters, pastels, and comic sketch texture.
+Convert a Markdown report into PNG slides with a consistent visual aesthetic, then optionally package them as a lossless PDF.
 
 > **Future OS platform rule:** use the `future` CLI for all image generation, image editing, and image analysis. Do not call legacy local image scripts or non-Future image analyzers.
 
@@ -66,18 +64,46 @@ mkdir -p "$WORK_DIR"
 
 All prompts, scripts, logs, PNG files, and final PDFs live under this directory.
 
+## Step 0: Choose a Visual Style (Required)
+
+**Before generating any slides, let the user choose a visual style.** Present a few curated presets and always offer a custom option:
+
+```
+请选择幻灯片的视觉风格：
+
+1. 极简干净 — 白色背景，无衬线字体风格，细线条图标，克制的配色
+2. 深色科技 — 深灰/黑色背景，霓虹高亮，科技感线条和几何图形
+3. 手绘素描 — 白色纸张背景，墨水飞溅，随性手绘线条，漫画素描质感，粉彩配色
+4. 现代商务 — 浅灰/米白背景，圆角卡片，扁平图标，专业蓝灰配色
+5. 活力多彩 — 鲜艳渐变背景，粗体大字，趣味图标，高对比度
+
+您也可以输入自定义风格描述（如："日式浮世绘风格"、"杂志排版风格"、"复古胶片风格"等）
+```
+
+Wait for the user's explicit choice. Record it as the **Style Description** for the deck.
+
+**After the user picks a style, compose a Style Suffix** that will be appended to every slide prompt:
+
+```text
+<Style Description>, widescreen 16:9 composition. High quality anti-aliased rendering. Simplified Chinese only. No watermark.
+```
+
+- For **极简干净**: suffix should include "Clean minimalist vector illustration, white background, thin sans-serif typography, restrained color palette".
+- For **深色科技**: suffix should include "Dark gradient background, neon accent highlights, tech-inspired geometric lines, high contrast".
+- For **手绘素描**: suffix should include "Japanese illustration style sketchnote, white paper background, ink splatters, free-flowing hand-drawn lines, comic sketch texture, pastel watercolor, photorealistic scan of hand-drawn art on paper".
+- For **现代商务**: suffix should include "Modern corporate presentation, light grey background, rounded card layout, flat vector icons, professional blue-grey palette".
+- For **活力多彩**: suffix should include "Vibrant gradient background, bold oversized typography, playful icons, high contrast".
+- For **custom** (user-provided description): use the user's description verbatim plus the common suffix.
+
+The Style Suffix must stay **identical** for every slide in the deck to maintain visual consistency.
+
 ## Global Style Rules
 
 Every slide must follow these rules:
 
 - Use widescreen output. Prefer Future image tool size `1792x1024`; it is the closest supported wide format to 16:9. Keep all content inside a safe 16:9 composition with generous margins.
 - Use `quality: "medium"` only. Chinese text with high quality can time out.
-- Append this style suffix to every slide prompt:
-
-  ```text
-  Japanese illustration style sketchnote presentation slide, widescreen 16:9 composition. Clean white paper background. Ink splatter strokes, free-flowing hand-drawn lines, comic sketch texture, blend of pastels and ink, distinct character features, high detail. Photorealistic scan of hand-drawn art on paper. Simplified Chinese only. No watermark.
-  ```
-
+- Append the **Style Suffix** (from Step 0) to every slide prompt.
 - Append this exact text at the end of every prompt:
 
   ```text
@@ -85,48 +111,49 @@ Every slide must follow these rules:
   ```
 
 - Put every required Chinese string verbatim in the prompt. Do not describe the meaning and expect the model to infer the text.
-- Keep the deck visually consistent. Reuse the same style suffix, paper background, brush weight, doodle density, and pastel palette on every slide.
+- Keep the deck visually consistent. Reuse the same style suffix, color palette, and typography on every slide.
 - Include a table of contents slide as slide 02 immediately after the cover.
 - Keep each slide concise. Use at most 5 bullet points per content slide.
 
 ## Slide Types and Prompt Templates
 
+All prompts below MUST include the `{Style Suffix}` placeholder. Replace it with the actual suffix composed in Step 0.
+
 ### A. Cover Slide
 
 ```text
-Cover slide. Large Chinese calligraphy headline: '[TITLE]'.
-Below, smaller hand-lettered subtitle: '[SUBTITLE]'.
+Cover slide. Large Chinese headline: '[TITLE]'.
+Below, smaller subtitle: '[SUBTITLE]'.
 Bottom text: '[AUTHOR_INFO]'.
-Surrounding doodles: [topic-related doodles, such as robot, lightbulb, globe, city skyline].
+Surrounding decorative elements: [topic-related visuals — icons, geometric shapes, abstract patterns].
+{Style Suffix}
 ```
 
 ### B. Section Divider
 
-Font drift is the most common section-divider bug. Numbers and titles must look like brush calligraphy, not computer print.
-
 ```text
-Section divider. Large bold hand-drawn brush calligraphy number '[NN]' centered, same brush calligraphy style across all dividers.
-Below, handwritten calligraphy title: '[SECTION_NAME]'.
+Section divider. Large bold number '[NN]' centered.
+Below, title: '[SECTION_NAME]'.
 Minimal decorative elements.
-The number must use bold brush calligraphy, NOT computer print font.
+{Style Suffix}
 ```
 
 ### C. Table of Contents
 
 ```text
-Table of contents. Large calligraphy title '目录' centered.
-Below, two columns of numbered items in rounded squares, each connected by sketchy line to Chinese text.
+Table of contents. Large title '目录' centered.
+Below, numbered items in cards or bubbles, each with Chinese text.
 Items: '01 [SECTION1]', '02 [SECTION2]', ...
-Doodles: hanging vine top-left, paper airplane top-right, books with plant bottom-left, lightbulb over notebook bottom-right.
-Sketchy border frame.
+Decorative: style-appropriate corner elements.
+{Style Suffix}
 ```
 
 ### D. Quote Slide
 
 ```text
-Quote slide. Centered large bold calligraphy: '[FULL_QUOTE_WITH_INSPIRING_TONE]'.
+Quote slide. Centered large text: '[FULL_QUOTE_WITH_INSPIRING_TONE]'.
 Below: '—— [ATTRIBUTION]'.
-Minimal ink splatters. High detail.
+{Style Suffix}
 ```
 
 ### E. Content / Bullet Points
@@ -135,6 +162,7 @@ Minimal ink splatters. High detail.
 Bullet points slide. Headline: '[PAGE_TITLE]'.
 Points: '[POINT1]'; '[POINT2]'; '[POINT3]'.
 Simple icons matching the topic.
+{Style Suffix}
 ```
 
 ### F. Two-Column Comparison
@@ -144,22 +172,24 @@ Comparison slide. Headline: '[TITLE]'.
 Left column: '[LEFT_LABEL]'. Text: '[LEFT_POINTS]'.
 Right column: '[RIGHT_LABEL]'. Text: '[RIGHT_POINTS]'.
 Bottom quote: '[QUOTE]'.
+{Style Suffix}
 ```
 
 ### G. Case Study
 
 ```text
 Case study slide. Headline: '[CASE_TITLE]'.
-Illustration of [topic, such as automotive factory, campus, clinic, research lab].
+Illustration of [topic — e.g. automotive factory, campus, clinic, research lab].
 Text: '[KEY_FACTS]'.
+{Style Suffix}
 ```
 
 ### H. End Slide
 
 ```text
-End slide. Centered large calligraphy: '[CLOSING_LINE]'.
+End slide. Centered large text: '[CLOSING_LINE]'.
 Below: '[SUBLINE]'.
-Warm closing. Small sketch of [symbolic element].
+{Style Suffix}
 ```
 
 ## Chapter Rules
@@ -211,9 +241,9 @@ Rules:
 - Slide 02 is always the TOC and lists all final chapter titles.
 - Each chapter has one Section Divider plus 2-5 content slides.
 - Every visible Chinese string must appear exactly in `prompt`.
-- Every prompt includes the global style suffix and exact Simplified Chinese warning.
+- Every prompt includes the Style Suffix (from Step 0) and the exact Simplified Chinese warning.
 
-### Step 1.5: Present Outline to User for Confirmation
+### Step 2: Present Outline to User for Confirmation
 
 Before generating any images, show the user a concise outline of all planned slides:
 
@@ -232,7 +262,7 @@ NN 结束页: [结束语]
 
 Wait for explicit user confirmation. If the user requests changes, update `slide_prompts.json` and present the outline again. Only proceed after confirmation.
 
-### Step 2: Create Work Directory and Per-Slide Scripts
+### Step 3: Create Work Directory and Per-Slide Scripts
 
 The generated scripts must match the confirmed outline exactly: same slide count, same order, same slide numbers, same prompt intent.
 
@@ -287,7 +317,7 @@ sleep 5
 echo "ALL DONE"
 ```
 
-### Step 3: Run and Track Generation
+### Step 4: Run and Track Generation
 
 Run the master script in the background:
 
@@ -303,17 +333,15 @@ for f in "$WORK_DIR"/gen_*.log; do
 done
 ```
 
-### Step 4: Verify Slides with `read_image`
+### Step 5: Verify Slides with `read_image`
 
 After generation, inspect all slides when practical. For large decks, inspect at least the cover, TOC, every Section Divider, every slide with dense text, and at least 5 content slides.
-
-Use Future's image analysis tool:
 
 ```bash
 future tools call read_image --stdin <<JSON
 {
   "image_path": "$WORK_DIR/slide_NN.png",
-  "question": "Review this hand-drawn Chinese presentation slide. Check every visible Chinese character for Simplified Chinese, typos, hallucinated words, missing text, extra text, and Traditional Chinese. Also check layout, section number font, and whether the visual style matches Japanese sketchnote watercolor ink slides. Return a concise list of issues or say PASS.",
+  "question": "Review this Chinese presentation slide. Check every visible Chinese character for Simplified Chinese, typos, hallucinated words, missing text, extra text, and Traditional Chinese. Also check layout, visual consistency with the deck style, and text readability. Return a concise list of issues or say PASS.",
   "mime_type": "image/png",
   "max_tokens": 2000
 }
@@ -327,10 +355,9 @@ Verification checklist:
 - Watch common mistakes: `多媒体`, `我们` becoming `我們`, `从` becoming `從`, `选` becoming `選`.
 - Required exact strings from the prompt are present.
 - No extra title, logo, watermark, or unrelated text.
-- Section divider numbers use brush calligraphy, not print font.
 - Style is consistent across all pages.
 
-### Step 5: Fix Individual Slides
+### Step 6: Fix Individual Slides
 
 Identify failed slides:
 
@@ -349,17 +376,16 @@ Common prompt repairs:
 - For Traditional Chinese: repeat `Simplified Chinese only. Use 我们, 从, 选 exactly; do not use 我們, 從, 選.`
 - For typos: list the exact problematic string and say `Use the exact text '[TEXT]' with no substitutions.`
 - For missing quote text: include the full quote verbatim and say `The quote must be visible and centered.`
-- For section number font drift: add `The number must use bold brush calligraphy, NOT computer print font.`
 
-### Step 6: Photo / Avatar Integration (Optional)
+### Step 7: Photo / Avatar Integration (Optional)
 
-Prefer hand-drawn avatar integration so the deck stays stylistically consistent. If the user provides a real reference photo, first describe the person's visible features with `read_image`, then use that textual description in the slide edit prompt.
+If the user provides a reference photo, first describe the visible features with `read_image`, then use that textual description in the slide edit prompt.
 
 ```bash
 future tools call read_image --stdin <<JSON
 {
   "image_path": "/path/to/reference_photo.png",
-  "question": "Describe the person's visible features for creating a respectful hand-drawn cartoon avatar. Mention hair, glasses, expression, clothing, and face shape. Do not identify the person.",
+  "question": "Describe the person's visible features for creating a respectful illustration. Mention hair, glasses, expression, clothing, and face shape. Do not identify the person.",
   "mime_type": "image/png",
   "max_tokens": 800
 }
@@ -368,7 +394,7 @@ JSON
 future tools call image_edit --stdin --output "$WORK_DIR/slide_NN_fixed.png" <<JSON
 {
   "image_path": "$WORK_DIR/slide_NN.png",
-  "prompt": "Replace the cartoon person with a hand-drawn cartoon avatar using these visible features: [FEATURE_DESCRIPTION]. Blend naturally into the ink wash background. Keep all Chinese text and icons unchanged. Japanese illustration style sketchnote slide. Simplified Chinese only. Must use exact Simplified Chinese characters with NO typos.",
+  "prompt": "Replace the person with an illustration using these visible features: [FEATURE_DESCRIPTION]. Blend naturally into the background. Keep all Chinese text and icons unchanged. {Style Suffix}",
   "size": "1792x1024",
   "quality": "medium",
   "output_format": "png"
@@ -376,9 +402,9 @@ future tools call image_edit --stdin --output "$WORK_DIR/slide_NN_fixed.png" <<J
 JSON
 ```
 
-If a real photo must be used, only do so when the user explicitly asks for a real photo. Use `image_edit` and keep the instruction focused on preserving existing text.
+Only use a real photo when the user explicitly asks for one.
 
-### Step 7: Assemble PDF
+### Step 8: Assemble PDF
 
 After all PNG slides pass verification, combine them into a PDF.
 
@@ -425,7 +451,5 @@ Never run `future auth login` unprompted.
 | 3 | Hallucinated words | High | Never describe text meaning; quote the exact visible text |
 | 4 | Image generation timeout | Medium | Keep `quality` at `medium`; retry once; reduce dense text |
 | 5 | 429 rate limiting | Medium | Run at most 3 slides concurrently; retry failed slides individually |
-| 6 | Section number uses print font | Medium | Add `bold brush calligraphy, NOT computer print font` |
-| 7 | Quote slide misses text | Low | Include the full quote verbatim and state it must be visible |
-| 8 | Watermark or fake logo appears | Low | Use `No watermark` plus `Photorealistic scan of hand-drawn art on paper` |
-| 9 | PDF assembly fails because `img2pdf` is missing | Low | Use the Pillow fallback |
+| 6 | Quote slide misses text | Low | Include the full quote verbatim and state it must be visible |
+| 7 | PDF assembly fails because `img2pdf` is missing | Low | Use the Pillow fallback |
