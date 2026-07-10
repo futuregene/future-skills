@@ -77,12 +77,6 @@
     "name_zh": "自定义技能创建",
     "description_zh": "在本地创建或更新自定义技能，采用成熟的技能设计模式"
   },
-  "future-subagent": {
-    "category": "builtin",
-    "enabled": true,
-    "name_zh": "子代理调度",
-    "description_zh": "创建和管理子代理以并行执行复杂任务的各子任务"
-  },
   "future-web": {
     "category": "builtin",
     "enabled": true,
