@@ -35,17 +35,11 @@
     "name_zh": "实验设计",
     "description_zh": "设计科学实验方案，包括对照组、样本量计算、随机化和统计分析计划"
   },
-  "future-hand-drawn-posters": {
-    "category": "builtin",
-    "enabled": true,
-    "name_zh": "手绘风格海报",
-    "description_zh": "从文本、文章或研究内容生成手绘插画风格的科研信息图海报"
-  },
   "future-slides": {
     "category": "builtin",
     "enabled": true,
-    "name_zh": "幻灯片生成",
-    "description_zh": "从 Markdown 报告生成演示幻灯片，支持极简、深色、手绘、商务、多彩等多种视觉风格，也可自定义风格"
+    "name_zh": "幻灯片与演示生成",
+    "description_zh": "从 Markdown 报告生成演示幻灯片，支持 8 种预设视觉风格（极简、深色科技、手绘、现代商务、活力多彩、科研海报、分子美学、数据驱动）及自定义风格"
   },
   "future-image": {
     "category": "builtin",
