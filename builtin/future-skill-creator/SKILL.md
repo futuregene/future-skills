@@ -1,20 +1,19 @@
 ---
 version: 1.0.0
 name: future-skill-creator
-description: Create or update user-local custom skills under ~/.agents/skills using mature skill design patterns: concise SKILL.md instructions, clear triggering descriptions, optional scripts/references/assets, progressive disclosure, validation, and iteration. Use when the user asks to create, scaffold, port, review, improve, or install a custom skill, including requests like "add a skill", "make this a skill", "create my own skill", "update SKILL.md", or "创建技能".
+description: Create or update app-local custom skills under ~/.future/agent/skills (macOS/Linux) or %USERPROFILE%\.future\agent\skills (Windows) using mature skill design patterns: concise SKILL.md instructions, clear triggering descriptions, optional scripts/references/assets, progressive disclosure, validation, and iteration. Use when the user asks to create, scaffold, port, review, improve, or install a custom skill, including requests like "add a skill", "make this a skill", "create my own skill", "update SKILL.md", or "创建技能".
 allowed-tools: Bash(future:*)
 category: development
 ---
 
 # Future Skill Creator
 
-Create or update user-local custom skills. This skill itself is installed as a built-in Future skill, but the skills it helps create are user skills by default.
+Create or update app-local custom skills. This skill itself is installed as a built-in Future skill, but the skills it helps create are Future app skills by default.
 
 Default target:
 
-```text
-~/.agents/skills/<skill-name>/SKILL.md
-```
+- **macOS / Linux**: `~/.future/agent/skills/<skill-name>/SKILL.md`
+- **Windows**: `%USERPROFILE%\.future\agent\skills\<skill-name>\SKILL.md`
 
 Use another target only when the user explicitly asks for it.
 
@@ -95,7 +94,7 @@ Follow these steps:
 
 1. Understand the skill with concrete examples.
 2. Choose the skill name.
-3. Create `~/.agents/skills/<skill-name>/`.
+3. Create the skill folder under `~/.future/agent/skills/<skill-name>/` (macOS/Linux) or `%USERPROFILE%\.future\agent\skills\<skill-name>\` (Windows).
 4. Decide whether the skill needs `scripts/`, `references/`, or `assets/`.
 5. Write `SKILL.md`.
 6. Add only necessary resources.
@@ -143,21 +142,27 @@ In `SKILL.md`, explicitly say when to read or use each resource.
 Default command:
 
 ```bash
-mkdir -p ~/.agents/skills/<skill-name>
+mkdir -p ~/.future/agent/skills/<skill-name>
+```
+
+On Windows (PowerShell):
+
+```powershell
+mkdir -p $env:USERPROFILE\.future\agent\skills\<skill-name>
 ```
 
 Optional resource folders:
 
 ```bash
-mkdir -p ~/.agents/skills/<skill-name>/scripts
-mkdir -p ~/.agents/skills/<skill-name>/references
-mkdir -p ~/.agents/skills/<skill-name>/assets
+mkdir -p ~/.future/agent/skills/<skill-name>/scripts
+mkdir -p ~/.future/agent/skills/<skill-name>/references
+mkdir -p ~/.future/agent/skills/<skill-name>/assets
 ```
 
 Then create:
 
 ```text
-~/.agents/skills/<skill-name>/SKILL.md
+~/.future/agent/skills/<skill-name>/SKILL.md
 ```
 
 ## Step 4: Write SKILL.md
@@ -237,7 +242,7 @@ Authentication is automatic. The `future` CLI reads credentials from `~/.future/
 At minimum, check:
 
 ```bash
-test -f ~/.agents/skills/<skill-name>/SKILL.md
+test -f ~/.future/agent/skills/<skill-name>/SKILL.md
 ```
 
 Inspect the frontmatter:
@@ -264,7 +269,7 @@ When improving an existing custom skill:
 
 Before finishing, verify:
 
-- Folder path is under `~/.agents/skills/` unless the user requested another location.
+- Folder path is under `~/.future/agent/skills/` (macOS/Linux) or `%USERPROFILE%\.future\agent\skills\` (Windows) unless the user requested another location.
 - Folder name and frontmatter `name` match.
 - `description` says both what the skill does and when to use it.
 - `SKILL.md` is concise and actionable.
