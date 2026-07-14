@@ -20,7 +20,8 @@ All image tools are called through `future tools call`.
 
 ```bash
 # Generate a slide image from a prompt.
-future tools call image_gen --stdin --output "$WORK_DIR/slide_NN.png" <<'JSON'
+# --timeout 600 is REQUIRED: medium quality + Chinese text takes 120–300s, default 60s HTTP timeout will abort.
+future tools call image_gen --stdin --output "$WORK_DIR/slide_NN.png" --timeout 600 <<'JSON'
 {
   "prompt": "<SLIDE_PROMPT>",
   "size": "1792x1024",
@@ -31,7 +32,7 @@ JSON
 
 # Edit an existing slide. The API expects base64-encoded image data.
 IMG_B64=$(base64 -i "$WORK_DIR/slide_NN.png" | tr -d '\n')
-future tools call image_edit --stdin --output "$WORK_DIR/slide_NN_fixed.png" <<JSON
+future tools call image_edit --stdin --output "$WORK_DIR/slide_NN_fixed.png" --timeout 600 <<JSON
 {
   "prompt": "<EDIT_PROMPT>",
   "image_b64": "$IMG_B64",
@@ -42,6 +43,7 @@ future tools call image_edit --stdin --output "$WORK_DIR/slide_NN_fixed.png" <<J
 JSON
 
 # Analyze a generated slide. The API expects base64-encoded image data.
+# read_image is fast (10–30s), no --timeout needed.
 IMG_B64=$(base64 -i "$WORK_DIR/slide_NN.png" | tr -d '\n')
 future tools call read_image --stdin <<JSON
 {
@@ -52,6 +54,8 @@ future tools call read_image --stdin <<JSON
 }
 JSON
 ```
+
+**Timeout note for bash tool:** When calling `image_gen` or `image_edit` via the bash tool, set the bash tool's own `timeout` parameter to at least `600` as well. The CLI's `--timeout` controls the HTTP layer; the bash tool timeout controls the process itself. Both must be generous enough.
 
 Use `--stdin` for slide tools because prompts often contain quotes, newlines, and special characters.
 
@@ -104,7 +108,7 @@ The Style Suffix must stay **identical** for every slide in the deck to maintain
 Every slide must follow these rules:
 
 - Use widescreen output. Prefer Future image tool size `1792x1024`; it is the closest supported wide format to 16:9. Keep all content inside a safe 16:9 composition with generous margins.
-- Use `quality: "medium"` only. Chinese text with high quality can time out.
+- Use `quality: "medium"` for best results. Chinese text with `quality: "high"` is unreliable and often triggers `azure_image_transport_failed`. With `quality: "medium"`, always pass `--timeout 600` to the CLI and set bash tool timeout to ≥600s — generation typically takes 120–300 seconds for 1792×1024 slides with Chinese text. If you experience persistent timeouts, fall back to `quality: "low"` which completes in ~60–120s and still produces acceptable results.
 - Append the **Style Suffix** (from Step 0) to every slide prompt.
 - Append this exact text at the end of every prompt:
 
@@ -278,7 +282,7 @@ LOG="$WORK_DIR/gen_${SLIDE}.log"
 
 echo "[$(date '+%H:%M:%S')] STARTED" > "$LOG"
 
-future tools call image_gen --stdin --output "$WORK_DIR/slide_${SLIDE}.png" >> "$LOG" 2>&1 <<'JSON'
+future tools call image_gen --stdin --output "$WORK_DIR/slide_${SLIDE}.png" --timeout 600 >> "$LOG" 2>&1 <<'JSON'
 {
   "prompt": "<SLIDE_PROMPT>",
   "size": "1792x1024",
@@ -375,6 +379,8 @@ Fallback with Pillow when `img2pdf` is unavailable.
 | `unauthorized` / `401` | Auth token missing or expired | Tell the user to run `future auth login` |
 | `403` / `model_access_denied` | Model access denied on the server | Report the access issue; do not retry login |
 | `upstream_request_failed` | Remote image or MCP service unreachable | Retry once, then report |
+| `This operation was aborted` | CLI HTTP timeout (default 60s) exceeded during generation | Regenerate with `--timeout 600` on the `future tools call` command |
+| `azure_image_transport_failed` | Image transport error (often from `quality: "high"`) | Retry with `quality: "medium"` or `"low"`; high quality is unreliable |
 | `insufficient_credit` | Account balance too low | Tell the user to top up |
 | `429` / rate limit | Too much concurrency | Wait 60s and rerun failed slides one by one |
 
@@ -387,7 +393,8 @@ Never run `future auth login` unprompted.
 | 1 | Wrong language characters in images | High | Append explicit language instruction and verify with `read_image` |
 | 2 | Typos in generated images | High | Put exact text strings in prompts and inspect every visible character |
 | 3 | Hallucinated words | High | Never describe text meaning; quote the exact visible text |
-| 4 | Image generation timeout | Medium | Keep `quality` at `medium`; retry once; reduce dense text |
+| 4 | Image generation timeout | High | Always pass `--timeout 600` to CLI and set bash tool timeout ≥600s. If still timing out, fall back to `quality: "low"` (60–120s). Reduce dense text as last resort. |
 | 5 | 429 rate limiting | Medium | Run at most 3 slides concurrently; retry failed slides individually |
 | 6 | Quote slide misses text | Low | Include the full quote verbatim and state it must be visible |
 | 7 | PDF assembly fails (missing `img2pdf`) | Low | Use the Pillow fallback |
+| 8 | Bash tool timeout kills process before image completes | Medium | When calling scripts via bash tool, always set `"timeout": 600` in the tool call parameters. The CLI `--timeout` and bash tool timeout are independent layers — both must cover the generation window. |

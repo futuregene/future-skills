@@ -76,7 +76,20 @@ JSON
 
 ### Timeout and bash tool settings
 
-**For `image_gen` and `image_edit`, always add `--timeout 600` to the `future tools call` command.** Most generations complete in 1–5 minutes, but the CLI defaults to a 60-second HTTP timeout. The bash tool's own `timeout` parameter (default 120s) must also match:
+**For `image_gen` and `image_edit`, always add `--timeout 600` to the `future tools call` command.** The CLI defaults to a 60-second HTTP timeout, which is far too short for image generation. Actual generation times per quality level (for 1024×1024 images; larger sizes take longer):
+
+| Quality | Typical time | Notes |
+|---------|-------------|-------|
+| `low` | 60–120s | Fastest; acceptable quality for drafts and simple images |
+| `medium` | 120–300s | Recommended default; Chinese text adds ~30–60s |
+| `high` | Unreliable | Frequently triggers `azure_image_transport_failed`; avoid |
+
+**Two independent timeout layers must both be generous enough — they do NOT share a setting:**
+
+1. **CLI HTTP timeout** — set via `--timeout 600` on the `future tools call` command.
+2. **Bash tool process timeout** — set via `"timeout": 600` in the bash tool call parameters.
+
+If either layer is too low, the generation will be killed.  When in doubt, use 600 for both:
 
 ```json
 {"command": "future tools call image_gen --args '...' --output ./out.png --timeout 600", "timeout": 600}
@@ -103,6 +116,7 @@ When `future tools call` fails, it prints a JSON error object. Parse it to under
 | `azure_image_transport_failed` | Image transport error (often from `quality: "high"`) | Retry with `quality: "medium"`; high quality is unreliable |
 | `Invalid size` / `below minimum pixel budget` | Requested size is below 1024×1024 | Use `size: "1024x1024"` or larger; 1024 is the hard minimum |
 | `Argument list too long` (bash error) | Base64 string exceeds shell ARG_MAX | Use `--stdin` method (see examples above) |
+| `This operation was aborted` (no JSON error) | CLI HTTP timeout (default 60s) exceeded | Regenerate with `--timeout 600` and bash tool `"timeout": 600` |
 
 **Never run `future auth login` unprompted** — the error is almost always something else.
 
@@ -115,7 +129,7 @@ Arguments: `{"prompt": "string (required)", "size": "string (default: \"1024x102
 
 **Size notes:** `1024x1024` is the hard minimum — smaller sizes return a 400 error. `3840x2160` (4K) works but produces large files (~5 MB+ for PNG).
 
-**Quality notes:** `"low"` is fastest and cheapest. `"medium"` (default) is recommended for most use cases. `"high"` is **unreliable** and often triggers `azure_image_transport_failed` — prefer "medium" and only try "high" as a fallback if "medium" quality is insufficient.
+**Quality notes:** `"low"` is fastest (~60–120s) and cheapest — good for drafts, simple images, or when iterating rapidly. `"medium"` (default, ~120–300s) is recommended for most final use cases; Chinese/Japanese/Korean text generation adds ~30–60s due to character rendering complexity. `"high"` is **unreliable** and often triggers `azure_image_transport_failed` — prefer `"medium"` and only try `"high"` as a last resort.
 
 **n parameter:** `n > 1` may not produce multiple output files — the CLI's `--output` flag only saves one file. If you need multiple images, make multiple separate calls.
 
