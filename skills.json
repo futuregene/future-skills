@@ -726,13 +726,6 @@
     "name_zh": "Zotero 文献管理",
     "description_zh": "使用 pyzotero 操作 Zotero 参考文献库：检索、创建和管理文献条目"
   },
-  "qutip": {
-    "category": "other",
-    "category_zh": "其他",
-    "enabled": true,
-    "name_zh": "量子系统模拟",
-    "description_zh": "开放量子系统模拟库：主方程、Lindblad 算符、量子动力学"
-  },
   "rdkit": {
     "category": "chemistry-drug",
     "category_zh": "化学药物",
