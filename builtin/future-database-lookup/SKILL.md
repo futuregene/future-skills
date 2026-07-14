@@ -77,10 +77,11 @@ Match the user's intent to the right database(s). Many queries benefit from hitt
 | Drug pharmacology, indications | DrugBank | FDA |
 | Chemical cross-referencing | PubChem (xrefs) | ChEMBL |
 | Commercially available compounds for screening | ZINC | PubChem |
+| ⚠️ ZINC web API now enforces CAPTCHA on most endpoints | Try PubChem's vendor table as fallback | The ZINC REST API may redirect to captcha — test endpoint before relying on it |
 | Similarity/substructure search (purchasable) | ZINC | PubChem, ChEMBL |
-| Drug-like compound libraries, building blocks | ZINC | — |
+| Drug-like compound libraries, building blocks | ZINC (may need CAPTCHA) | — |
 | FDA-approved drug structures | ZINC (fda subset) | PubChem, FDA |
-| Compound purchasability, vendor catalogs | ZINC | — |
+| Compound purchasability, vendor catalogs | ZINC (may need CAPTCHA) | PubChem vendor links |
 
 ### Materials Science & Crystallography
 | User is asking about... | Primary database(s) | Also consider |
@@ -97,6 +98,7 @@ Match the user's intent to the right database(s). Many queries benefit from hitt
 |---|---|---|
 | Biological pathways | Reactome, KEGG | — |
 | What pathways a gene/protein is in | Reactome (mapping), KEGG | — |
+| ⚠️ Reactome gene-name lookup (e.g. `query/TP53`) | Use **Reactome mapping** endpoint with UniProt ID instead | Gene-name queries return 404 — always resolve to UniProt accession first |
 | Enzyme kinetics, catalytic activity | BRENDA | KEGG |
 | Metabolomics studies, metabolite profiles | Metabolomics Workbench | PubChem |
 | m/z or exact mass lookup | Metabolomics Workbench (moverz/exactmass) | PubChem |
@@ -235,15 +237,54 @@ When a database doesn't recognize an identifier, convert it using these workflow
 
 ## POST-Only APIs
 
-These databases require HTTP POST and **will not work with WebFetch** (GET-only). Use `curl` via your platform's shell tool instead:
+These databases require HTTP POST. Use `curl` with `--data-raw` or `--data @file`:
 
-| Database | Why POST needed | Example |
-|---|---|---|
-| Open Targets | GraphQL endpoint | `curl -X POST -H "Content-Type: application/json" -d '{"query":"..."}' https://api.platform.opentargets.org/api/v4/graphql` |
-| gnomAD | GraphQL endpoint | `curl -X POST -H "Content-Type: application/json" -d '{"query":"..."}' https://gnomad.broadinstitute.org/api` |
-| RummaGEO | POST-only enrichment | `curl -X POST -H "Content-Type: application/json" -d '{"genes":["..."]}' https://rummageo.com/api/enrich` |
-| GDC/TCGA | Complex filter queries | `curl -X POST -H "Content-Type: application/json" -d '{"filters":...}' https://api.gdc.cancer.gov/ssms` |
-| SEC EDGAR | Requires User-Agent header | `curl -H "User-Agent: YourApp you@email.com" https://efts.sec.gov/LATEST/search-index?q=...` |
+### Ready-to-run POST templates
+
+```bash
+# === Open Targets (GraphQL) ===
+# Target-disease associations for TP53 (ENSG00000141510)
+curl -s -X POST \
+  -H "Content-Type: application/json" \
+  --data-raw '{"query":"query { target(ensemblId: \"ENSG00000141510\") { id approvedSymbol associatedDiseases { rows { disease { id name } score } } } }"}' \
+  https://api.platform.opentargets.org/api/v4/graphql
+
+# === gnomAD (GraphQL) ===
+# Variant frequency for BRCA2 (13-32314875-T-G)
+curl -s -X POST \
+  -H "Content-Type: application/json" \
+  --data-raw '{"query":"{ variant(variantId: \"13-32314875-T-G\", dataset: gnomad_r4) { variantId genome { ac an } } }"}' \
+  https://gnomad.broadinstitute.org/api
+
+# === GDC/TCGA ===
+# Somatic mutations in TP53 from TCGA
+curl -s -X POST \
+  -H "Content-Type: application/json" \
+  --data-raw '{"filters":{"op":"and","content":[{"op":"in","content":{"field":"cases.project.project_id","value":["TCGA-BRCA"]}},{"op":"in","content":{"field":"genes.symbol","value":["TP53"]}}]},"fields":"id,case_id,gene.symbol,mutation_type,consequence.transcript.annotation.impact","size":"5"}' \
+  https://api.gdc.cancer.gov/ssms
+
+# === SEC EDGAR ===
+# Company filings search (requires User-Agent)
+curl -s -H "User-Agent: Research/1.0 (contact@example.com)" \
+  "https://efts.sec.gov/LATEST/search-index?q=CRISPR&dateRange=custom&startdt=2024-01-01&enddt=2025-12-31&pageSize=5"
+
+# === RummaGEO ===
+# Gene set enrichment against GEO
+curl -s -X POST \
+  -H "Content-Type: application/json" \
+  --data-raw '{"genes":["TP53","BRCA1","MDM2"]}' \
+  https://rummageo.com/api/enrich
+```
+
+**Key POST databases summary:**
+
+| Database | Why POST needed |
+|---|---|
+| Open Targets | GraphQL endpoint |
+| gnomAD | GraphQL endpoint |
+| RummaGEO | POST-only enrichment |
+| GDC/TCGA | Complex filter queries |
+| SEC EDGAR | Requires User-Agent header |
 
 ## API Keys and Access Restrictions
 
@@ -305,21 +346,7 @@ test -n "${FRED_API_KEY:-}" && printf 'FRED_API_KEY is set\n' || printf 'FRED_AP
 
 ## Making API Calls
 
-Use your environment's HTTP fetch tool to call REST endpoints. The tool name varies by platform:
-
-| Platform | HTTP Fetch Tool | Fallback |
-|---|---|---|
-| Claude Code | `WebFetch` | `curl` via Bash |
-| Gemini CLI | `web_fetch` | `curl` via shell |
-| Windsurf | `read_url_content` | `curl` via terminal |
-| Cursor | No dedicated fetch tool | `curl` via `run_terminal_cmd` |
-| Codex CLI | No dedicated fetch tool | `curl` via `shell` |
-| Cline | No dedicated fetch tool | `curl` via `execute_command` |
-
-If you don't recognize your platform or the fetch tool fails, fall back to `curl` via whatever shell/terminal tool is available. Example:
-```bash
-curl -s -H "Accept: application/json" "https://api.example.com/endpoint"
-```
+**All HTTP calls go through `curl` via your platform's shell/terminal tool.** Use `-s` (silent) and `-H "Accept: application/json"` for JSON endpoints. For POST requests, use `-X POST` with `--data-raw` or `--data @file`.
 
 ### Request guidelines
 
@@ -405,6 +432,8 @@ This skill is designed to grow. Each database is a self-contained reference file
 ## Available Databases
 
 Read the relevant reference file before making any API call.
+
+> **Last verified batch**: 2026-07-14. API behavior may have changed since. If a documented endpoint returns unexpected results, test it directly and update the timestamp.
 
 ### Physics & Astronomy
 | Database | Reference File | What it covers |

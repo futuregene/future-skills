@@ -142,18 +142,58 @@ factors = {"temp_C": (20, 60), "conc_mM": (1, 10), "pH": (6, 8)}
 # 全 2^3：所有主效应 + 所有交互（8 次运行），运行顺序已随机化
 design = two_level_factorial(factors, seed=42)
 
-# 低成本筛选 7 个因素（仅主效应）
-many = {f"factor_{i}": (0, 1) for i in range(7)}
-design = plackett_burman(many, seed=42)
+# 2^(4-1) 部分因子：4 个因子仅需 8 次运行（generator 使用 Yates 记号）
+f4 = {"A": (10, 50), "B": (100, 200), "C": (0.1, 1.0), "D": (5, 25)}
+design = fractional_factorial(f4, generator="a b c abc", seed=42)
+# generator 参数说明见下方「Yates 记号速查」
 
-# 对 2 个连续因素进行带曲率的优化（响应面）
+# 低成本筛选 7 个因素（使用 min_runs=12 避免饱和设计，可估计误差）
+many = {f"factor_{i}": (0, 1) for i in range(7)}
+design = plackett_burman(many, seed=42, min_runs=12)
+
+# 中心复合设计：默认 face='inscribed' 保持轴点在因子范围内
+# （旧版默认 'circumscribed' 会使轴点超出范围，不再推荐）
 design = central_composite({"temp_C": (20, 60), "conc_mM": (1, 10)}, seed=42)
 
 design.to_csv("experimental_runs.csv", index=False)
 ```
 
+**Yates 记号速查**（用于 `fractional_factorial` 的 `generator` 参数）：
+```text
+'a b'         = 2^2 全因子，4 次运行
+'a b c'       = 2^3 全因子，8 次运行
+'a b c abc'   = 2^(4-1) 部分因子（分辨率 IV），D 与 ABC 交互混淆
+'a b c ab ac' = 2^(5-2) 部分因子（分辨率 III），8 次运行
+```
+每个小写字母定义一个因子列；多字母 token（如 `abc`）将该因子与交互效应混淆。
+分辨率越高，混淆越少。详见 `references/factorial_and_doe.md`。
+
 运行顺序默认随机化，避免因素与时间/漂移混淆（设备预热、试剂老化）。
 参见 `references/factorial_and_doe.md` 了解如何选择生成元、解读别名结构和选择分辨率。
+
+### 高级设计 — `scripts/experimental_designs.py`
+
+```python
+from experimental_designs import (
+    crossover_design, latin_square_design,
+    repeated_measures_design, randomize_run_order,
+)
+
+# 交叉设计：每位受试者依次接受所有处理（需足够洗脱期）
+cross = crossover_design(["DrugA", "DrugB", "Placebo"], n_subjects=12, seed=42)
+
+# 拉丁方设计：同时控制行和列两个区组因素
+square = latin_square_design(["A", "B", "C", "D"], seed=42)
+
+# 重复测量：受试者间 + 受试者内因素
+rm = repeated_measures_design(
+    between_subject_factors={"group": ["drug", "placebo"]},
+    within_subject_factors={"time": ["pre", "1mo", "3mo"]},
+    n_subjects=20, seed=42
+)
+```
+
+⚠️ 交叉设计需要洗脱期且无残留效应；重复测量必须用混合效应模型分析。
 
 ---
 
@@ -201,8 +241,10 @@ design.to_csv("experimental_runs.csv", index=False)
   `block_randomization`、`stratified_block_randomization`、`cluster_randomization`、
   `assign_factorial_runs`、`arm_balance`。
 - `scripts/doe_designs.py` — 实际单位的 DOE 矩阵：`full_factorial`、
-  `two_level_factorial`、`fractional_factorial`、`plackett_burman`、
-  `central_composite`、`box_behnken`、`latin_hypercube`。
+  `two_level_factorial`、`fractional_factorial`（需要 Yates 记号 generator）、`plackett_burman`（支持 min_runs 避免饱和设计）、
+  `central_composite`（默认 face='inscribed' 避免轴点越界）、`box_behnken`、`latin_hypercube`。
+- `scripts/experimental_designs.py` — 高级实验设计：`crossover_design`（交叉设计）、
+  `latin_square_design`（拉丁方）、`repeated_measures_design`（重复测量/裂区）、`randomize_run_order`。
 
 ### 参考文档
 - `references/randomization_and_blocking.md` — 随机化方法、区组、分层、对照、盲法、批次/孔板布局。
