@@ -28,11 +28,13 @@ All tools are called via the `future` CLI using the `bash` tool. Use `--output` 
 # Generate an image from a text prompt (can take 2–20 minutes; --timeout 600 sets a 10-minute HTTP timeout)
 future tools call image_gen --args '{"prompt": "A red fox in an autumn forest", "size": "1024x1024"}' --output ./output.png --timeout 600
 
-# Edit an existing image
-future tools call image_edit --args '{"prompt": "Convert to watercolor painting", "image_path": "/path/to/photo.png"}' --output ./edited.png --timeout 600
+# Edit an existing image. Use image_b64 (base64-encoded image data).
+IMG_B64=$(base64 -i /path/to/photo.png | tr -d '\n')
+future tools call image_edit --args '{"prompt": "Convert to watercolor painting", "image_b64": "'"$IMG_B64"'"}' --output ./edited.png --timeout 600
 
-# Analyze an image
-future tools call read_image --args '{"image_path": "/Users/fgbot/gundam.png", "question": "Describe this image"}'
+# Analyze an image. Use image_b64 (base64-encoded image data).
+IMG_B64=$(base64 -i /path/to/photo.png | tr -d '\n')
+future tools call read_image --args '{"image_b64": "'"$IMG_B64"'", "question": "Describe this image"}'
 ```
 
 **For `image_gen` and `image_edit`, always add `--timeout 600` to the `future tools call` command.** Generation takes 2–20 minutes, and the CLI defaults to a 60-second HTTP timeout. The bash tool's own `timeout` parameter (default 120s) must also be set accordingly:
@@ -41,7 +43,7 @@ future tools call read_image --args '{"image_path": "/Users/fgbot/gundam.png", "
 {"command": "future tools call image_gen --args '...' --output ./out.png --timeout 600", "timeout": 600}
 ```
 
-**Always use `image_path` instead of `image_b64`.** The CLI reads the file and encodes it automatically.
+**Use `image_b64` for image data.** The API expects base64-encoded image strings. Encode files with: `base64 -i <file> | tr -d '\n'`.
 
 ## Error handling
 
@@ -66,11 +68,11 @@ Generate one or more images from a natural-language text prompt. Returns base64-
 Arguments: `{"prompt": "string (required)", "size": "string (default: \"1024x1024\", options: 1024x1024, 1792x1024, 1024x1792, 2560x1440, 3840x2160)", "quality": "string (default: \"medium\", options: low, medium, high)", "n": "int (1–10, default: 1)", "output_format": "string (default: \"png\", options: png, jpeg)"}`
 
 ### image_edit
-Modify an existing image according to a text instruction. Use `image_path` to point to the source image — the CLI handles base64 encoding.
+Modify an existing image according to a text instruction. Use `image_b64` with base64-encoded image data. Encode with `base64 -i <file> | tr -d '\n'`.
 
-Arguments: `{"prompt": "string (required)", "image_path": "string (path to source image)", "mask_path": "string (optional, path to mask image)", "size": "string (default: \"1024x1024\")", "quality": "string (default: \"medium\", options: low, medium, high)", "output_format": "string (default: \"png\", options: png, jpeg)"}`
+Arguments: `{"prompt": "string (required)", "image_b64": "string (required, base64-encoded image)", "mask_b64": "string (optional, base64-encoded mask image)", "size": "string (default: \"1024x1024\")", "quality": "string (default: \"medium\", options: low, medium, high)", "output_format": "string (default: \"png\", options: png, jpeg)"}`
 
 ### read_image
-Analyze an image and answer questions about its content. Use `image_path` to point to the file — the CLI handles base64 encoding automatically.
+Analyze an image and answer questions about its content. Use `image_b64` with base64-encoded image data. Encode with `base64 -i <file> | tr -d '\n'`.
 
-Arguments: `{"image_path": "string (path to image file)", "question": "string (required)", "mime_type": "string (default: \"image/png\")", "max_tokens": "integer (default: 2000)"}`
+Arguments: `{"image_b64": "string (required, base64-encoded image)", "question": "string (required)", "mime_type": "string (default: \"image/png\")", "max_tokens": "integer (default: 2000)"}`

@@ -186,11 +186,11 @@ design.to_csv("experimental_runs.csv", index=False)
 1. **陈述研究问题、实验单元和响应变量。** 什么是被随机化的？测量什么？什么层级才是真正的独立重复？这决定了后续一切。
 2. **列出噪声因素**（批次、日期、地点、操作员、位置）——计划对每个因素进行区组、分层或随机化。
 3. **使用决策树和参考文件选择设计**。
-4. **在正确层级确定重复次数**（通过 **future-statistical-power** 技能获取所选设计所需的 n）。
+4. **在正确层级确定重复次数**（使用标准功效分析方法计算所选设计所需的样本量 n）。
 5. **使用 `randomization.py` / `doe_designs.py` 生成布局**，使用固定种子。
 6. **随机化运行/处理顺序**和孔板/批次位置。
 7. **记录**设计、种子和方案（尽可能预注册），使分析具有验证性、布局可审计。
-8. **将分析与设计匹配**——区组、分层、整群和嵌套必须反映在模型中（交给 **future-statistical-analysis**）。
+8. **将分析与设计匹配**——区组、分层、整群和嵌套必须反映在模型中（在分析模型中反映区组、分层、整群和嵌套结构）。
 
 ---
 
@@ -209,10 +209,6 @@ design.to_csv("experimental_runs.csv", index=False)
 - `references/factorial_and_doe.md` — 因子和部分因子设计、分辨率和别名、筛选和响应面方法论。
 - `references/design_types.md` — 完全随机、随机区组、交叉、重复测量、裂区、拉丁方、整群和嵌套设计；伪重复问题深入探讨。
 - `references/sequential_and_adaptive.md` — 成组序贯设计、alpha 消耗、中期停止和自适应样本量重估计。
-
-### 相关技能
-- **future-statistical-power** — 为所选设计计算所需样本量/统计效力。
-- **future-statistical-analysis** — 数据采集后的分析和报告。
 
 ### 经典参考文献
 - Fisher, R. A. (1935). *The Design of Experiments*.

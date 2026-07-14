@@ -29,21 +29,23 @@ future tools call image_gen --stdin --output "$WORK_DIR/slide_NN.png" <<'JSON'
 }
 JSON
 
-# Edit an existing slide. Use image_path; the CLI handles base64 encoding.
+# Edit an existing slide. The API expects base64-encoded image data.
+IMG_B64=$(base64 -i "$WORK_DIR/slide_NN.png" | tr -d '\n')
 future tools call image_edit --stdin --output "$WORK_DIR/slide_NN_fixed.png" <<JSON
 {
   "prompt": "<EDIT_PROMPT>",
-  "image_path": "$WORK_DIR/slide_NN.png",
+  "image_b64": "$IMG_B64",
   "size": "1792x1024",
   "quality": "medium",
   "output_format": "png"
 }
 JSON
 
-# Analyze a generated slide. Use image_path; the CLI handles base64 encoding.
+# Analyze a generated slide. The API expects base64-encoded image data.
+IMG_B64=$(base64 -i "$WORK_DIR/slide_NN.png" | tr -d '\n')
 future tools call read_image --stdin <<JSON
 {
-  "image_path": "$WORK_DIR/slide_NN.png",
+  "image_b64": "$IMG_B64",
   "question": "Check all visible text. Report typos, hallucinated text, layout problems, and whether the style matches the deck.",
   "mime_type": "image/png",
   "max_tokens": 2000
@@ -334,9 +336,10 @@ done
 Inspect all slides when practical. For large decks, inspect at least the cover, TOC, every Section Divider, every slide with dense text, and at least 5 content slides.
 
 ```bash
+IMG_B64=$(base64 -i "$WORK_DIR/slide_NN.png" | tr -d '\n')
 future tools call read_image --stdin <<JSON
 {
-  "image_path": "$WORK_DIR/slide_NN.png",
+  "image_b64": "$IMG_B64",
   "question": "Review this presentation slide. Check every visible text character for typos, hallucinated words, missing text, and extra text. Also check layout, visual consistency with the deck style, and text readability. Return a concise list of issues or say PASS.",
   "mime_type": "image/png",
   "max_tokens": 2000
