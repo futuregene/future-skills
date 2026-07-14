@@ -103,7 +103,6 @@
     "name_zh": "网页搜索",
     "description_zh": "搜索公开网络获取最新信息，返回页面标题、URL 和内容摘要"
   },
-
   "adaptyv": {
     "category": "wet-lab",
     "category_zh": "湿实验",
@@ -140,8 +139,8 @@
     "description_zh": "从基因表达数据推断基因调控网络，支持 GRNBoost2 和 GENIE3 算法"
   },
   "astropy": {
-    "category": "physics-quantum",
-    "category_zh": "物理量子",
+    "category": "other",
+    "category_zh": "其他",
     "enabled": true,
     "name_zh": "天文物理计算",
     "description_zh": "天文和天体物理工作流核心库，涵盖单位转换、坐标、星表、时间、WCS 等"
@@ -194,13 +193,6 @@
     "enabled": true,
     "name_zh": "单细胞数据查询",
     "description_zh": "通过 CZ CELLxGENE Census 编程查询公开单细胞和空间转录组数据"
-  },
-  "cirq": {
-    "category": "physics-quantum",
-    "category_zh": "物理量子",
-    "enabled": true,
-    "name_zh": "Google 量子计算",
-    "description_zh": "Google 量子计算框架，用于设计噪声感知量子电路、在 Google 量子硬件上运行及模拟"
   },
   "clinical-decision-support": {
     "category": "clinical",
@@ -315,8 +307,8 @@
     "description_zh": "解析 FCS 流式细胞标准文件，提取事件为 NumPy 数组，读取元数据"
   },
   "fluidsim": {
-    "category": "physics-quantum",
-    "category_zh": "物理量子",
+    "category": "other",
+    "category_zh": "其他",
     "enabled": true,
     "name_zh": "流体力学模拟",
     "description_zh": "计算流体力学模拟框架，用于湍流、多相流等 CFD 模拟"
@@ -329,8 +321,8 @@
     "description_zh": "处理基因组区间数据（BED 文件）的机器学习工具包"
   },
   "geomaster": {
-    "category": "materials",
-    "category_zh": "材料",
+    "category": "other",
+    "category_zh": "其他",
     "enabled": true,
     "name_zh": "地理空间科学",
     "description_zh": "综合地理空间科学技能：遥感、GIS、空间分析、机器学习应用于地理数据"
@@ -602,8 +594,8 @@
     "description_zh": "对基因列表进行通路和基因集富集分析，解释生物学意义"
   },
   "pennylane": {
-    "category": "physics-quantum",
-    "category_zh": "物理量子",
+    "category": "other",
+    "category_zh": "其他",
     "enabled": true,
     "name_zh": "量子机器学习",
     "description_zh": "硬件无关的量子机器学习框架，支持自动微分和量子电路训练"
@@ -686,8 +678,8 @@
     "description_zh": "跨厂商实验室自动化框架，支持 Hamilton、Tecan 等多种设备"
   },
   "pymatgen": {
-    "category": "materials",
-    "category_zh": "材料",
+    "category": "other",
+    "category_zh": "其他",
     "enabled": true,
     "name_zh": "材料科学分析",
     "description_zh": "材料科学工具包：晶体结构、相图、能带结构、态密度等"
@@ -741,16 +733,9 @@
     "name_zh": "Zotero 文献管理",
     "description_zh": "使用 pyzotero 操作 Zotero 参考文献库：检索、创建和管理文献条目"
   },
-  "qiskit": {
-    "category": "physics-quantum",
-    "category_zh": "物理量子",
-    "enabled": true,
-    "name_zh": "IBM 量子计算",
-    "description_zh": "IBM 量子计算框架，在 IBM 量子硬件上运行量子电路和算法"
-  },
   "qutip": {
-    "category": "physics-quantum",
-    "category_zh": "物理量子",
+    "category": "other",
+    "category_zh": "其他",
     "enabled": true,
     "name_zh": "量子系统模拟",
     "description_zh": "开放量子系统模拟库：主方程、Lindblad 算符、量子动力学"
