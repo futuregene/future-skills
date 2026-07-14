@@ -1,7 +1,7 @@
 ---
-version: 1.1.0
+version: 1.2.0
 name: future-browser
-description: Control a local visible Chrome or Edge browser through Future CLI tools. Use for opening local apps, inspecting pages, clicking, typing, screenshots, and reading console output without modifying the Rust agent.
+description: Control a local visible Chrome, Edge, or Safari browser through Future CLI tools. Use for opening local apps, inspecting pages, clicking, typing, screenshots, and reading console output without modifying the Rust agent.
 allowed-tools: Bash(future:*)
 ---
 
@@ -9,11 +9,22 @@ allowed-tools: Bash(future:*)
 
 Use this skill when the user asks you to open, inspect, test, click, type, screenshot, or debug a page in a local browser.
 
-The browser tool runs through the Future CLI and connects to a local visible Chrome/Edge browser over the Chrome DevTools Protocol. It does not require Future API login.
+The browser tool runs through the Future CLI and connects to a local visible browser. Chrome and Edge connect over the Chrome DevTools Protocol (CDP); Safari connects over WebDriver. It does not require Future API login.
 
 All browser actions use a single `browser` tool with a `command` argument to select the sub-command.
 
-Most browser actions auto-start a Future-managed browser when no reachable debugging endpoint exists. Use `command: "start"` only when you want to prewarm the browser or pass a custom `port`, `profileDir`, `executablePath`, or initial `url`.
+Most browser actions auto-start a Future-managed browser when no reachable debugging endpoint exists. Use `command: "start"` only when you want to prewarm the browser, choose a specific browser, or pass a custom `port`, `profileDir`, `executablePath`, or initial `url`.
+
+## Choosing A Browser
+
+The `browser` argument on `command: "start"` selects which browser to launch: `"chrome"`, `"edge"`, or `"safari"`. When omitted, the tool defaults to a Chromium-family browser and auto-detects an installed one (Chrome first, then Edge, then Chromium).
+
+Guidance:
+- Default to the Chromium path (omit `browser`) unless the user asks for a specific browser. It is the most capable path and needs no extra setup.
+- Use `{"browser":"safari"}` only when the user explicitly wants Safari, or when no Chromium-family browser is installed.
+- To use a specific binary, pass `executablePath` instead of relying on auto-detection; the browser kind is inferred from the path.
+
+Safari requires a one-time system permission. If Safari automation is not enabled, `start` returns `status: "permission_required"` with an `actionRequired` block. Relay those steps to the user (they run `safaridriver --enable` in Terminal once) rather than attempting to bypass it. Do not enable it silently on the user's behalf.
 
 ## Start Or Check Browser
 
@@ -70,9 +81,11 @@ After a click, type, press, navigation, or tab switch, call `browser` with `comm
 ## Available Commands
 
 ### start
-Start a visible Chrome/Edge browser with a remote debugging port. If the requested port is occupied but not reachable as a Chrome DevTools endpoint, the tool may choose a nearby available port and save that endpoint for later calls.
+Start a visible local browser. For Chrome/Edge this opens a remote debugging port; if the requested port is occupied but not reachable as a Chrome DevTools endpoint, the tool may choose a nearby available port and save that endpoint for later calls. For Safari this launches a WebDriver session (`port`, `profileDir`, and `executablePath` do not apply).
 
-Arguments: `{"command":"start", "port": 9222, "profileDir": "optional path", "executablePath": "optional path", "url": "optional URL"}`
+Arguments: `{"command":"start", "browser": "chrome|edge|safari", "port": 9222, "profileDir": "optional path", "executablePath": "optional path", "url": "optional URL"}`
+
+When `browser` is omitted, a Chromium-family browser is auto-detected. See "Choosing A Browser" above for Safari's one-time `safaridriver --enable` requirement, surfaced as `status: "permission_required"`.
 
 ### status
 Check whether the local browser endpoint is reachable.
