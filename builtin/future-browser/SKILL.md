@@ -11,11 +11,17 @@ Use this skill when the user asks you to open, inspect, test, click, type, scree
 
 The browser tool runs through the Future CLI and connects to a local visible browser. Chrome and Edge connect over the Chrome DevTools Protocol (CDP); Safari connects over WebDriver. It does not require Future API login.
 
-All browser actions use a single `browser` tool with a `command` argument to select the sub-command.
+## Prerequisites
 
-Most browser actions auto-start a Future-managed browser when no reachable debugging endpoint exists. Use `command: "start"` only when you want to prewarm the browser, choose a specific browser, or pass a custom `port`, `profileDir`, `executablePath`, or initial `url`.
+**Chrome, Edge, or Safari must be installed on the system.** The CLI auto-discovers the browser executable. If the browser is installed in a non-standard location, pass `executablePath` to `command: "start"`.
 
-## Choosing A Browser
+| OS | Expected locations |
+|----|-------------------|
+| macOS | `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`, `/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge`, Safari (built-in) |
+| Windows | `%ProgramFiles%/Google/Chrome/Application/chrome.exe`, `%ProgramFiles(x86)%/Microsoft/Edge/Application/msedge.exe` |
+| Linux | `google-chrome`, `google-chrome-stable`, `microsoft-edge`, `chromium`, `chromium-browser` |
+
+### Choosing a Browser
 
 The `browser` argument on `command: "start"` selects which browser to launch: `"chrome"`, `"edge"`, or `"safari"`. When omitted, the tool defaults to a Chromium-family browser and auto-detects an installed one (Chrome first, then Edge, then Chromium).
 
@@ -46,13 +52,15 @@ Open a URL:
 future tools call browser --args '{"command":"open","url":"http://localhost:3000"}'
 ```
 
-For a normal first action, call `browser` with `command: "open"` directly; it will start the browser if needed.
+For a normal first action, call `browser` with `command: "open"` directly; it will auto-start the browser if no endpoint is reachable.
 
 If the user already started Chrome/Edge with a remote debugging port, pass the endpoint:
 
 ```bash
 future tools call browser --args '{"command":"status","endpoint":"http://127.0.0.1:9222"}'
 ```
+
+**Auto-start behavior**: When any command requiring a browser runs and no endpoint is reachable, the CLI spawns a new Chrome/Edge instance with `--remote-debugging-port`. The port defaults to 9222; if that port is occupied (by a non-CDP process), the next available port is chosen. The chosen endpoint is saved to `~/.future/agent/browser/config.json` and reused for subsequent commands. Calling `start` when a browser is already reachable does NOT start a new instance — it records the existing endpoint.
 
 ## Core Workflow
 
@@ -62,11 +70,13 @@ Always observe before acting:
 future tools call browser --args '{"command":"snapshot"}'
 ```
 
-The snapshot returns visible elements with refs:
+The snapshot returns interactive elements with refs and text containers:
 
 ```text
+- text "Welcome to Example Page" [ref=t1]
 - textbox "Email" [ref=i1]
 - button "Sign in" [ref=b1]
+- link "More information..." [ref=a1] href=https://example.com/more
 ```
 
 Use refs for actions:
@@ -76,61 +86,100 @@ future tools call browser --args '{"command":"type","ref":"i1","text":"alice@exa
 future tools call browser --args '{"command":"click","ref":"b1"}'
 ```
 
-After a click, type, press, navigation, or tab switch, call `browser` with `command: "snapshot"` again when the next decision depends on page state.
+⚠️ **Ref lifetime**: Refs are page-specific and become **invalid after any navigation** — including `open`, clicking a link, form submission, or tab switch. Every command that may cause navigation (`open`, `click` on a link, `type` with `submit: true`) invalidates all existing refs. **Always re-snapshot** before using refs from a previous snapshot.
 
 ## Available Commands
 
 ### start
-Start a visible local browser. For Chrome/Edge this opens a remote debugging port; if the requested port is occupied but not reachable as a Chrome DevTools endpoint, the tool may choose a nearby available port and save that endpoint for later calls. For Safari this launches a WebDriver session (`port`, `profileDir`, and `executablePath` do not apply).
+Start a visible local browser. For Chrome/Edge this opens a remote debugging port; if the requested port is occupied but not reachable as a CDP endpoint, the tool chooses a nearby available port. For Safari this launches a WebDriver session (`port`, `profileDir`, and `executablePath` do not apply). If a browser endpoint is already reachable, records it without starting a new instance.
 
 Arguments: `{"command":"start", "browser": "chrome|edge|safari", "port": 9222, "profileDir": "optional path", "executablePath": "optional path", "url": "optional URL"}`
 
 When `browser` is omitted, a Chromium-family browser is auto-detected. See "Choosing A Browser" above for Safari's one-time `safaridriver --enable` requirement, surfaced as `status: "permission_required"`.
+
+Returns: `{"endpoint": "http://127.0.0.1:9222", "status": "started"|"already_running", "port": 9222}`
 
 ### status
 Check whether the local browser endpoint is reachable.
 
 Arguments: `{"command":"status", "endpoint": "optional URL"}`
 
+Returns: `{"endpoint": "...", "reachable": true|false, "version": {...}}`
+
 ### tabs
-List, create, select, or close browser tabs.
+List, create, select, or close browser tabs. All actions return the full tab list.
 
 Arguments: `{"command":"tabs", "action": "list|new|select|close", "index": 0, "url": "optional URL"}`
 
+Returns: `{"tabs": [{"index": 0, "title": "...", "url": "...", "active": true}, ...], "tabCount": N}` plus action-specific fields (`created`, `selected`, or `closed`).
+
 ### open
-Open a URL in the active tab.
+Open a URL in the active tab. **Invalidates all refs.**
 
 Arguments: `{"command":"open", "url": "http://localhost:3000"}`
 
+Returns: `{"title": "...", "url": "..."}`
+
 ### snapshot
-Return a compact visible DOM snapshot with refs for actions.
+Return an interactive-element snapshot plus text content from the visible page.
+
+Returns up to `limit` entries (default 80). Includes:
+- **Interactive elements**: buttons, links, inputs, textareas, selects, checkboxes, radio buttons, contenteditable elements
+- **Text containers**: headings, paragraphs, list items, table cells, labels, and other visible non-interactive text
+
+Each element has a `ref` (use for `click`/`type`), `role`, `name`, and `tag`. Text elements have `role: "text"` and refs like `t1`, `t2`.
 
 Arguments: `{"command":"snapshot", "limit": 80}`
 
+Returns: `{"title": "...", "url": "...", "elements": [{"ref": "b1", "role": "button", "name": "Submit", "tag": "button", "selector": "#submit", "disabled": false}, ...]}`
+
 ### click
-Click an element by snapshot ref or explicit selector.
+Click an element by snapshot ref or CSS selector. Prefer refs over selectors.
+
+For clicks that cause navigation (links, form submits), the tool waits for the page to load. Non-navigating clicks (JS buttons) return quickly.
 
 Arguments: `{"command":"click", "ref": "b1"}` or `{"command":"click", "selector": "button[type=submit]"}`
+
+Returns: `{"clicked": "b1", "selector": "#submit-btn", "title": "...", "url": "..."}`
 
 ### type
 Fill or type text into an element by ref or selector.
 
 Arguments: `{"command":"type", "ref": "i1", "text": "hello", "submit": false, "clear": true}`
 
+Returns: `{"typed": "i1", "selector": "#name", "submitted": false}`
+
+The returned `typed` field echoes your input (ref or selector); `selector` shows the resolved CSS selector.
+
 ### press
-Press a keyboard key.
+Press a keyboard key. Non-navigating keys (Tab, Escape, Enter on a non-form) return quickly.
 
 Arguments: `{"command":"press", "key": "Enter"}`
+
+Returns: `{"key": "Enter", "title": "...", "url": "..."}`
+
+### scroll
+Scroll the page or a specific element.
+
+Arguments: `{"command":"scroll", "direction": "up|down", "amount": 300, "ref": "optional ref", "selector": "optional selector"}`
+
+If no ref/selector is given, scrolls the page itself. `amount` is in pixels (default 300).
+
+Returns: `{"scrolled": {"direction": "down", "amount": 300, "target": "page"}}`
 
 ### screenshot
 Take a screenshot and save it locally. If no path is provided, the CLI saves one under `~/.future/agent/browser/artifacts/`.
 
 Arguments: `{"command":"screenshot", "fullPage": true, "path": "/tmp/page.png"}`
 
+Returns: `{"path": "/tmp/page.png", "filename": "page.png", "title": "...", "url": "..."}`
+
 ### console
 Read console messages captured after Future browser tooling has touched the page. Use this after `open` or `snapshot`.
 
 Arguments: `{"command":"console", "level": "error"}`
+
+Returns: `{"logs": [{"level": "error", "text": "..."}], "note": "..."}`
 
 ## Safety
 
@@ -140,16 +189,22 @@ Before actions with external side effects, ask the user for confirmation at acti
 
 For local development pages such as `localhost` or `127.0.0.1`, ordinary navigation, clicking, typing test data, screenshots, and console inspection are normally allowed unless the user asks you to avoid interaction.
 
+**`file://` URLs**: The browser tool can open local HTML files, but interaction is limited. Click and press may not work reliably on `file://` pages due to Chrome's origin-based security model. Prefer `localhost` servers for testing interactive pages.
+
 Do not use `command: "type"` for secrets, passwords, tokens, payment data, personal identifiers, or private content unless the user explicitly provided that exact data and destination in the current request.
 
 Do not solve CAPTCHAs, bypass browser security warnings, bypass paywalls, or complete the final step of a password change.
 
 ## Interaction Discipline
 
-Prefer refs from `command: "snapshot"` over guessed selectors.
+Prefer refs from `command: "snapshot"` over CSS selectors. Refs are guaranteed unique and are resolved instantly. CSS selectors work but rely on stable page structure.
 
 Use explicit selectors only when a ref is unavailable and the selector is stable, such as `data-testid`, stable `data-*`, role-related attributes, or a unique form field name.
+
+**Always re-snapshot after navigation.** `open`, link clicks, form submissions, and tab switches all invalidate existing refs.
 
 Do not loop over many elements by repeatedly clicking or reading broad selectors. Use one snapshot, narrow to the relevant element, act once, then verify.
 
 Do not rely on screenshot pixels for actions unless the DOM snapshot cannot expose the needed control.
+
+For long pages, use `scroll` to reveal content below the fold before taking a snapshot or screenshot.
