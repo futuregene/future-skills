@@ -593,13 +593,6 @@
     "name_zh": "通路富集分析",
     "description_zh": "对基因列表进行通路和基因集富集分析，解释生物学意义"
   },
-  "pennylane": {
-    "category": "other",
-    "category_zh": "其他",
-    "enabled": true,
-    "name_zh": "量子机器学习",
-    "description_zh": "硬件无关的量子机器学习框架，支持自动微分和量子电路训练"
-  },
   "phylogenetics": {
     "category": "bioinformatics",
     "category_zh": "生物信息",
