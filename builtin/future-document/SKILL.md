@@ -1,7 +1,7 @@
 ---
-version: 1.0.0
+version: 1.0.1
 name: future-document
-description: Parse PDF and Word (.docx) documents into structured Markdown. Preserves document structure including headings, tables, lists, and mathematical formulas. Accepts a local file path — the CLI handles encoding automatically. Returns full Markdown with page count metadata.
+description: Parse PDF and Word (.docx) documents into structured Markdown. Preserves document structure including headings, tables, lists, and mathematical formulas. Uses --input <path> for file input — the CLI handles base64 encoding automatically.
 allowed-tools: Bash(future:*)
 ---
 
@@ -22,19 +22,16 @@ Load this skill when the user asks to:
 
 ## How to use
 
-Call via the `future` CLI using the `bash` tool. Use `doc_b64` with base64-encoded document data:
+Call via the `future` CLI using the `bash` tool. Use `--input <path>` to provide the file — the CLI reads and encodes it automatically. Never put `doc_b64` or `doc_path` in `--args` JSON.
 
 ```bash
-# Parse a document — encode to base64 first
-DOC_B64=$(base64 -i /path/to/document.pdf | tr -d '\n')
-future tools call parse_doc --args '{"doc_b64": "'"$DOC_B64"'", "mime_type": "application/pdf"}'
+# Parse a document by path — no base64 needed
+future tools call parse_doc --input /path/to/document.pdf --args '{}'
 ```
-
-**Use `doc_b64` with base64-encoded data.** Encode files with: `base64 -i <file> | tr -d '\n'`.
 
 ## Available tools
 
 ### parse_doc
 Upload a PDF or Word (.docx) document by file path and receive structured Markdown output. Preserves headings, paragraphs, tables, and mathematical formulas. Returns page count in structured metadata.
 
-Arguments: `{"doc_b64": "string (required, base64-encoded document)", "mime_type": "string (optional, e.g. \"application/pdf\" or \"application/vnd.openxmlformats-officedocument.wordprocessingml.document\")"}`
+Arguments: `--input <path> [--args '{"file_type": "string (optional, \"pdf\" or \"docx\", default: \"pdf\")"}']`
