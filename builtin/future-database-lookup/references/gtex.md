@@ -132,5 +132,10 @@ Use the underscore-separated names exactly:
 ## Notes
 - GTEx v8 is the primary dataset; always specify `datasetId=gtex_v8`
 - Gene IDs must be versioned GENCODE IDs (e.g., ENSG00000139618.17)
-- Use the gene search endpoint to resolve symbols to versioned GENCODE IDs
+- Use the gene search endpoint to resolve symbols to versioned GENCODE IDs:
+  ```
+  GET /reference/gene?geneId=TP53&gencodeVersion=v26&genomeBuild=GRCh38/hg38
+  ```
+- ⚠️ Not all genes have expression data in GTEx v8. If a gene returns an empty `data` array, it may not be in the dataset or the GENCODE version suffix may be wrong.
+- Some GENCODE IDs without the version suffix (e.g. `ENSG00000141510`) may timeout — always use the versioned form with `.##` suffix.
 - `gencodeVersion=v26` corresponds to GTEx v8

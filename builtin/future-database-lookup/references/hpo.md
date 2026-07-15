@@ -2,7 +2,7 @@
 
 ## Base URL
 ```
-https://ontology.jax.org/api/hp
+https://hpo.jax.org/api/hpo
 ```
 
 ## Auth
@@ -10,38 +10,35 @@ No API key required.
 
 ## Important: URL-encode colons in HP IDs — `HP:0001250` becomes `HP%3A0001250`
 
-## Key Endpoints
+## ⚠️ API Status (2026)
+The HPO API is undergoing migration. As of 2026-07:
+- The legacy endpoint `https://ontology.jax.org/api/hp` returns "Not Found" for most queries.
+- The current endpoint `https://hpo.jax.org/api/hpo` returns an Angular SPA (HTML), not JSON API responses.
+- For reliable programmatic access, use one of these alternatives:
+  1. **Monarch Initiative** (`/entity/HP%3A0001250`) for term details and gene/disease associations
+  2. **HPO API via BioPortal** (`https://data.bioontology.org/ontologies/HP`)
+  3. Download the OWL/JSON files from `https://hpo.jax.org/data/`
+
+## Key Endpoints (legacy — may or may not work)
 
 | Endpoint | Description |
 |----------|-------------|
-| `/hpo/search?q={query}&max={n}` | Search HPO terms by name |
 | `/hpo/term/{id}` | Term details |
 | `/hpo/term/{id}/genes` | Genes associated with a phenotype |
 | `/hpo/term/{id}/diseases` | Diseases associated with a phenotype |
-| `/hpo/term/{id}/children` | Child terms in hierarchy |
-| `/hpo/term/{id}/parents` | Parent terms |
 | `/hpo/gene/{gene_id}` | Phenotypes for a gene (Entrez ID) |
-| `/hpo/disease/{disease_id}` | Phenotypes for a disease (OMIM/ORPHA) |
 
-## Example Calls
+## Recommended alternative: Monarch Initiative for HPO data
+
 ```
-# Search for "seizure"
-https://ontology.jax.org/api/hp/hpo/search?q=seizure&max=5
-
 # Term details for Seizure
-https://ontology.jax.org/api/hp/hpo/term/HP%3A0001250
+GET https://api.monarchinitiative.org/v3/api/entity/HP%3A0001250
 
-# Genes associated with Seizure
-https://ontology.jax.org/api/hp/hpo/term/HP%3A0001250/genes
-
-# Diseases for Seizure
-https://ontology.jax.org/api/hp/hpo/term/HP%3A0001250/diseases
-
-# Phenotypes for SCN1A (Entrez 6323)
-https://ontology.jax.org/api/hp/hpo/gene/6323
+# Genes for seizure phenotype
+GET https://api.monarchinitiative.org/v3/api/entity/HP%3A0001250/associations?category=biolink:GeneToPhenotypicFeatureAssociation&limit=20
 ```
 
-## Response Format
+## Response Format (legacy)
 JSON. Terms: `id`, `name`, `definition`, `synonyms`. Gene associations: `genes[]` with `geneId`, `geneSymbol`. Diseases: `diseases[]` with `diseaseId`, `diseaseName`.
 
 ## Rate Limits

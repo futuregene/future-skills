@@ -63,6 +63,15 @@ Study IDs: `ST######` (e.g., `ST000001`). Analysis IDs: `AN######`.
 /rest/exactmass/mass/{MASS_VALUE}/tol/{TOLERANCE}
 ```
 
+⚠️ **Output format matters.** Each compound context endpoint accepts specific output items:
+- `/summary` — returns a list of summary records
+- **`/all`** — returns detailed records with Row1, Row2, ... keys; each row has `name`, `formula`, `exactmass`, `pubchem_cid`, `hmdb_id`, `kegg_id`, `chebi_id`, `smiles`, `inchi_key`, `moverz_quant` etc.
+- `/classification` — structural classification
+- `/regno`, `/formula`, `/exactmass`, `/inchi_key`, `/name`, `/smiles` — individual fields
+
+✅ `formula/{FORMULA}/all` is the most reliable and fastest search method.
+⚠️ `name/{NAME}/summary` may be slow or timeout for common compound names.
+
 ## Example Calls
 
 ```
@@ -75,8 +84,14 @@ https://www.metabolomicsworkbench.org/rest/study/study_id/ST000001/metabolites
 # Search studies by title
 https://www.metabolomicsworkbench.org/rest/study/study_title/diabetes/summary
 
-# Compound by name
+# Compound by name (may be slow)
 https://www.metabolomicsworkbench.org/rest/compound/name/glucose/summary
+
+# Compound by formula (recommended — faster and richer)
+https://www.metabolomicsworkbench.org/rest/compound/formula/C6H12O6/all
+
+# Compound by exact mass
+https://www.metabolomicsworkbench.org/rest/exactmass/mass/180.0634/tol/0.01
 
 # Compound by PubChem CID
 https://www.metabolomicsworkbench.org/rest/compound/pubchem_cid/5793/summary

@@ -20,10 +20,10 @@ No API key required.
 ## Example Calls
 
 ```
-# Gene data by Ensembl ID
+# Gene data by Ensembl ID (✅ recommended — returns full JSON)
 https://www.proteinatlas.org/ENSG00000141510.json
 
-# Gene data by symbol
+# Gene data by symbol (⚠️ may return HTML instead of JSON)
 https://www.proteinatlas.org/TP53.json
 
 # Search
@@ -39,12 +39,17 @@ https://www.proteinatlas.org/search/TP53?format=json
   "Gene description": "tumor protein p53",
   "Uniprot": ["P04637"],
   "Chromosome": "17",
-  "Protein class": ["Transcription factors"],
+  "Position": "7661779-7687538",
+  "Protein class": ["Transcription factors", "Cancer-related genes", ...],
   "RNA tissue specificity": "Low tissue specificity",
-  "Subcellular location": ["Nucleoplasm"],
+  "Subcellular location": ["Nucleoplasm", "Vesicles", "Cytosol"],
+  "Molecular function": ["Activator", "DNA-binding", "Repressor"],
+  "Disease involvement": ["Cancer-related genes", "Disease variant", ...],
   "Pathology prognostics": [...]
 }
 ```
+
+⚠️ **Use the Ensembl ID-based endpoint** (`/ENSG00000141510.json`). The symbol-based endpoint (`/TP53.json`) may return HTML due to server content negotiation. Both return the same JSON structure when they work. The tissue-level expression data is NOT included in the JSON response — use the bulk TSV downloads for tissue data.
 
 ## Bulk Downloads
 For large-scale work, use TSV files from https://www.proteinatlas.org/about/download:

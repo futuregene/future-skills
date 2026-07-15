@@ -30,3 +30,4 @@ POST endpoint — use `curl` via shell, not WebFetch.
 
 ## Rate Limits
 No published limits. Designed for interactive/programmatic use.
+- ⚠️ If the endpoint times out, retry with a smaller gene set (≤10 genes).

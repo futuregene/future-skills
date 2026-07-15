@@ -28,7 +28,7 @@ GET https://www.ebi.ac.uk/ols4/api/search?q=aspirin&ontology=chebi
 ```
 Returns JSON with matching ChEBI terms, IDs, definitions, synonyms.
 
-### 2. Lookup by ChEBI ID
+### 2. Lookup by ChEBI ID (Recommended)
 ```
 GET https://www.ebi.ac.uk/ols4/api/ontologies/chebi/terms?iri=http://purl.obolibrary.org/obo/CHEBI_{id}
 ```
@@ -37,6 +37,21 @@ Example:
 GET https://www.ebi.ac.uk/ols4/api/ontologies/chebi/terms?iri=http://purl.obolibrary.org/obo/CHEBI_15365
 ```
 Returns full term details: name, definition, synonyms, xrefs, relationships.
+
+**Response example (verified 2026-07):**
+```json
+{
+  "_embedded": {
+    "terms": [{
+      "obo_id": "CHEBI:15365",
+      "label": "acetylsalicylic acid",
+      "description": ["A member of the class of benzoic acids..."],
+      "synonyms": ["Aspirin", "Acetylsalicylic acid", "ASA", ...],
+      "iri": "http://purl.obolibrary.org/obo/CHEBI_15365"
+    }]
+  }
+}
+```
 
 ### 3. Get Term by Short Form
 ```

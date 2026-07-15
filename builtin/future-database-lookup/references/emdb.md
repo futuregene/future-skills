@@ -33,5 +33,29 @@ https://www.ebi.ac.uk/emdb/api/entry/experiment/EMD-1234
 ## Response Format
 JSON. Search includes pagination and matching entry array.
 
+### Entry Response Structure (actual)
+```json
+{
+  "_id": "5f3a8cfa043d5cc5a75c8742",
+  "admin": {
+    "title": "West Nile virus in complex with the Fab fragment...",
+    "deposition_date": "2020-08-17",
+    "last_update": "2024-01-15"
+  },
+  "emdb_id": "EMD-1234",
+  "sample": {
+    "name": "Sample description..."
+  },
+  "structure_determination_list": {
+    "resolution": 3.5,
+    "method": "SINGLE PARTICLE"
+  },
+  "map": { ... },
+  "crossreferences": { ... },
+  "version": { ... }
+}
+```
+Key fields are nested: title → `admin.title`, resolution → `structure_determination_list.resolution`, method → `structure_determination_list.method`.
+
 ## Rate Limits
 EBI fair-use policy. Map files (MRC/CCP4) available via FTP for bulk access.

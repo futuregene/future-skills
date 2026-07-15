@@ -39,6 +39,8 @@ country="United Kingdom" AND first_public>2024-01-01
 
 Operators: `=`, `!=`, `>`, `<`, `>=`, `<=`. Use `AND`, `OR`, `NOT`. Wildcards: `*`. Enclose values with spaces in double quotes.
 
+**⚠️ Field availability depends on result type.** Not all fields work with all result types. For example, `library_strategy` only works with `read_run`, `read_experiment`, and `read_study` result types — it does NOT work with `study`, `sequence`, or `assembly`. Use `/searchFields?result={result_type}` to check which fields are available for a given result type.
+
 **Example -- search human RNA-Seq runs:**
 ```
 https://www.ebi.ac.uk/ena/portal/api/search?result=read_run&query=tax_id%3D9606%20AND%20library_strategy%3D%22RNA-Seq%22&fields=run_accession,experiment_accession,sample_accession,study_accession,instrument_platform,library_strategy,read_count,base_count&limit=5&format=json

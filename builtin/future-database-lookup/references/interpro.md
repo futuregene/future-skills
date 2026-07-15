@@ -57,6 +57,18 @@ GET https://www.ebi.ac.uk/interpro/api/entry/interpro/protein/uniprot/P12345
 ```
 Returns all InterPro entries annotating that protein.
 
+### 4b. All Protein Annotations (All Member Databases)
+```
+GET https://www.ebi.ac.uk/interpro/api/entry/all/protein/UniProt/{accession}/
+```
+Example:
+```
+GET https://www.ebi.ac.uk/interpro/api/entry/all/protein/UniProt/P04637/?page_size=50
+```
+Returns all entries from ALL member databases (Pfam, SMART, CDD, PRINTS, PANTHER, etc.)
+plus InterPro entries. Use this for comprehensive protein annotation coverage.
+Note the capital `U` and `P` in `UniProt` and the trailing slash — the URL is case-sensitive.
+
 ### 5. Proteins with a Given Entry
 ```
 GET https://www.ebi.ac.uk/interpro/api/protein/uniprot/entry/interpro/{accession}

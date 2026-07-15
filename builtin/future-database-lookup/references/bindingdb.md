@@ -28,12 +28,14 @@ Default is XML. Append `&response=application/json` to any endpoint for JSON.
 GET https://bindingdb.org/rest/getLigandsByUniprot?uniprot={UNIPROT_ID};{IC50_cutoff_nM}&response=application/json
 ```
 - `uniprot` — UniProt ID followed by `;` and affinity cutoff in nM
-- Returns monomerIDs, SMILES, affinity types (IC50, Ki, Kd), and values
+- Returns JSON wrapped in `getLindsByUniprotResponse.bdb.affinities[]` array
+- Each affinity item has keys: `bdb.smile`, `bdb.affinity_type` (IC50/Ki/Kd), `bdb.affinity` (value in nM), `bdb.monomerid`, `bdb.target_name`
 - Returns empty string if UniProt ID not found
 
-Example:
-```
-https://bindingdb.org/rest/getLigandsByUniprot?uniprot=P35355;100&response=application/json
+Example — verified working (2026-07):
+```bash
+curl -s "https://bindingdb.org/rest/getLigandsByUniprot?uniprot=P35355;10&response=application/json"
+# Returns 8 ligands with IC50 values from <1nM to 9nM
 ```
 
 ### Get ligands for multiple targets
@@ -77,6 +79,7 @@ https://bindingdb.org/rest/getTargetByCompound?smiles=CCC%5BN%2B%5D%28C%29%28C%2
 
 ## Rate Limits
 No documented limit. Keep requests to ~1 per second as a courtesy.
+- ⚠️ **Known issue (2026)**: The `/rest/getLigandsByUniprot` endpoint sometimes returns **HTTP 504 Gateway Timeout** for common targets. If you get a 504, try narrowing the affinity cutoff (e.g., `;100` instead of `;1000`), using `/rest/getLigandsByPDBs`, or falling back to **ChEMBL**.
 
 ## Notes
 - The API surface is small (4 endpoints) but focused on binding affinity data
