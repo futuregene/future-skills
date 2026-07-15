@@ -1,7 +1,7 @@
 ---
 version: 1.1.1
 name: future-image
-description: Generate images from text prompts, edit existing images using natural-language instructions, and analyze images (OCR, visual Q&A, object recognition). All file inputs use --input <path> flag — the CLI handles base64 encoding internally.
+description: Generate images from text prompts, edit existing images using natural-language instructions, and analyze images (OCR, visual Q&A, object recognition).
 allowed-tools: Bash(future:*)
 ---
 

@@ -1,7 +1,7 @@
 ---
 version: 1.0.1
 name: future-document
-description: Parse PDF and Word (.docx) documents into structured Markdown. Preserves document structure including headings, tables, lists, and mathematical formulas. Uses --input <path> for file input — the CLI handles base64 encoding automatically.
+description: Parse PDF and Word (.docx) documents into structured Markdown. Preserves document structure including headings, tables, lists, and mathematical formulas.
 allowed-tools: Bash(future:*)
 ---
 
