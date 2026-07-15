@@ -12,25 +12,12 @@ A skill is a lightweight AI instruction package defined by a `SKILL.md` file tha
 
 ```
 future-skills/
-├── builtin/          # FutureOS built-in skills
-│   ├── future-account/
-│   ├── future-browser/
-│   ├── future-database-lookup/
-│   ├── future-deep-research/
-│   ├── future-document/
-│   ├── future-experimental-design/
-│   ├── future-hand-drawn-posters/
-│   ├── future-hand-drawn-slides/
-│   ├── future-image/
-│   ├── future-paper/
-│   ├── future-peer-review/
-│   ├── future-scientific-writing/
-│   ├── future-skill-creator/
-│   ├── future-subagent/
-│   └── future-web/
-├── third-party/      # Curated third-party skills
+├── builtin/          # FutureOS built-in skills (13)
+├── third-party/      # Curated third-party skills (125)
 ├── skills.json       # Skill metadata configuration
-└── README.md
+├── README.md
+├── README.zh-CN.md
+└── LICENSE
 ```
 
 ## Skill Format
@@ -50,15 +37,17 @@ Usage guidance...
 
 ## skills.json
 
-`skills.json` maintains metadata for each skill (`category`, `enabled`, `name`, `description`, etc.), consumed by [FutureOS](https://github.com/futuregene/future-os/tree/main):
+`skills.json` maintains metadata for all skills, consumed by [FutureOS](https://github.com/futuregene/future-os/tree/main):
 
 ```json
 {
   "future-paper": {
-    "category": "builtin",
+    "category": "tools",
+    "category_zh": "工具",
+    "builtin": true,
     "enabled": true,
-    "name": "Literature Search",
-    "description": "Search academic papers across multiple databases and retrieve full-text by identifier"
+    "name_zh": "文献搜索与获取",
+    "description_zh": "跨多数据库搜索学术文献，按标识符获取全文内容"
   }
 }
 ```
