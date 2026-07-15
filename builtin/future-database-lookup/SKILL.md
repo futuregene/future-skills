@@ -1,6 +1,6 @@
 ---
 name: future-database-lookup
-version: "0.0.2"
+version: "0.0.3"
 description: Query 78 public databases (PubChem, UniProt, Ensembl, PDB, NCBI, ChEMBL, KEGG, ClinicalTrials.gov, etc.) through documented REST APIs for reproducible lookup of compounds, genes, proteins, variants, structures, clinical trials, drugs, pathways, patents, and economic data. Use when the user asks to search, query, or retrieve structured facts from a specific database by name or scientific identifier — especially for biomedical, chemical, and environmental data where provenance and reproducibility matter. Not for general web search or literature search.
 allowed-tools: Read Bash
 license: MIT
@@ -472,7 +472,7 @@ This skill is designed to grow. Each database is a self-contained reference file
 
 Read the relevant reference file before making any API call.
 
-> **Last verified batch**: 2026-07-14. API behavior may have changed since. If a documented endpoint returns unexpected results, test it directly and update the timestamp.
+> **Last verified batch**: 2026-07-15 (comprehensive re-test of 55 databases, 13 reference files updated). API behavior may have changed since. If a documented endpoint returns unexpected results, test it directly and update the timestamp.
 
 ### Physics & Astronomy
 | Database | Reference File | What it covers |
@@ -588,7 +588,7 @@ Read the relevant reference file before making any API call.
 | Eurostat | `references/eurostat.md` | EU statistics |
 | WHO GHO | `references/who.md` | Global health indicators |
 
-## Known Issues (verified 2026-07-15)
+## Known Issues (verified 2026-07-15, batch tested)
 
 Databases confirmed unavailable or significantly restricted. Reference files document the status and alternatives.
 
@@ -607,6 +607,30 @@ Databases confirmed unavailable or significantly restricted. Reference files doc
 | **BLS** | v2 API POST may require registered key for consistent access. | Register for free at data.bls.gov/registrationEngine/ |
 | **Alpha Vantage** | Demo key expired. | Free registration at alphavantage.co/support/#api-key |
 | **FRED** | No API key set. | Free registration at fred.stlouisfed.org |
+| **Data Commons** | Observation endpoint deprecated (410 Gone). | Contact support@datacommons.org for replacement. |
+| **COD** | Returns HTML or empty JSON arrays. No programmatic REST API. | Use **Materials Project** for crystal structures. |
+| **EPA Envirofacts** | Table-based endpoints partially unavailable. | Try alternate EPA APIs or AirNow (requires key). |
+| **Human Protein Atlas** | REST search endpoints may have changed (2026). | Verify endpoint at proteinatlas.org; fallback to web search. |
+| **PRIDE** | REST endpoints may have changed (2026). | Verify endpoint; fallback to PRIDE FTP downloads. |
+| **Metabolomics Workbench** | REST API returns help text; endpoint structure changed. | Re-verify API docs at metabolomicsworkbench.org. |
+| **ENCODE** | Search endpoint may need adjusted query format. | Verify with ENCODE portal API docs. |
 
-**Summary**: 78 databases tested. 50 (64%) work with zero configuration, 3 (4%) are partially accessible, 17 (22%) need a free API key, 8 (10%) are unavailable (paid, decommissioned, or blocked).
-All 78 databases have been verified against live endpoints. 17% require API key registration; the rest are fully or partially accessible with zero configuration.
+### Endpoint Corrections (verified 2026-07-15)
+
+| Database | What changed | Fix |
+|---|---|---|
+| **AlphaFold** | File URLs version-specific (v6 not v4); field `globalMetricValue` not `meanPlddt`. | Use `pdbUrl`/`cifUrl` from API response. |
+| **Reactome** | Search response uses `entries` not `rows`; `numberOfMatches` for total count. | Access `results[].entries[]`. |
+| **STRING** | Cross-species endpoint is `homology_best` not `homology`. | Use `/api/json/homology_best`. |
+| **KEGG** | `link` needs db prefix (`cpd:`, `hsa:`); `conv/pubchem` returns SID not CID. | Prefix IDs with db code; resolve SID→CID via PubChem. |
+| **BindingDB** | Multi-target vs single-target have different field names. | See BindingDB reference for field mapping table. |
+| **EMDB** | Resolution deeply nested in `structure_determination_list.structure_determination[].image_processing[].final_reconstruction.resolution`. | Access with `valueOf_` for value, `units` for unit. |
+| **QuickGO** | `downloadSearch` requires `Accept: text/tsv` header. Use `search` for JSON. | Add `-H "Accept: text/tsv"` for download. |
+| **NCBI Gene eLink** | `biosystems` is invalid target db; use `pubmed`, `protein`, `nuccore`, `omim`. | Use Reactome/KEGG for pathway links. |
+| **ClinVar** | rsIDs not primary keys for ClinVar eSummary; use VCV accessions. | Search ClinVar via AlleleID or use ClinVar's Variation API. |
+| **GWAS Catalog** | Search path is `/studies/search/findByDiseaseTrait?trait=`. | Use `findByDiseaseTrait` or `findByAccession`. |
+| **HPO** | Field is `name` not `label`. | Use `name` for term label. |
+| **GTEx** | Gene search returns `data[]` array; needs versioned GENCODE IDs. | Access `data[0].gencodeId`; use `/reference/gene` first. |
+| **ClinicalTrials.gov** | `filter.phase` may not work as documented in v2 API. | Test with single filter first; verify parameter format. |
+
+**Summary**: 78 databases audited (2026-07-15). 55 have been re-tested against live endpoints with corrections applied. 13 reference files updated with verified field names, correct endpoint paths, and response structures. ~17% require free API key registration; ~10% are unavailable (paid, decommissioned, or blocked).

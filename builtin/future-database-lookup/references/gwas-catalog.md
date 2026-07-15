@@ -1,4 +1,4 @@
-# GWAS Catalog (EBI)
+# GWAS Catalog REST API
 
 ## Base URL
 ```
@@ -6,61 +6,115 @@ https://www.ebi.ac.uk/gwas/rest/api
 ```
 
 ## Auth
-No API key required.
-
-## Note: Responses use HAL+JSON format with `_links` and `_embedded` keys.
+No API key required. Fully public.
 
 ## Key Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
-| `/studies/{accession}` | Single study (e.g. GCST001633) |
-| `/studies/search/findByPubmedId?pubmedId={id}` | Studies by PubMed ID |
-| `/singleNucleotidePolymorphisms/{rsId}` | SNP details |
-| `/singleNucleotidePolymorphisms/{rsId}/associations` | Associations for a SNP |
-| `/singleNucleotidePolymorphisms/search/findByRsId?rsId={rsId}` | Search by rsID |
-| `/associations` | List associations |
-| `/associations/{id}` | Single association |
-| `/efoTraits` | List EFO traits |
-| `/efoTraits/search/findByEfoTrait?trait={name}` | Search traits |
-
-## Pagination
-`?page=0&size=20` (zero-indexed, max ~500)
-
-## Example Calls
+### Search studies by disease/trait
 ```
-# Get a study
-https://www.ebi.ac.uk/gwas/rest/api/studies/GCST001633
+GET /studies/search/findByDiseaseTrait?trait={trait_name}&size={n}
+```
 
-# Associations for a SNP
-https://www.ebi.ac.uk/gwas/rest/api/singleNucleotidePolymorphisms/rs7329174/associations
+Parameters:
+- `trait` — Disease or trait name (e.g. `breast carcinoma`)
+- `size` — Results per page (default 20)
+- `page` — Page number (0-indexed)
 
-# Search traits
-https://www.ebi.ac.uk/gwas/rest/api/efoTraits/search/findByEfoTrait?trait=diabetes&page=0&size=5
+Example:
+```
+https://www.ebi.ac.uk/gwas/rest/api/studies/search/findByDiseaseTrait?trait=breast%20carcinoma&size=5
+```
+
+### Search by PubMed ID
+```
+GET /studies/search/findByPubMedId?pubmedId={pmid}
+```
+
+### Search by accession
+```
+GET /studies/search/findByAccession?accessionId={gcs_id}
+```
+
+Example:
+```
+https://www.ebi.ac.uk/gwas/rest/api/studies/search/findByAccession?accessionId=GCST000854
+```
+
+### Get single study
+```
+GET /studies/{study_accession}
+```
+
+### Get study associations
+```
+GET /studies/{study_accession}/associations?size={n}
+```
+
+### Browse all studies (paginated)
+```
+GET /studies?size={n}&page={p}
+```
+
+### Search associations
+```
+GET /associations/search/findByDiseaseTrait?trait={trait_name}&size={n}
+```
+
+### Search by variant rsID
+```
+GET /associations/search/findByRiskAllele?riskAllele={rsid}&size={n}
+```
+
+### Search EFOTraits
+```
+GET /efoTraits/search/findByTrait?trait={trait_name}&size={n}
 ```
 
 ## Response Format
-HAL+JSON. Results in `_embedded.studies[]` or `_embedded.associations[]`. 
-Key fields (association): `pvalue`, `pvalueDescription`, `orPerCopyNum`, `betaNum`, `riskFrequency`, `riskAllele`.
-The `efoTrait` and `diseaseTrait` fields are NOT embedded in the association response — you must follow the HAL `_links`:
-- `_links.efoTraits.href` → GET this URL to get the EFO trait name(s)
-- `_links.study.href` → GET this URL to get the study info and `diseaseTrait.trait`
-- `_links.snps.href` → GET this URL to get rsID, chromosome, position
+All responses are HAL+JSON. Key response elements:
 
-Example workflow:
+```json
+{
+  "_embedded": {
+    "studies": [
+      {
+        "accessionId": "GCST000854",
+        "diseaseTrait": {
+          "trait": "Suicide risk"
+        },
+        "publicationInfo": {
+          "pubmedId": "21234567",
+          "title": "...",
+          "author": "..."
+        },
+        "initialSampleSize": "...",
+        "replicationSampleSize": "...",
+        "_links": {
+          "associations": { "href": "..." }
+        }
+      }
+    ]
+  },
+  "page": {
+    "size": 20,
+    "totalElements": 5000,
+    "totalPages": 250,
+    "number": 0
+  }
+}
 ```
-# Step 1: Get associations for a SNP
-GET /singleNucleotidePolymorphisms/rs9272346/associations
-# Returns association IDs and _links
 
-# Step 2: Follow efoTraits link
-GET /associations/11931/efoTraits
-# → {"_embedded":{"efoTraits":[{"trait":"type 1 diabetes mellitus","uri":"MONDO:0005147"}]}}
-
-# Step 3: Follow study link
-GET /associations/11931/study
-# → {"diseaseTrait":{"trait":"Type 1 diabetes"},"pubmedId":"...","title":"..."}
-```
+## Pagination
+Uses Spring Data REST pagination:
+- `size` — results per page
+- `page` — page number (0-indexed)
+- Response includes `page.totalElements` and `page.totalPages`
 
 ## Rate Limits
-No published limit. Bulk data via FTP at ftp.ebi.ac.uk/pub/databases/gwas/
+No strict limits published. Be reasonable — ~1-2 req/sec.
+
+## Notes
+- Trait names must match EFO ontology terms where possible
+- Use URL encoding for special characters in trait names
+- The `_links` in each study provide direct URLs to related resources
+- For bulk data, use the GWAS Catalog FTP downloads

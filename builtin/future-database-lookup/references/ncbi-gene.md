@@ -46,16 +46,26 @@ Example:
 GET /efetch.fcgi?db=gene&id={gene_ids}&rettype=gene_table&retmode=text
 ```
 
-### eLink — Cross-database links (gene to pathways, PubMed, OMIM)
+### eLink — Cross-database links
 ```
 GET /elink.fcgi?dbfrom=gene&db={target_db}&id={gene_id}&retmode=json
 ```
 
-Target databases: `biosystems` (pathways), `pubmed`, `omim`, `nuccore`, `protein`
+**Valid target databases for gene-to-X links:**
 
-Example — gene to pathways:
+| db value | Target | Works? |
+|----------|--------|--------|
+| `pubmed` | PubMed articles | ✅ |
+| `protein` | NCBI Protein sequences | ✅ |
+| `nuccore` | Nucleotide sequences | ✅ |
+| `omim` | OMIM disease-gene | ✅ |
+| ~~`biosystems`~~ | ~~Pathways~~ | ❌ Invalid db name |
+
+⚠️ **Note**: `biosystems` is NOT a valid eLink target database. For pathway links, use **KEGG** or **Reactome** mapping endpoints instead.
+
+Example — gene to PubMed:
 ```
-/elink.fcgi?dbfrom=gene&db=biosystems&id=672&retmode=json
+/elink.fcgi?dbfrom=gene&db=pubmed&id=672&retmode=json
 ```
 
 ## Rate Limits

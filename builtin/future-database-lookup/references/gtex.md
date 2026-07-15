@@ -29,20 +29,68 @@ JSON. Most endpoints return paginated results with structure:
 
 ## Key Endpoints
 
-### Gene expression (median by tissue)
+### Gene search (resolve symbol to GENCODE ID)
+⚠️ **Important**: Always resolve gene symbols first — GTEx requires versioned GENCODE IDs for expression queries.
 ```
-GET /expression/medianGeneExpression?gencodeId=ENSG00000139618.17&datasetId=gtex_v8
+GET /reference/gene?geneId={symbol}&gencodeVersion=v26&genomeBuild=GRCh38/hg38
 ```
+
 Parameters:
-- `gencodeId` -- Versioned Ensembl gene ID (required)
+- `geneId` -- gene symbol (e.g. TP53) or Ensembl ID
+- `gencodeVersion` -- `v26` for GTEx v8 (required)
+- `genomeBuild` -- `GRCh38/hg38`
+
+Example:
+```
+https://gtexportal.org/api/v2/reference/gene?geneId=TP53&gencodeVersion=v26&genomeBuild=GRCh38/hg38
+```
+
+Response (verified 2026-07):
+```json
+{
+  "data": [
+    {
+      "chromosome": "chr17",
+      "dataSource": "HAVANA",
+      "description": "tumor protein p53 [Source:HGNC Symbol;Acc:HGNC:11998]",
+      "end": 7687550,
+      "entrezGeneId": 7157,
+      "gencodeId": "ENSG00000141510.16",
+      "gencodeVersion": "v26",
+      "geneSymbol": "TP53",
+      "geneType": "protein coding",
+      "genomeBuild": "GRCh38/hg38",
+      "start": 7661779,
+      "strand": "-",
+      "tss": 7687550
+    }
+  ],
+  "paging_info": {"numberOfPages": 1, "page": 0, "maxItemsPerPage": 250, "totalNumberOfItems": 1}
+}
+```
+
+⚠️ **Note**: `data` is an **array**, not an object. Access as `data[0].gencodeId`.
+
+### Gene expression (median TPM by tissue)
+```
+GET /expression/medianGeneExpression?gencodeId={versioned_gencode_id}&datasetId=gtex_v8
+```
+
+Parameters:
+- `gencodeId` -- Versioned Ensembl gene ID (required, e.g. `ENSG00000141510.16`)
 - `datasetId` -- `gtex_v8` (required)
 - `tissueSiteDetailId` -- filter to specific tissue (optional)
 
+Example:
+```
+https://gtexportal.org/api/v2/expression/medianGeneExpression?gencodeId=ENSG00000141510.16&datasetId=gtex_v8
+```
+
 Returns median TPM per tissue for the gene.
 
-### Gene expression (all, for a tissue)
+### Gene expression (all genes, for a tissue)
 ```
-GET /expression/medianGeneExpression?tissueSiteDetailId=Liver&datasetId=gtex_v8
+GET /expression/medianGeneExpression?tissueSiteDetailId=Liver&datasetId=gtex_v8&page=0&itemsPerPage=250
 ```
 
 ### Single-tissue eQTLs
@@ -58,15 +106,6 @@ Parameters:
 ```
 GET /association/multiTissueEqtl?gencodeId=ENSG00000139618.17&datasetId=gtex_v8
 ```
-
-### Gene search
-```
-GET /reference/gene?geneId=BRCA2&gencodeVersion=v26&genomeBuild=GRCh38/hg38
-```
-Parameters:
-- `geneId` -- gene symbol or Ensembl ID
-- `gencodeVersion` -- `v26` for GTEx v8
-- `genomeBuild` -- `GRCh38/hg38`
 
 ### List tissues
 ```
@@ -120,7 +159,7 @@ Use the underscore-separated names exactly:
       "unit": "TPM"
     }
   ],
-  "paging_info": { "numberOfPages": 1, "page": 0, "maxItemsPerPage": 250 }
+  "paging_info": { "numberOfPages": 1, "page": 0, "maxItemsPerPage": 250, "totalNumberOfItems": 54 }
 }
 ```
 
@@ -132,7 +171,7 @@ Use the underscore-separated names exactly:
 ## Notes
 - GTEx v8 is the primary dataset; always specify `datasetId=gtex_v8`
 - Gene IDs must be versioned GENCODE IDs (e.g., ENSG00000139618.17)
-- Use the gene search endpoint to resolve symbols to versioned GENCODE IDs:
+- **Always use the gene search endpoint first** to resolve symbols to versioned GENCODE IDs:
   ```
   GET /reference/gene?geneId=TP53&gencodeVersion=v26&genomeBuild=GRCh38/hg38
   ```

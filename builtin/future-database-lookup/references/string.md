@@ -173,7 +173,7 @@ https://string-db.org/api/json/enrichment?identifiers=TP53%0dBRCA1%0dATM%0dCHEK2
 ]
 ```
 
-Categories include: `Process` (GO Biological Process), `Function` (GO Molecular Function), `Component` (GO Cellular Component), `KEGG`, `Pfam`, `InterPro`, `SMART`, `Keyword` (UniProt), `Reactome`, `WikiPathways`, `HPO` (Human Phenotype Ontology).
+Categories include: `Process` (GO Biological Process), `Function` (GO Molecular Function), `Component` (GO Cellular Component), `KEGG`, `Pfam`, `InterPro`, `SMART`, `Keyword` (UniProt), `Reactome`, `WikiPathways`, `HPO` (Human Phenotype Ontology), `COMPARTMENTS`.
 
 ---
 
@@ -207,21 +207,36 @@ https://string-db.org/api/json/get_string_ids?identifiers=CDK2%0dp53&species=960
 
 ---
 
-### 7. Get homology / best-hit in another species
+### 7. Get homology / best-hit in another species (USE homology_best)
+
+⚠️ **IMPORTANT**: Use `homology_best` (NOT `homology`) for cross-species homology. The `homology` endpoint only returns self-mapping.
 
 ```
-GET /api/json/homology?identifiers={proteins}&species={taxid}&species_b={taxid_b}
+GET /api/json/homology_best?identifiers={proteins}&species={taxid}&species_b={taxid_b}
 ```
 
 | Parameter   | Type | Description |
 |------------|------|-------------|
 | `identifiers` | string | Source protein(s). |
-| `species`     | int | Source species. |
-| `species_b`   | int | Target species for homolog lookup. |
+| `species`     | int | Source species taxon ID. |
+| `species_b`   | int | Target species taxon ID for homolog lookup. |
 
 **Example:**
 ```
-https://string-db.org/api/json/homology?identifiers=TP53&species=9606&species_b=10090
+https://string-db.org/api/json/homology_best?identifiers=TP53&species=9606&species_b=10090
+```
+
+**Response:**
+```json
+[
+  {
+    "ncbiTaxonId_A": 9606,
+    "stringId_A": "9606.ENSP00000269305",
+    "ncbiTaxonId_B": 10090,
+    "stringId_B": "10090.ENSMUSP00000104298",
+    "bitscore": 598.2
+  }
+]
 ```
 
 ---

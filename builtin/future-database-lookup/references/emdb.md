@@ -1,61 +1,106 @@
-# EMDB (Electron Microscopy Data Bank)
+# EMDB (Electron Microscopy Data Bank) API Reference
 
 ## Base URL
 ```
-https://www.ebi.ac.uk/emdb/api/
+https://www.ebi.ac.uk/emdb/api/entry/
 ```
 
 ## Auth
-No auth required.
+No auth required. Fully public.
 
 ## Key Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
-| `/entry/{emdb_id}` | Full entry metadata (e.g. EMD-1234) |
-| `/entry/map/{emdb_id}` | Map/volume metadata |
-| `/entry/experiment/{emdb_id}` | Experimental details |
-| `/entry/fitted/{emdb_id}` | Fitted PDB models |
-| `/search/{query}?rows={n}` | Search entries by keyword |
-
-## Example Calls
+### Entry Lookup
 ```
-# Entry metadata
-https://www.ebi.ac.uk/emdb/api/entry/EMD-1234
-
-# Search for ribosome entries
-https://www.ebi.ac.uk/emdb/api/search/ribosome?rows=5
-
-# Experimental details
-https://www.ebi.ac.uk/emdb/api/entry/experiment/EMD-1234
+GET https://www.ebi.ac.uk/emdb/api/entry/{emdb_id}
+```
+Example:
+```
+https://www.ebi.ac.uk/emdb/api/entry/EMD-2984
 ```
 
-## Response Format
-JSON. Search includes pagination and matching entry array.
+## Response Structure
 
-### Entry Response Structure (actual)
+The API returns a nested JSON document. Key fields (verified 2026-07):
+
+### Top-level fields:
+| Field | Type | Description |
+|-------|------|-------------|
+| `emdb_id` | string | EMDB accession (e.g. "EMD-2984") |
+| `admin.title` | string | Entry title |
+| `admin.authors_list.author[]` | array | Authors, each with `valueOf_` (name) and `instance_type` |
+| `admin.keywords` | object | Keywords |
+| `admin.current_status` | string | Processing status |
+| `structure_determination_list` | object | Contains `structure_determination` (array or object) |
+| `sample` | object | Sample/macromolecule details |
+| `map` | object | Map metadata (cell, axis, symmetry) |
+| `crossreferences` | object | Cross-references to other databases |
+| `interpretation` | object | Interpretation/fitting results |
+| `validation` | object | Validation metrics |
+
+### Resolution and method access:
+Resolution is nested deep — access via:
+```
+structure_determination_list.structure_determination[0].image_processing[0].final_reconstruction.resolution
+```
+Where `resolution` is an object:
 ```json
 {
-  "_id": "5f3a8cfa043d5cc5a75c8742",
-  "admin": {
-    "title": "West Nile virus in complex with the Fab fragment...",
-    "deposition_date": "2020-08-17",
-    "last_update": "2024-01-15"
-  },
-  "emdb_id": "EMD-1234",
-  "sample": {
-    "name": "Sample description..."
-  },
-  "structure_determination_list": {
-    "resolution": 3.5,
-    "method": "SINGLE PARTICLE"
-  },
-  "map": { ... },
-  "crossreferences": { ... },
-  "version": { ... }
+  "res_type": "BY AUTHOR",
+  "units": "Å",
+  "valueOf_": "2.2"
 }
 ```
-Key fields are nested: title → `admin.title`, resolution → `structure_determination_list.resolution`, method → `structure_determination_list.method`.
+
+Method is in:
+```
+structure_determination_list.structure_determination[0].method
+```
+Values: `singleParticle`, `tomography`, `electron_crystallography`, etc.
+
+### Sample details:
+```
+sample.macromolecule_list.macromolecule[] — array of macromolecules
+sample.macromolecule_list.macromolecule[0].name.synonym[] — protein names
+sample.macromolecule_list.macromolecule[0].molecular_weight.theoretical — MW info
+```
+
+### Quick field access (Python example):
+```python
+import json
+
+data = json.loads(response)
+entry_id = data['emdb_id']
+title = data['admin']['title']
+authors = [a['valueOf_'] for a in data['admin']['authors_list']['author']]
+
+# Resolution
+sd = data['structure_determination_list']['structure_determination']
+if isinstance(sd, list):
+    sd = sd[0]
+for ip in sd.get('image_processing', []):
+    fr = ip.get('final_reconstruction', {})
+    if fr:
+        resolution = fr['resolution']['valueOf_']
+        units = fr['resolution']['units']
+```
+
+## File Downloads
+```
+https://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-{id}/map/emd_{id}.map.gz
+https://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-{id}/header/emd-{id}-v30.xml
+```
+
+## Search
+EMDB doesn't have a dedicated REST search API. Use:
+- PDBe search API (which indexes EMDB): `https://www.ebi.ac.uk/pdbe/search/pdb/select?q=...`
+- EMDB website for interactive search
 
 ## Rate Limits
-EBI fair-use policy. Map files (MRC/CCP4) available via FTP for bulk access.
+No published limits. Moderate usage expected.
+
+## Notes
+- All numeric/string values in the API may use `valueOf_` wrapper — check before accessing
+- `structure_determination_list.structure_determination` may be a single object or array — handle both cases
+- Resolution may not always be present (e.g., for tomograms)
+- Cross-reference with PDB via `crossreferences`

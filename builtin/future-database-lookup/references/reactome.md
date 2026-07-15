@@ -26,29 +26,35 @@ Parameters:
 
 Example:
 ```
-/search/query?query=apoptosis&species=Homo+sapiens&types=Pathway
+/search/query?query=apoptosis&species=Homo+sapiens&types=Pathway&rows=3
 ```
 
-Response:
+Response (verified 2026-07):
 ```json
 {
   "results": [
     {
       "typeName": "Pathway",
-      "rows": [
+      "entries": [
         {
           "dbId": 109581,
           "stId": "R-HSA-109581",
-          "name": "Apoptosis",
+          "name": "<span class=\"highlighting\">Apoptosis</span>",
           "species": ["Homo sapiens"],
-          "summation": ["..."]
+          "summation": "..."
         }
-      ]
+      ],
+      "entriesCount": 288,
+      "rowCount": 3
     }
   ],
-  "found": 42
+  "rowCount": 25,
+  "numberOfGroups": 9,
+  "numberOfMatches": 1058
 }
 ```
+
+⚠️ Pay attention to pagination fields: top-level uses `rowCount` for returned results per page, `numberOfMatches` for total matches across all types. Use `Start row` parameter for pagination offset.
 
 ### Autocomplete
 ```
@@ -134,6 +140,11 @@ GET /data/eventsHierarchy/{species}
 `UniProt`, `ChEBI`, `ENSEMBL`, `miRBase`, `GeneCards`, `NCBI`
 
 Multiple values for same parameter: repeat the parameter (e.g. `types=Pathway&types=Reaction`).
+
+## Response Notes
+
+- Search responses may contain HTML `<span class="highlighting">` tags in `name` and `summation` fields — strip these before display.
+- Use `entries` array (not `rows`) to access search result items.
 
 ## Rate Limits
 

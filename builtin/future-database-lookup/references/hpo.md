@@ -1,45 +1,103 @@
-# HPO (Human Phenotype Ontology)
+# HPO (Human Phenotype Ontology) API Reference
 
 ## Base URL
 ```
-https://hpo.jax.org/api/hpo
+https://ontology.jax.org/api
 ```
 
 ## Auth
-No API key required.
+No auth required. Fully public.
 
-## Important: URL-encode colons in HP IDs — `HP:0001250` becomes `HP%3A0001250`
+## Key Endpoints
 
-## ⚠️ API Status (2026)
-The HPO API is undergoing migration. As of 2026-07:
-- The legacy endpoint `https://ontology.jax.org/api/hp` returns "Not Found" for most queries.
-- The current endpoint `https://hpo.jax.org/api/hpo` returns an Angular SPA (HTML), not JSON API responses.
-- For reliable programmatic access, use one of these alternatives:
-  1. **Monarch Initiative** (`/entity/HP%3A0001250`) for term details and gene/disease associations
-  2. **HPO API via BioPortal** (`https://data.bioontology.org/ontologies/HP`)
-  3. Download the OWL/JSON files from `https://hpo.jax.org/data/`
-
-## Key Endpoints (legacy — may or may not work)
-
-| Endpoint | Description |
-|----------|-------------|
-| `/hpo/term/{id}` | Term details |
-| `/hpo/term/{id}/genes` | Genes associated with a phenotype |
-| `/hpo/term/{id}/diseases` | Diseases associated with a phenotype |
-| `/hpo/gene/{gene_id}` | Phenotypes for a gene (Entrez ID) |
-
-## Recommended alternative: Monarch Initiative for HPO data
-
+### 1. Get Term by ID
 ```
-# Term details for Seizure
-GET https://api.monarchinitiative.org/v3/api/entity/HP%3A0001250
-
-# Genes for seizure phenotype
-GET https://api.monarchinitiative.org/v3/api/entity/HP%3A0001250/associations?category=biolink:GeneToPhenotypicFeatureAssociation&limit=20
+GET /hp/terms/{hp_id}
 ```
 
-## Response Format (legacy)
-JSON. Terms: `id`, `name`, `definition`, `synonyms`. Gene associations: `genes[]` with `geneId`, `geneSymbol`. Diseases: `diseases[]` with `diseaseId`, `diseaseName`.
+Example:
+```
+https://ontology.jax.org/api/hp/terms/HP:0001250
+```
+
+Response (verified 2026-07):
+```json
+{
+  "id": "HP:0001250",
+  "name": "Seizure",
+  "definition": "A seizure is an intermittent abnormality of nervous system physiology characterised by a transient occurrence of signs and/or symptoms due to abnormal excessive or synchronous neuronal activity in the brain.",
+  "comment": "...",
+  "descendantCount": 123,
+  "synonyms": ["Epileptic seizure", "Convulsion", "..."],
+  "xrefs": ["SNOMEDCT_US:91175000", "UMLS:C0036572"],
+  "publicationReferences": [...],
+  "translations": [...]
+}
+```
+
+⚠️ Note: The field is `name` (not `label`).
+
+### 2. Search Terms
+```
+GET /search?q={query}&limit={n}
+```
+
+Example:
+```
+https://ontology.jax.org/api/search?q=seizure&limit=5
+```
+
+Response:
+```json
+{
+  "results": [
+    {
+      "id": "HP:0001250",
+      "name": "Seizure",
+      "ontology": "hp"
+    }
+  ],
+  "total": 50
+}
+```
+
+### 3. Term Ancestors
+```
+GET /hp/terms/{hp_id}/ancestors
+```
+
+### 4. Term Descendants
+```
+GET /hp/terms/{hp_id}/descendants
+```
+
+### 5. Disease-Phenotype Associations
+```
+GET /disease/{disease_id}/phenotypes
+```
+
+Query parameters:
+- `disease_id` — OMIM, ORPHA, or DECIPHER ID
+
+Example:
+```
+https://ontology.jax.org/api/disease/OMIM:154700/phenotypes
+```
+
+### 6. Network Search
+```
+GET /network/search/{hp_id}?ontology=hp
+```
+
+## Term ID Format
+- HP terms: `HP:0001250` (no URL encoding needed in path)
+- Disease IDs: `OMIM:154700`, `ORPHA:1234`, `DECIPHER:12`
 
 ## Rate Limits
-No published limits. Bulk annotation files at https://hpo.jax.org/data/annotations
+No strict limits. Moderate usage expected.
+
+## Notes
+- The HPO is part of the Monarch Initiative ecosystem
+- Cross-reference HPO terms with other ontologies via the `xrefs` field
+- For phenotype-driven diagnostics, use the Exomiser or LIRICAL tools
+- The `name` field (not `label`) contains the primary term name

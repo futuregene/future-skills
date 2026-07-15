@@ -1,91 +1,111 @@
 # ClinVar API Reference
 
 ## Base URLs
-- **NCBI E-utilities**: `https://eutils.ncbi.nlm.nih.gov/entrez/eutils`
-- **ClinVar web API (VCV)**: `https://www.ncbi.nlm.nih.gov/clinvar`
-- **NCBI Variation Services**: `https://api.ncbi.nlm.nih.gov/variation/v0`
+- **E-utilities**: `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/`
+- **ClinVar VCV pages**: `https://www.ncbi.nlm.nih.gov/clinvar/variation/{vcv_id}/`
 
 ## Authentication
-- E-utilities: No key required, but **strongly recommended**. Register at https://www.ncbi.nlm.nih.gov/account/ to get an `api_key`.
-- Without key: 3 requests/second. With key: 10 requests/second.
-- Append `&api_key=YOUR_KEY` to all E-utility requests.
+- **E-utilities**: API key recommended (`&api_key=KEY`). 3 req/sec without, 10 req/sec with key.
+- **ClinVar VCV API**: No auth required.
 
-## Rate Limits
-- Without API key: 3 req/sec
-- With API key: 10 req/sec
+## Important: ClinVar IDs vs dbSNP rsIDs
+
+⚠️ **ClinVar uses its own accession system (VCV)**, NOT dbSNP rsIDs for primary lookups. An rsID maps to a genomic location, while a VCV accession represents a specific variant-interpretation pair.
+
+To look up ClinVar data for a known rsID:
+1. First get the VCV accession via eSearch with the allele ID or by searching
+2. Then use eSummary with the VCV accession
 
 ## Key Endpoints
 
-### 1. Search ClinVar (esearch)
+### 1. eSearch — Find ClinVar records
 ```
-GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=clinvar&term={query}&retmode=json
-```
-Example — search for BRCA1 pathogenic variants:
-```
-GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=clinvar&term=BRCA1[gene]+AND+pathogenic[clinical_significance]&retmode=json&retmax=10
-```
-Returns JSON with `idlist` of ClinVar Variation IDs.
-
-### 2. Fetch ClinVar Records (esummary)
-```
-GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=clinvar&id={id_list}&retmode=json
-```
-Example:
-```
-GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=clinvar&id=37088,37087&retmode=json
-```
-Returns JSON with clinical significance, variant name, gene, conditions, review status.
-
-### 3. Full Record (efetch)
-```
-GET https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=clinvar&id={id}&rettype=vcv&is_variationid&retmode=xml
-```
-Note: ClinVar efetch returns **XML only** (no JSON for efetch).
-
-### 4. Variation Services API — SPDI/HGVS Lookup
-```
-GET https://api.ncbi.nlm.nih.gov/variation/v0/spdi/{spdi_expression}/clinvar
-GET https://api.ncbi.nlm.nih.gov/variation/v0/hgvs/{hgvs_expression}/clinvar
-```
-Example:
-```
-GET https://api.ncbi.nlm.nih.gov/variation/v0/hgvs/NM_007294.4%3Ac.5266dupC/clinvar
+GET esearch.fcgi?db=clinvar&term={query}&retmode=json
 ```
 
-### 5. ClinVar VCV/RCV Direct Access
+**Examples:**
 ```
-GET https://www.ncbi.nlm.nih.gov/clinvar/variation/{variation_id}/?redir=vcv
+# Search by gene symbol
+esearch.fcgi?db=clinvar&term=TP53%5BGene%5D&retmode=json&retmax=10
+
+# Search by clinical significance
+esearch.fcgi?db=clinvar&term=pathogenic%5Bclinsig%5D&retmode=json&retmax=5
+
+# Search by condition
+esearch.fcgi?db=clinvar&term=%22Li-Fraumeni+syndrome%22%5Bdis%5D&retmode=json&retmax=5
 ```
-This returns HTML. For programmatic access, use E-utilities or the Variation Services API.
 
-## Useful Search Qualifiers
-- `[gene]` — gene symbol (e.g., `BRCA1[gene]`)
-- `[clinical_significance]` — pathogenic, likely_pathogenic, benign, uncertain_significance
-- `[molecular_consequence]` — missense, nonsense, frameshift, etc.
-- `[review_status]` — criteria_provided_single_submitter, reviewed_by_expert_panel, etc.
-- `[condition]` — disease name
-
-## Response Format
-- esearch/esummary: JSON (with `retmode=json`)
-- efetch: XML only for ClinVar
-- Variation Services: JSON
-
-## esummary Response Key Fields
-```json
-{
-  "result": {
-    "37088": {
-      "uid": "37088",
-      "title": "NM_007294.4(BRCA1):c.5266dupC (p.Gln1756Profs*74)",
-      "clinical_significance": { "description": "Pathogenic" },
-      "genes": [{"symbol": "BRCA1", "geneid": 672}],
-      "variation_set": [...],
-      "trait_set": [{"trait_name": "Hereditary breast and ovarian cancer syndrome"}]
-    }
-  }
-}
+### 2. eSummary — Get record summaries
 ```
+GET esummary.fcgi?db=clinvar&id={clinvar_ids}&retmode=json
+```
+
+Where `{clinvar_ids}` are ClinVar variation IDs (VCV accessions), NOT rsIDs.
+
+Response fields include:
+- `title` — Variant description (HGVS + gene info)
+- `clinical_significance` — Clinical significance assertion
+- `review_status` — Review status (e.g. "criteria provided, multiple submitters, no conflicts")
+- `last_evaluated` — Last evaluation date
+- `accession` — VCV accession
+- `allele_id` — Allele ID
+- `gene_sort` — Gene symbol
+
+### 3. ClinVar Variation API (VCF-compatible)
+```
+GET https://www.ncbi.nlm.nih.gov/clinvar/variation/{vcv_id}/api/
+```
+
+Returns structured JSON with full variant details including:
+- Variant coordinates, HGVS expressions
+- Clinical assertions with review status
+- Molecular consequence
+- Conditions/diseases
+- Submitter information
+
+### 4. Convert rsID → Allele ID
+```
+GET esearch.fcgi?db=clinvar&term={rsid}%5BAlleleID%5D&retmode=json
+```
+
+Note: Not all rsIDs have ClinVar entries. Only rsIDs with clinical assertions are in ClinVar.
+
+## Common E-utilities Search Terms
+
+```
+# By gene
+TP53[Gene]
+
+# By clinical significance
+pathogenic[clinsig]
+likely pathogenic[clinsig]
+uncertain significance[clinsig]
+
+# By review status
+criteria provided[review]
+reviewed by expert panel[review]
+practice guideline[review]
+
+# By molecular consequence  
+missense[molc]
+frameshift[molc]
+nonsense[molc]
+
+# By disease/condition
+"Li-Fraumeni syndrome"[dis]
+"Breast-ovarian cancer"[dis]
+
+# Combined
+TP53[Gene] AND pathogenic[clinsig] AND missense[molc]
+```
+
+## Rate Limits
+- E-utilities: 3 req/sec (no key), 10 req/sec (with key)
+- ClinVar API: No published limits, be respectful
 
 ## Notes
-- Combine esearch + esummary for search-then-fetch workflows.
-- For bulk downloads, use ClinVar FTP: https://ftp.ncbi.nlm.nih.gov/pub/clinvar/
+- ClinVar records are accessioned as VCV###### (e.g. VCV000000001)
+- Clinical significance may have multiple values for a single variant (different submitters)
+- Always check `review_status` — "no assertion criteria provided" is less reliable than "reviewed by expert panel"
+- For population frequency data, prefer gnomAD (ClinVar only has clinical assertions)
+- The ClinVar Variation API provides more structured data than E-utilities summaries
