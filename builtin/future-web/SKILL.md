@@ -1,5 +1,5 @@
 ---
-version: 1.0.1
+version: 1.0.2
 name: future-web
 description: Search the public web for current information. Returns page titles, URLs, and content snippets from search results. Pair with fetch_url to retrieve full page content — if fetch_url returns empty or fails (e.g. JS-rendered pages, WeChat articles, anti-bot walls), automatically fall back to browser (command: open + snapshot). Use for fact-checking, news, documentation, and any information beyond your knowledge cutoff.
 allowed-tools: Bash(future:*)
@@ -70,7 +70,7 @@ future tools call browser --command "console" --level "error" ```
 User asks to open/summarize a URL
         │
         ▼
-  future tools call fetch_url
+  future tools call fetch_url --url <url>
         │
         ├─ ✅ Got full content → use it
         │

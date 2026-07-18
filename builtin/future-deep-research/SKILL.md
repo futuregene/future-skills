@@ -1,6 +1,6 @@
 ---
 name: future-deep-research
-version: 2.5.1
+version: 2.5.2
 description: >
   End-to-end deep research on user-specified topics. Automatically orchestrates multi-source data collection (web search, academic papers, local documents),
   supports user-provided materials (PDF/Word/URL/paper IDs/notes/CSV), ensures information reliability through cross-validation and citation verification,
@@ -89,7 +89,7 @@ After receiving the user's request, the AI **MUST proactively offer three strate
 
 | Material Type | User Provides | AI Processes |
 |---------------|---------------|--------------|
-| 📑 PDF/Word docs | Local file path | `future tools call parse_doc ` |
+| 📑 PDF/Word docs | Local file path | `future tools call parse_doc --input <file>` |
 | 🔗 Web URLs | One or more URLs | `future tools call fetch_url --url "..." ` |
 | 📄 Paper IDs | DOI / PMID / ArXiv ID | `future tools call get_paper --paper_id "DOI:..." ` |
 | 📝 Notes/outlines | Paste text directly | Incorporate directly into research foundation |
