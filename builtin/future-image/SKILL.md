@@ -1,5 +1,5 @@
 ---
-version: 1.1.4
+version: 1.1.5
 name: future-image
 description: Generate images from text prompts, edit existing images using natural-language instructions, and analyze images (OCR, visual Q&A, object recognition).
 allowed-tools: Bash(future:*)
@@ -116,7 +116,7 @@ Arguments: `--prompt "..." [--size "..."] [--quality "..."] [--n N] [--output_fo
 
 **Quality notes:** `"low"` is fastest (~60–120s) and cheapest — good for drafts, simple images, or when iterating rapidly. `"medium"` (default, ~120–300s) is recommended for most final use cases; Chinese/Japanese/Korean text generation adds ~30–60s due to character rendering complexity. `"high"` is **unreliable** and often triggers `azure_image_transport_failed` — prefer `"medium"` and only try `"high"` as a last resort.
 
-**n parameter:** `n > 1` may not produce multiple output files — the CLI's `--output` flag only saves one file. If you need multiple images, make multiple separate calls.
+**n parameter:** `n > 1` generates multiple files: `--output ./img.png` with `--n 2` produces `img_1.png`, `img_2.png`.
 
 ### image_edit
 Modify an existing image according to a text instruction. Use `--input <path>` for the source image and `--mask <path>` for an optional mask — the CLI handles base64 encoding internally. 
