@@ -1,5 +1,5 @@
 ---
-version: 2.0.3
+version: 2.0.4
 name: future-slides
 description: Generate presentation slides as images from a Markdown report. Supports 8 curated visual styles (minimal, dark-tech, sketched, corporate, vibrant, research-poster, molecular-aesthetic, data-driven) plus custom style input. Triggered when the user asks to create slides, PPT, or presentation from content.
 allowed-tools: Bash(future:*)
@@ -31,34 +31,17 @@ future tools call image_gen --stdin --output "$WORK_DIR/slide_NN.png" --timeout 
 }
 JSON
 
-# Edit an existing slide. The API expects base64-encoded image data.
-IMG_B64=$(base64 -i "$WORK_DIR/slide_NN.png" | tr -d '\n')
-future tools call image_edit --stdin --output "$WORK_DIR/slide_NN_fixed.png" --timeout 600 <<JSON
-{
-  "prompt": "<EDIT_PROMPT>",
-  "image_b64": "$IMG_B64",
-  "size": "1792x1024",
-  "quality": "medium",
-  "output_format": "png"
-}
-JSON
+# Edit an existing slide. Use --input <path> — the CLI handles base64 encoding internally.
+future tools call image_edit --input "$WORK_DIR/slide_NN.png" --prompt "<EDIT_PROMPT>" --size "1792x1024" --quality "medium" --output_format "png" --output "$WORK_DIR/slide_NN_fixed.png" --timeout 600
 
-# Analyze a generated slide. The API expects base64-encoded image data.
+# Analyze a generated slide. Use --input <path> — the CLI handles base64 encoding internally.
 # read_image is fast (10–30s), no --timeout needed.
-IMG_B64=$(base64 -i "$WORK_DIR/slide_NN.png" | tr -d '\n')
-future tools call read_image --stdin <<JSON
-{
-  "image_b64": "$IMG_B64",
-  "question": "Check all visible text. Report typos, hallucinated text, layout problems, and whether the style matches the deck.",
-  "mime_type": "image/png",
-  "max_tokens": 2000
-}
-JSON
+future tools call read_image --input "$WORK_DIR/slide_NN.png" --question "Check all visible text. Report typos, hallucinated text, layout problems, and whether the style matches the deck." --mime_type "image/png" --max_tokens 2000
 ```
 
 **Timeout note for bash tool:** When calling `image_gen` or `image_edit` via the bash tool, set the bash tool's own `timeout` parameter to at least `600` as well. The CLI's `--timeout` controls the HTTP layer; the bash tool timeout controls the process itself. Both must be generous enough.
 
-Use `--stdin` for slide tools because prompts often contain quotes, newlines, and special characters.
+Use `--stdin` for `image_gen` slide prompts because they often contain quotes, newlines, and special characters. For `image_edit` and `read_image`, use `--input <path>` — the CLI handles base64 encoding internally.
 
 ## Output Directory Convention
 
@@ -341,15 +324,7 @@ done
 Inspect all slides when practical. For large decks, inspect at least the cover, TOC, every Section Divider, every slide with dense text, and at least 5 content slides.
 
 ```bash
-IMG_B64=$(base64 -i "$WORK_DIR/slide_NN.png" | tr -d '\n')
-future tools call read_image --stdin <<JSON
-{
-  "image_b64": "$IMG_B64",
-  "question": "Review this presentation slide. Check every visible text character for typos, hallucinated words, missing text, and extra text. Also check layout, visual consistency with the deck style, and text readability. Return a concise list of issues or say PASS.",
-  "mime_type": "image/png",
-  "max_tokens": 2000
-}
-JSON
+future tools call read_image --input "$WORK_DIR/slide_NN.png" --question "Review this presentation slide. Check every visible text character for typos, hallucinated words, missing text, and extra text. Also check layout, visual consistency with the deck style, and text readability. Return a concise list of issues or say PASS." --mime_type "image/png" --max_tokens 2000
 ```
 
 ### Step 6: Fix Individual Slides
