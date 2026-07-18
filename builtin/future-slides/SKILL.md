@@ -1,5 +1,5 @@
 ---
-version: 2.0.1
+version: 2.0.2
 name: future-slides
 description: Generate presentation slides as images from a Markdown report. Supports 8 curated visual styles (minimal, dark-tech, sketched, corporate, vibrant, research-poster, molecular-aesthetic, data-driven) plus custom style input. Triggered when the user asks to create slides, PPT, or presentation from content.
 allowed-tools: Bash(future:*)
@@ -14,6 +14,7 @@ Convert a Markdown report into a coherent deck of PNG slides, then optionally pa
 
 > **Authentication is automatic.** The `future` CLI reads credentials from `~/.future/agent/auth.json`. Do not find, configure, or pass API keys manually. If a `future tools call` command returns an auth error, report the actual error and tell the user to run `future auth login`.
 
+> **Tip:** use `future tools describe <tool>` to see all available arguments for any tool.
 ## Future CLI Tools
 
 All image tools are called through `future tools call`.

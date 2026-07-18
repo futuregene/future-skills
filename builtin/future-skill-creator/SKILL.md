@@ -1,5 +1,5 @@
 ---
-version: 1.0.1
+version: 1.0.2
 name: future-skill-creator
 description: Create or update app-local custom skills under ~/.future/agent/skills (macOS/Linux) or %USERPROFILE%\.future\agent\skills (Windows) using mature skill design patterns: concise SKILL.md instructions, clear triggering descriptions, optional scripts/references/assets, progressive disclosure, validation, and iteration. Use when the user asks to create, scaffold, port, review, improve, or install a custom skill, including requests like "add a skill", "make this a skill", "create my own skill", "update SKILL.md", or "创建技能".
 allowed-tools: Bash(future:*)
@@ -73,7 +73,7 @@ Every `SKILL.md` starts with YAML frontmatter:
 
 ```yaml
 ---
-version: 1.0.1
+version: 1.0.2
 name: example-skill
 description: Do a specific task with specific inputs, outputs, tools, and constraints. Use when the user asks for concrete trigger phrases or task families.
 ---
@@ -171,7 +171,7 @@ Recommended shape:
 
 ```markdown
 ---
-version: 1.0.1
+version: 1.0.2
 name: <skill-name>
 description: <what it does and when to use it>
 ---
@@ -237,6 +237,7 @@ JSON
 
 Authentication is automatic. The `future` CLI reads credentials from `~/.future/agent/auth.json`. Never hard-code API keys.
 
+> **Tip:** use `future tools describe <tool>` to see all available arguments for any tool.
 ## Validation
 
 At minimum, check:

@@ -1,6 +1,6 @@
 ---
 name: future-deep-research
-version: 2.5.2
+version: 2.5.3
 description: >
   End-to-end deep research on user-specified topics. Automatically orchestrates multi-source data collection (web search, academic papers, local documents),
   supports user-provided materials (PDF/Word/URL/paper IDs/notes/CSV), ensures information reliability through cross-validation and citation verification,
@@ -100,6 +100,7 @@ After receiving the user's request, the AI **MUST proactively offer three strate
 #### Step 0.2.5: Pre-Outline Reconnaissance 🔎 (🚨 MUST execute before generating the outline)
 
 > **Core principle: Never fabricate an outline from thin air without understanding the topic. Real researchers always do a quick literature scan before planning.**
+> **Tip:** use `future tools describe <tool>` to see all available arguments.
 
 ```
 Goal: Spend 3-5 minutes searching + crawling top URLs to understand the real information landscape of the topic

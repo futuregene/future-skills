@@ -1,5 +1,5 @@
 ---
-version: 1.1.2
+version: 1.1.3
 name: future-image
 description: Generate images from text prompts, edit existing images using natural-language instructions, and analyze images (OCR, visual Q&A, object recognition).
 allowed-tools: Bash(future:*)
@@ -8,6 +8,7 @@ category: tools
 
 > **Authentication is automatic.** The `future` CLI reads your credentials from `~/.future/agent/auth.json`. You do NOT need to find, configure, or pass API keys — just call the tools below.
 
+> **Tip:** use `future tools describe <tool>` to see all available arguments for any tool.
 # Image
 
 ## When to use this skill
@@ -88,6 +89,7 @@ If either layer is too low, the generation will be killed.  When in doubt, use 6
 
 **Authentication is automatic.** The `future` CLI reads credentials from `~/.future/agent/auth.json`. You do NOT need to run `future auth login` — if you see an error, read the actual error message first.
 
+> **Tip:** use `future tools describe <tool>` to see all available arguments for any tool.
 When `future tools call` fails, it prints a JSON error object. Parse it to understand the cause:
 
 | Error pattern | Meaning | Action |
