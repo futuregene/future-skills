@@ -1,5 +1,5 @@
 ---
-version: 2.0.0
+version: 2.0.1
 name: future-slides
 description: Generate presentation slides as images from a Markdown report. Supports 8 curated visual styles (minimal, dark-tech, sketched, corporate, vibrant, research-poster, molecular-aesthetic, data-driven) plus custom style input. Triggered when the user asks to create slides, PPT, or presentation from content.
 allowed-tools: Bash(future:*)

@@ -1,5 +1,5 @@
 ---
-version: 1.0.0
+version: 1.0.1
 name: future-web
 description: Search the public web for current information. Returns page titles, URLs, and content snippets from search results. Pair with fetch_url to retrieve full page content — if fetch_url returns empty or fails (e.g. JS-rendered pages, WeChat articles, anti-bot walls), automatically fall back to browser (command: open + snapshot). Use for fact-checking, news, documentation, and any information beyond your knowledge cutoff.
 allowed-tools: Bash(future:*)
@@ -26,23 +26,20 @@ All tools are called via the `future` CLI using the `bash` tool:
 
 ```bash
 # Search the web
-future tools call web_search --args '{"query": "BRCA1 variant classification guidelines 2025", "count": 5}'
-
-# Fetch a specific page (preferred first attempt)
-future tools call fetch_url --args '{"url": "https://en.wikipedia.org/wiki/BRCA1"}'
-```
+future tools call web_search --query "BRCA1 variant classification guidelines 2025" --count 5 # Fetch a specific page (preferred first attempt)
+future tools call fetch_url --url "https://en.wikipedia.org/wiki/BRCA1" ```
 
 ## Available tools
 
 ### web_search
 Search the public web for a query. Returns a ranked list of results with page titles, URLs, and text snippets. Supports pagination.
 
-Arguments: `{"query": "string (required, search keywords)", "count": "integer (default: 10, max: 20)", "offset": "integer (default: 0)"}`
+Arguments: `--query "..." --count "..." --offset "..."`
 
 ### fetch_url
 Download and extract the main text content from a web page. Strips navigation, ads, and boilerplate. Returns the page title and clean article text.
 
-Arguments: `{"url": "string (required, full HTTP/HTTPS URL)"}`
+Arguments: `--url "..."`
 
 **⚠️ Limitations:** `fetch_url` is a lightweight HTTP fetcher. It will return empty or fail on:
 - Pages that require JavaScript rendering (SPAs, React/Vue apps)
@@ -57,17 +54,10 @@ When `fetch_url` fails, use the browser tools to open the page in a real Chrome/
 
 ```bash
 # Step 1: Open the URL in the browser (auto-starts a browser if none is running)
-future tools call browser --args '{"command":"open","url": "https://mp.weixin.qq.com/s/RimhDV1PqVqzv3twoaxnOg"}'
-
-# Step 2: Wait briefly for JS to render, then get the page snapshot (DOM text content)
-future tools call browser --args '{"command":"snapshot","limit": 120}'
-
-# Step 3 (optional): If the snapshot text is truncated or the page has important images/charts
-future tools call browser --args '{"command":"screenshot","fullPage": true}'
-
-# Step 4 (optional): Check for JS errors that might indicate blocked content
-future tools call browser --args '{"command":"console","level": "error"}'
-```
+future tools call browser --command "open" --url "https://mp.weixin.qq.com/s/RimhDV1PqVqzv3twoaxnOg" # Step 2: Wait briefly for JS to render, then get the page snapshot (DOM text content)
+future tools call browser --command "snapshot" --limit 120 # Step 3 (optional): If the snapshot text is truncated or the page has important images/charts
+future tools call browser --command "screenshot" --fullPage true # Step 4 (optional): Check for JS errors that might indicate blocked content
+future tools call browser --command "console" --level "error" ```
 
 **Important:** After `browser` with `command: "open"`, always wait a moment for the page to fully render (especially for JS-heavy sites like WeChat) before calling `command: "snapshot"`. If the first snapshot doesn't show the full article text, try increasing `limit` or scrolling.
 

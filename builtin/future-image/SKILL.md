@@ -1,5 +1,5 @@
 ---
-version: 1.1.1
+version: 1.1.2
 name: future-image
 description: Generate images from text prompts, edit existing images using natural-language instructions, and analyze images (OCR, visual Q&A, object recognition).
 allowed-tools: Bash(future:*)
@@ -28,21 +28,21 @@ All tools are called via the `future` CLI using the `bash` tool. Use `--output` 
 
 ```bash
 # Generate an image from a text prompt (takes 1–5 minutes typically)
-future tools call image_gen --args '{"prompt": "A red fox in an autumn forest", "size": "1024x1024"}' --output ./output.png --timeout 600
+future tools call image_gen --prompt "A red fox in an autumn forest" --size "1024x1024" --output ./output.png --timeout 600
 
 # Edit an existing image. Use --input <path> — the CLI handles base64 encoding internally.
-future tools call image_edit --input /path/to/photo.png --args '{"prompt": "Convert to watercolor painting"}' --output ./edited.png --timeout 600
+future tools call image_edit --input /path/to/photo.png --prompt "Convert to watercolor painting" --output ./edited.png --timeout 600
 
 # Edit with optional mask
-future tools call image_edit --input /path/to/photo.png --mask /path/to/mask.png --args '{"prompt": "Replace background with sky"}' --output ./edited.png --timeout 600
+future tools call image_edit --input /path/to/photo.png --mask /path/to/mask.png --prompt "Replace background with sky" --output ./edited.png --timeout 600
 
 # Analyze an image. Use --input <path> — the CLI handles base64 encoding internally.
-future tools call read_image --input /path/to/photo.png --args '{"question": "Describe this image"}'
+future tools call read_image --input /path/to/photo.png --question "Describe this image"
 ```
 
 ### When to use --stdin (large prompts)
 
-For tools with complex or long `--args` JSON (especially `image_gen` with detailed prompts), `--stdin` can be cleaner than an inline `--args` string. File inputs always use `--input <path>` so ARG_MAX is never an issue.
+For tools with very long prompts, `--stdin` can be cleaner than an inline argument. File inputs always use `--input <path>` so ARG_MAX is never an issue.
 
 ```bash
 # Generate using --stdin (good for long/complex prompts)
@@ -58,7 +58,7 @@ JSON
 
 ### Timeout and bash tool settings
 
-**For `image_gen` and `image_edit`, always add `--timeout 600` to the `future tools call` command.** The CLI defaults to a 60-second HTTP timeout, which is far too short for image generation. Actual generation times per quality level (for 1024×1024 images; larger sizes take longer):
+**For `image_gen` and `image_edit`, always add `--timeout 600` to the `future tools call` command.** The CLI defaults to 600s for image tools, but larger images or higher quality may need more time. Actual generation times (for 1024×1024 images; larger sizes take longer):
 
 | Quality | Typical time | Notes |
 |---------|-------------|-------|
@@ -74,14 +74,14 @@ JSON
 If either layer is too low, the generation will be killed.  When in doubt, use 600 for both:
 
 ```json
-{"command": "future tools call image_gen --args '...' --output ./out.png --timeout 600", "timeout": 600}
+{"command": "future tools call image_gen --prompt \"...\" --output ./out.png --timeout 600", "timeout": 600}
 ```
 
 `read_image` is much faster (typically 10–30 seconds) and does not need --timeout.
 
 ### File input
 
-**Always use `--input <path>` for file inputs.** The CLI reads the file and encodes it automatically. Never put `image_b64` or `image_path` in `--args` JSON. For `image_edit`, use `--mask <path>` for optional mask images.
+**Always use `--input <path>` for file inputs.** The CLI reads the file and encodes it automatically. Never put `image_b64` or `image_path` in the argument list. For `image_edit`, use `--mask <path>` for optional mask images.
 
 ## Error handling
 
@@ -97,7 +97,7 @@ When `future tools call` fails, it prints a JSON error object. Parse it to under
 | `insufficient_credit` | Account balance too low | Tell user to top up |
 | `azure_image_transport_failed` | Image transport error (often from `quality: "high"`) | Retry with `quality: "medium"`; high quality is unreliable |
 | `Invalid size` / `below minimum pixel budget` | Requested size is below 1024×1024 | Use `size: "1024x1024"` or larger; 1024 is the hard minimum |
-| `Argument list too long` (bash error) | Very long --args string exceeds shell ARG_MAX | Use `--stdin` method (see examples above) |
+| `Argument list too long` (bash error) | Very long --prompt string exceeds shell ARG_MAX | Use `--stdin` method (see examples above) |
 | `This operation was aborted` (no JSON error) | CLI HTTP timeout (default 60s) exceeded | Regenerate with `--timeout 600` and bash tool `"timeout": 600` |
 
 **Never run `future auth login` unprompted** — the error is almost always something else.
@@ -107,7 +107,7 @@ When `future tools call` fails, it prints a JSON error object. Parse it to under
 ### image_gen
 Generate one or more images from a natural-language text prompt. Returns base64-encoded image data. Use `--output` to save to a file. Generation typically takes 1–5 minutes.
 
-Arguments: `{"prompt": "string (required)", "size": "string (default: \"1024x1024\", options: 1024x1024, 1792x1024, 1024x1792, 2560x1440, 3840x2160)", "quality": "string (default: \"medium\", options: low, medium, high)", "n": "int (1–10, default: 1)", "output_format": "string (default: \"png\", options: png, jpeg)"}`
+Arguments: `--prompt "..." [--size "..."] [--quality "..."] [--n N] [--output_format "..."] [--output <path>] [--timeout <secs>]`
 
 **Size notes:** `1024x1024` is the hard minimum — smaller sizes return a 400 error. `3840x2160` (4K) works but produces large files (~5 MB+ for PNG).
 
@@ -116,18 +116,18 @@ Arguments: `{"prompt": "string (required)", "size": "string (default: \"1024x102
 **n parameter:** `n > 1` may not produce multiple output files — the CLI's `--output` flag only saves one file. If you need multiple images, make multiple separate calls.
 
 ### image_edit
-Modify an existing image according to a text instruction. Use `--input <path>` for the source image and `--mask <path>` for an optional mask — the CLI handles base64 encoding internally. Never put `image_b64` or `mask_b64` in `--args` JSON.
+Modify an existing image according to a text instruction. Use `--input <path>` for the source image and `--mask <path>` for an optional mask — the CLI handles base64 encoding internally. 
 
-Arguments: `--input <path> [--mask <path>] --args '{"prompt": "string (required)", "size": "string (default: \"1024x1024\")", "quality": "string (default: \"medium\", options: low, medium, high)", "output_format": "string (default: \"png\", options: png, jpeg)"}'`
+Arguments: `--input <path> [--mask <path>] --prompt "..." [--size "..."] [--quality "..."] [--output_format "..."]`
 
 **Quality:** Same as image_gen — prefer `"medium"`. `"high"` is unreliable.
 
 **Size:** The `size` parameter here controls the *output* size, not the input. The source image is automatically resized to fit.
 
 ### read_image
-Analyze an image and answer questions about its content. Use `--input <path>` for the image — the CLI handles base64 encoding internally. Never put `image_b64` in `--args` JSON.
+Analyze an image and answer questions about its content. Use `--input <path>` for the image — the CLI handles base64 encoding internally. 
 
-Arguments: `--input <path> --args '{"question": "string (required)", "mime_type": "string (default: \"image/png\")", "max_tokens": "integer (default: 2000)"}'`
+Arguments: `--input <path> --question "..." [--mime_type "..."] [--max_tokens N]`
 
 **Performance:** `read_image` is fast (10–30 seconds). It does not need `--timeout`.
 

@@ -1,5 +1,5 @@
 ---
-version: 1.2.0
+version: 1.2.1
 name: future-browser
 description: Control a local visible Chrome, Edge, or Safari browser through Future CLI tools. Use for opening local apps, inspecting pages, clicking, typing, screenshots, and reading console output without modifying the Rust agent.
 allowed-tools: Bash(future:*)
@@ -37,28 +37,24 @@ Safari requires a one-time system permission. If Safari automation is not enable
 Start a Future-managed visible local browser when you need explicit startup control:
 
 ```bash
-future tools call browser --args '{"command":"start"}'
-```
+future tools call browser --command "start" ```
 
 Check the saved browser endpoint:
 
 ```bash
-future tools call browser --args '{"command":"status"}'
-```
+future tools call browser --command "status" ```
 
 Open a URL:
 
 ```bash
-future tools call browser --args '{"command":"open","url":"http://localhost:3000"}'
-```
+future tools call browser --command "open" --url "http://localhost:3000" ```
 
 For a normal first action, call `browser` with `command: "open"` directly; it will auto-start the browser if no endpoint is reachable.
 
 If the user already started Chrome/Edge with a remote debugging port, pass the endpoint:
 
 ```bash
-future tools call browser --args '{"command":"status","endpoint":"http://127.0.0.1:9222"}'
-```
+future tools call browser --command "status" --endpoint "http://127.0.0.1:9222" ```
 
 **Auto-start behavior**: When any command requiring a browser runs and no endpoint is reachable, the CLI spawns a new Chrome/Edge instance with `--remote-debugging-port`. The port defaults to 9222; if that port is occupied (by a non-CDP process), the next available port is chosen. The chosen endpoint is saved to `~/.future/agent/browser/config.json` and reused for subsequent commands. Calling `start` when a browser is already reachable does NOT start a new instance — it records the existing endpoint.
 
@@ -67,8 +63,7 @@ future tools call browser --args '{"command":"status","endpoint":"http://127.0.0
 Always observe before acting:
 
 ```bash
-future tools call browser --args '{"command":"snapshot"}'
-```
+future tools call browser --command "snapshot" ```
 
 The snapshot returns interactive elements with refs and text containers:
 
@@ -82,8 +77,8 @@ The snapshot returns interactive elements with refs and text containers:
 Use refs for actions:
 
 ```bash
-future tools call browser --args '{"command":"type","ref":"i1","text":"alice@example.com"}'
-future tools call browser --args '{"command":"click","ref":"b1"}'
+future tools call browser --command "type" --ref "i1" --text "alice@example.com"
+future tools call browser --command "click" --ref "b1"
 ```
 
 ⚠️ **Ref lifetime**: Refs are page-specific and become **invalid after any navigation** — including `open`, clicking a link, form submission, or tab switch. Every command that may cause navigation (`open`, `click` on a link, `type` with `submit: true`) invalidates all existing refs. **Always re-snapshot** before using refs from a previous snapshot.
@@ -93,7 +88,7 @@ future tools call browser --args '{"command":"click","ref":"b1"}'
 ### start
 Start a visible local browser. For Chrome/Edge this opens a remote debugging port; if the requested port is occupied but not reachable as a CDP endpoint, the tool chooses a nearby available port. For Safari this launches a WebDriver session (`port`, `profileDir`, and `executablePath` do not apply). If a browser endpoint is already reachable, records it without starting a new instance.
 
-Arguments: `{"command":"start", "browser": "chrome|edge|safari", "port": 9222, "profileDir": "optional path", "executablePath": "optional path", "url": "optional URL"}`
+Arguments: `--command "start" --browser "chrome|edge|safari" --port 9222 --profileDir "optional path" --executablePath "optional path" --url "optional URL"`
 
 When `browser` is omitted, a Chromium-family browser is auto-detected. See "Choosing A Browser" above for Safari's one-time `safaridriver --enable` requirement, surfaced as `status: "permission_required"`.
 
@@ -102,21 +97,21 @@ Returns: `{"endpoint": "http://127.0.0.1:9222", "status": "started"|"already_run
 ### status
 Check whether the local browser endpoint is reachable.
 
-Arguments: `{"command":"status", "endpoint": "optional URL"}`
+Arguments: `--command "status" --endpoint "optional URL"`
 
 Returns: `{"endpoint": "...", "reachable": true|false, "version": {...}}`
 
 ### tabs
 List, create, select, or close browser tabs. All actions return the full tab list.
 
-Arguments: `{"command":"tabs", "action": "list|new|select|close", "index": 0, "url": "optional URL"}`
+Arguments: `--command "tabs" --action "list|new|select|close" --index 0 --url "optional URL"`
 
 Returns: `{"tabs": [{"index": 0, "title": "...", "url": "...", "active": true}, ...], "tabCount": N}` plus action-specific fields (`created`, `selected`, or `closed`).
 
 ### open
 Open a URL in the active tab. **Invalidates all refs.**
 
-Arguments: `{"command":"open", "url": "http://localhost:3000"}`
+Arguments: `--command "open" --url "http://localhost:3000"`
 
 Returns: `{"title": "...", "url": "..."}`
 
@@ -129,7 +124,7 @@ Returns up to `limit` entries (default 80). Includes:
 
 Each element has a `ref` (use for `click`/`type`), `role`, `name`, and `tag`. Text elements have `role: "text"` and refs like `t1`, `t2`.
 
-Arguments: `{"command":"snapshot", "limit": 80}`
+Arguments: `--command "snapshot" --limit 80`
 
 Returns: `{"title": "...", "url": "...", "elements": [{"ref": "b1", "role": "button", "name": "Submit", "tag": "button", "selector": "#submit", "disabled": false}, ...]}`
 
@@ -138,14 +133,14 @@ Click an element by snapshot ref or CSS selector. Prefer refs over selectors.
 
 For clicks that cause navigation (links, form submits), the tool waits for the page to load. Non-navigating clicks (JS buttons) return quickly.
 
-Arguments: `{"command":"click", "ref": "b1"}` or `{"command":"click", "selector": "button[type=submit]"}`
+Arguments: `--command "click" --ref "b1"` or `--command "click" --selector "button[type=submit]"`
 
 Returns: `{"clicked": "b1", "selector": "#submit-btn", "title": "...", "url": "..."}`
 
 ### type
 Fill or type text into an element by ref or selector.
 
-Arguments: `{"command":"type", "ref": "i1", "text": "hello", "submit": false, "clear": true}`
+Arguments: `--command "type" --ref "i1" --text "hello" --submit false --clear true`
 
 Returns: `{"typed": "i1", "selector": "#name", "submitted": false}`
 
@@ -154,14 +149,14 @@ The returned `typed` field echoes your input (ref or selector); `selector` shows
 ### press
 Press a keyboard key. Non-navigating keys (Tab, Escape, Enter on a non-form) return quickly.
 
-Arguments: `{"command":"press", "key": "Enter"}`
+Arguments: `--command "press" --key "Enter"`
 
 Returns: `{"key": "Enter", "title": "...", "url": "..."}`
 
 ### scroll
 Scroll the page or a specific element.
 
-Arguments: `{"command":"scroll", "direction": "up|down", "amount": 300, "ref": "optional ref", "selector": "optional selector"}`
+Arguments: `--command "scroll" --direction "up|down" --amount 300 --ref "optional ref" --selector "optional selector"`
 
 If no ref/selector is given, scrolls the page itself. `amount` is in pixels (default 300).
 
@@ -170,14 +165,14 @@ Returns: `{"scrolled": {"direction": "down", "amount": 300, "target": "page"}}`
 ### screenshot
 Take a screenshot and save it locally. If no path is provided, the CLI saves one under `~/.future/agent/browser/artifacts/`.
 
-Arguments: `{"command":"screenshot", "fullPage": true, "path": "/tmp/page.png"}`
+Arguments: `--command "screenshot" --fullPage true --path "/tmp/page.png"`
 
 Returns: `{"path": "/tmp/page.png", "filename": "page.png", "title": "...", "url": "..."}`
 
 ### console
 Read console messages captured after Future browser tooling has touched the page. Use this after `open` or `snapshot`.
 
-Arguments: `{"command":"console", "level": "error"}`
+Arguments: `--command "console" --level "error"`
 
 Returns: `{"logs": [{"level": "error", "text": "..."}], "note": "..."}`
 

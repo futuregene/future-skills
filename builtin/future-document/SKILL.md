@@ -1,5 +1,5 @@
 ---
-version: 1.0.1
+version: 1.0.2
 name: future-document
 description: Parse PDF and Word (.docx) documents into structured Markdown. Preserves document structure including headings, tables, lists, and mathematical formulas.
 allowed-tools: Bash(future:*)
@@ -22,11 +22,11 @@ Load this skill when the user asks to:
 
 ## How to use
 
-Call via the `future` CLI using the `bash` tool. Use `--input <path>` to provide the file — the CLI reads and encodes it automatically. Never put `doc_b64` or `doc_path` in `--args` JSON.
+Call via the `future` CLI using the `bash` tool. Use `--input <path>` to provide the file — the CLI reads and encodes it automatically.
 
 ```bash
 # Parse a document by path — no base64 needed
-future tools call parse_doc --input /path/to/document.pdf --args '{}'
+future tools call parse_doc --input /path/to/document.pdf
 ```
 
 ## Available tools
@@ -34,4 +34,4 @@ future tools call parse_doc --input /path/to/document.pdf --args '{}'
 ### parse_doc
 Upload a PDF or Word (.docx) document by file path and receive structured Markdown output. Preserves headings, paragraphs, tables, and mathematical formulas. Returns page count in structured metadata.
 
-Arguments: `--input <path> [--args '{"file_type": "string (optional, \"pdf\" or \"docx\", default: \"pdf\")"}']`
+Arguments: `--input <path> [--file_type "pdf"|"docx"]`

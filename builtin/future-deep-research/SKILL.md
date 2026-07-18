@@ -1,6 +1,6 @@
 ---
 name: future-deep-research
-version: 2.5.0
+version: 2.5.1
 description: >
   对用户指定的主题进行端到端深度研究。自动编排多源数据采集（网页搜索、学术论文、本地文档），
   支持用户提供 PDF/Word/URL/论文ID/笔记/CSV 等素材，通过交叉验证和引证校验确保信息可靠性，
@@ -89,9 +89,9 @@ allowed-tools: Bash(future:*)
 
 | 素材类型 | 用户提供方式 | AI 处理方式 |
 |----------|-------------|-------------|
-| 📑 PDF/Word 文档 | 本地文件路径 | `future tools call parse_doc --args '{"doc_path": "/path/to/file.pdf"}'` |
-| 🔗 网页 URL | 一个或多个 URL | `future tools call fetch_url --args '{"url": "..."}'` |
-| 📄 论文 ID | DOI / PMID / ArXiv ID | `future tools call get_paper --args '{"paper_id": "DOI:..."}'` |
+| 📑 PDF/Word 文档 | 本地文件路径 | `future tools call parse_doc ` |
+| 🔗 网页 URL | 一个或多个 URL | `future tools call fetch_url --url "..." ` |
+| 📄 论文 ID | DOI / PMID / ArXiv ID | `future tools call get_paper --paper_id "DOI:..." ` |
 | 📝 笔记/大纲 | 直接粘贴文本 | 直接纳入研究基础 |
 | 📊 CSV/Excel 数据 | 本地文件路径 | 供 Phase 2b 分析 |
 | 🖼️ 截图/图片 | 本地文件路径 | 供 Phase 2d 分析 |
@@ -107,8 +107,7 @@ allowed-tools: Bash(future:*)
 ─── 0.2.5a：种子搜索 ───
 
   Step 1: 按用户确定的中英文需求，用 2-4 个宽泛关键词并行搜索
-    future tools call web_search --args '{"query": "<主题> overview | 综述 | 全景 | landscape", "count": 8}'
-    future tools call web_search --args '{"query": "<英文主题> trends | comparison | analysis", "count": 8}'
+    future tools call web_search --query "<主题> overview | 综述 | 全景 | landscape" --count 8 future tools call web_search --query "<英文主题> trends | comparison | analysis" --count 8
 
   Step 2: 从搜索结果摘要中快速筛选：
     ├─ 🌊 哪些词/概念/公司名反复出现？
@@ -131,9 +130,7 @@ allowed-tools: Bash(future:*)
       └─ 跳过：论坛帖子、纯新闻快讯、SEO 农场、重复内容
 
     对每个挑选的 URL，执行快速爬取：
-      future tools call fetch_url --args '{"url": "<pick>"}'
-
-  Step 5: 爬取后进行「内容快速扫描」（不是精读，是扫结构）：
+      future tools call fetch_url --url "<pick>" Step 5: 爬取后进行「内容快速扫描」（不是精读，是扫结构）：
     对每个爬取结果，速扫以下信号：
       ├─ 📑 文章有目录/小标题吗？（→ 说明结构完整，是好的锚定源）
       ├─ 📊 有表格/数据/对比吗？（→ 数据富集度高）
@@ -252,8 +249,7 @@ allowed-tools: Bash(future:*)
 ─── 1b：首次搜索与分级 ───
 
   Step 1: 多关键词并行搜索（中英文）
-    future tools call web_search --args '{"query": "<关键词>", "count": 10}'
-    future tools call search_paper --args '{"queries": ["..."]}'
+    future tools call web_search --query "<关键词>" --count 10 future tools call search_paper --queries '["..."]'
 
   Step 2: 来源快速分级（🚨 v2.1 新增三级评分维度）
     基础 Tier 分级：
@@ -268,9 +264,7 @@ allowed-tools: Bash(future:*)
 
   Step 3: 首次抓取 Tier 1 来源
     遍历每个 Tier 1 URL，执行：
-      future tools call fetch_url --args '{"url": "..."}'
-    
-    对每个抓取结果进行「内容充分性检查」：
+      future tools call fetch_url --url "..." 对每个抓取结果进行「内容充分性检查」：
       - content 为空？               → 标记 ❌ 空内容
       - content 长度 < 200 字？      → 标记 ⚠️ 内容过短
       - content 与搜索主题无关？     → 标记 ⚠️ 低相关性
@@ -281,11 +275,8 @@ allowed-tools: Bash(future:*)
 
   Step 4: 抓取降级（对 ❌ 和 ⚠️ 的 URL）
     对空内容/过短的 URL，用浏览器降级重试：
-      future tools call browser --args '{"command":"start","url": "..."}'
-      future tools call browser --args '{"command":"snapshot","limit": 100}'
-      future tools call browser --args '{"command":"screenshot","fullPage": true, "path": "./page.png"}'
-    
-    浏览器抓取后再次检查内容充分性：
+      future tools call browser --command "start" --url "..." future tools call browser --command "snapshot" --limit 100
+      future tools call browser --command "screenshot" --fullPage true --path "./page.png" 浏览器抓取后再次检查内容充分性：
       - 内容充分 → 标记 ✅
       - 仍不足   → 彻底放弃该 URL
 
@@ -301,20 +292,17 @@ allowed-tools: Bash(future:*)
     策略1️⃣：从 Tier 2 来源中提取更多 URL 并抓取
       条件：Tier 2 还有未尝试的 URL
       操作：
-        future tools call fetch_url --args '{"url": "<Tier2 URL>"}'
-        检查内容充分性 → ✅ 则纳入 / ❌ 则放弃→继续下一个 Tier 2
+        future tools call fetch_url --url "<Tier2 URL>" 检查内容充分性 → ✅ 则纳入 / ❌ 则放弃→继续下一个 Tier 2
 
     策略2️⃣：换关键词重新搜索（细化/同义/相关词）
       条件：Tier 2 也抓完了仍然不够
       操作：
-        future tools call web_search --args '{"query": "<新关键词>", "count": 10}'
-        新结果走同样分级→抓取→检查流程
+        future tools call web_search --query "<新关键词>" --count 10 新结果走同样分级→抓取→检查流程
 
     策略3️⃣：扩大搜索范围（学术/英文/其它语种）
       条件：中文结果不够，补充英文搜索
       操作：
-        future tools call web_search --args '{"query": "<英文关键词>", "count": 10}'
-        future tools call search_paper --args '{"queries": ["<英文查询>"]}'
+        future tools call web_search --query "<英文关键词>" --count 10 future tools call search_paper --queries '["<\u82f1\u6587\u67e5\u8be2>"]'
 
   每次补抓后都重新检查内容充分性，直到：
     - ✅ 每个子话题都有 ≥2 个充分来源  → 进入 Phase 2
@@ -361,8 +349,7 @@ allowed-tools: Bash(future:*)
 
   2a：逐源精读（🚨 v2.1 新增结构化提取模板）
     对 Phase 1 中 ✅ 标记的每个来源，再次抓取全文：
-      future tools call fetch_url --args '{"url": "..."}'
-    ⚠️ 同样适用抓取降级规则：空内容用 browser 重试
+      future tools call fetch_url --url "..." ⚠️ 同样适用抓取降级规则：空内容用 browser 重试
     ⚠️ 同样适用补抓规则：精读时发现内容不够 → 回到 Phase 1b 补抓
 
     对每个来源，在下文中记录（非输出给用户，而是内部笔记）：
@@ -389,8 +376,7 @@ allowed-tools: Bash(future:*)
     └─ 分析结果 + 可视化
 
   2c：学术深度挖掘
-    ├─ future tools call get_paper --args '{"paper_id": "..."}'
-    └─ 提取：方法、结果、局限性
+    ├─ future tools call get_paper --paper_id "..." └─ 提取：方法、结果、局限性
 
   2d：多媒体补充（策略C + 按需）
     └─ 图片分析：通过 future-image 进行 OCR/图表理解
@@ -725,20 +711,11 @@ allowed-tools: Bash(future:*)
 
 ```bash
 # Step 1: 启动或检查浏览器
-future tools call browser --args '{"command":"start","url": "<目标URL>"}'
-
-# Step 2: 打开页面
-future tools call browser --args '{"command":"open","url": "<目标URL>"}'
-
-# Step 3: 等待渲染后获取 DOM 快照
-future tools call browser --args '{"command":"snapshot","limit": 100}'
-
-# Step 4: 如需完整页面内容，截图保存
-future tools call browser --args '{"command":"screenshot","fullPage": true, "path": "./deep-research-page.png"}'
-
-# Step 5: 检测控制台错误
-future tools call browser --args '{"command":"console","level": "error"}'
-```
+future tools call browser --command "start" --url "<目标URL>" # Step 2: 打开页面
+future tools call browser --command "open" --url "<目标URL>" # Step 3: 等待渲染后获取 DOM 快照
+future tools call browser --command "snapshot" --limit 100 # Step 4: 如需完整页面内容，截图保存
+future tools call browser --command "screenshot" --fullPage true --path "./deep-research-page.png" # Step 5: 检测控制台错误
+future tools call browser --command "console" --level "error" ```
 
 ### 降级与补抓记录
 
