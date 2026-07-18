@@ -1,11 +1,12 @@
 ---
 name: future-experimental-design
-version: 0.0.1
+version: 0.0.2
 description: >
-  在数据采集之前设计实验和研究方案——选择设计类型、随机化、区组划分、处理组合布局，
-  确保实验结果可解释。适用于规划研究、分配受试者/样本到分组、随机化、区组、分层、
-  对照、因子/部分因子设计、DOE、筛选多因素、响应面优化、交叉/重复测量/裂区设计、
-  整群随机、拉丁方、孔板布局、批次/运行顺序效应、重复 vs. 伪重复、序贯/自适应设计等场景。
+  Design experiments and research protocols before data collection — select design type, randomization, blocking, treatment combination layout,
+  and ensure experimental results are interpretable. For planning studies, assigning subjects/samples to groups, randomization, blocking, stratification,
+  controls, factorial/fractional factorial designs, DOE, screening multiple factors, response surface optimization, crossover/repeated measures/split-plot designs,
+  cluster randomization, Latin squares, well-plate layouts, batch/run order effects, replication vs. pseudoreplication, and sequential/adaptive designs.
+category: methodology
 metadata:
   requires:
     bins: ["python3"]
@@ -13,95 +14,95 @@ origin: K-Dense-AI/scientific-agent-skills (MIT license)
 allowed-tools: Bash(future:*)
 ---
 
-# 实验设计 (Experimental Design)
+# Experimental Design
 
-## 概述
+## Overview
 
-研究设计——如何将实验单元分配到不同条件、哪些保持不变、哪些被操纵、以什么结构——
-决定了数据能够回答什么问题。再好的分析也无法挽救一个混淆的或伪重复的设计。
-本技能关注的是数据采集**之前**的决策：选择能隔离目标效应的设计，通过随机化支撑因果推断，
-通过区组消除已知噪声变异，构建多因素实验使效应可估计而非纠缠不清。
+Research design — how experimental units are assigned to conditions, what is held constant, what is manipulated, and in what structure —
+determines what questions the data can answer. No amount of analysis can rescue a confounded or pseudoreplicated design.
+This skill focuses on decisions made **before** data collection: selecting designs that isolate the target effect, supporting causal inference through randomization,
+removing known noise variation through blocking, and constructing multi-factor experiments so effects are estimable rather than entangled.
 
-几乎所有好设计背后的三条原则（Fisher 三原则）：
-- **随机化（Randomization）** — 随机分配处理，使已知和未知的混淆因素在期望上平衡。这是将比较转化为因果推断的基础。
-- **重复（Replication）** — 在正确的层级上独立重复，以估计变异性。最常见的致命错误是**伪重复（pseudoreplication）**：将对同一单元的多次测量当作独立重复。
-- **区组/局部控制（Blocking / local control）** — 将相似单元分组（按批次、日期、地点、窝），在区组内随机化，将噪声变异从误差项中剔除。
+The three principles behind nearly every good design (Fisher's three principles):
+- **Randomization** — Randomly assign treatments so known and unknown confounders balance in expectation. This is the foundation that turns comparisons into causal inference.
+- **Replication** — Independent repeats at the correct level to estimate variability. The most common fatal error is **pseudoreplication**: treating multiple measurements on the same unit as independent replicates.
+- **Blocking / local control** — Group similar units (by batch, date, location, litter), randomize within blocks, and remove noise variation from the error term.
 
-本技能帮助你选择设计类型，生成可复现的随机化或 DOE 布局，并避免使数据不可解释的结构性错误。
+This skill helps you choose a design type, generate reproducible randomization or DOE layouts, and avoid structural errors that make data uninterpretable.
 
-## 何时使用本技能
+## When to Use This Skill
 
-- 规划任何比较性实验或试验，决定如何分配实验单元
-- 将受试者/样本随机分配到各组（简单、区组、分层或整群随机化）
-- 通过区组或分层消除噪声变异
-- 设计多因素实验：全因子或部分因子、筛选设计
-- 优化连续因素的响应（响应面设计）
-- 受试者内/重复测量、交叉、裂区或拉丁方设计
-- 整群/分组随机化设计（地点、诊所、教室、窝）
-- 确定重复的数量和层级，避免伪重复
-- 序贯、成组序贯或自适应设计及中期分析
-- 孔板/批次布局和随机化运行顺序以避免漂移
+- Planning any comparative experiment or trial and deciding how to allocate experimental units
+- Randomizing subjects/samples to groups (simple, block, stratified, or cluster randomization)
+- Removing noise variation through blocking or stratification
+- Designing multi-factor experiments: full factorial or fractional factorial, screening designs
+- Optimizing responses for continuous factors (response surface designs)
+- Within-subject/repeated measures, crossover, split-plot, or Latin square designs
+- Cluster/group-randomized designs (sites, clinics, classrooms, litters)
+- Determining the number and level of replicates, avoiding pseudoreplication
+- Sequential, group sequential, or adaptive designs with interim analyses
+- Well-plate/batch layouts and randomized run orders to avoid drift
 
-## 安装
+## Installation
 
 ```bash
 uv pip install "numpy>=1.26" "pandas>=2.0" pyDOE3
 ```
 
-或使用 pip：
+Or using pip:
 
 ```bash
 pip install "numpy>=1.26" "pandas>=2.0" pyDOE3
 ```
 
-`pyDOE3` 是 pyDOE/pyDOE2 的维护版本，提供全因子、部分因子、Plackett-Burman、
-中心复合、Box-Behnken 和 Latin Hypercube 生成器。附带脚本封装这些功能，
-返回实际因子单位的命名列和随机化运行顺序的设计矩阵。
+`pyDOE3` is the maintained fork of pyDOE/pyDOE2, providing full factorial, fractional factorial, Plackett-Burman,
+central composite, Box-Behnken, and Latin Hypercube generators. Accompanying scripts wrap these capabilities,
+returning design matrices with named columns in actual factor units and randomized run orders.
 
 ---
 
-## 选择设计
+## Choosing a Design
 
-从研究问题和实验单元的结构出发，而非从最喜欢的某个设计出发。
+Start from the research question and the structure of the experimental units, not from a favorite design.
 
 ```
-你想了解什么？
+What do you want to learn?
 │
-├─ 比较少数几个预定义条件（A vs B vs C）？
-│   ├─ 单元独立，可能有已知噪声因素（日期、批次、地点）？
-│   │     → 完全随机（无噪声）或随机区组设计。
-│   ├─ 每个单元可依次接受每种条件（有洗脱期）？
-│   │     → 交叉/重复测量设计（更强的统计效力，注意残留效应）。
-│   └─ 只能随机化分组而非个体（学校、诊所）？
-│         → 整群随机化设计（以整群为层级分析；见伪重复）。
+├─ Compare a few pre-defined conditions (A vs B vs C)?
+│   ├─ Units are independent, with possible known noise factors (date, batch, site)?
+│   │     → Completely randomized (no noise) or randomized block design.
+│   ├─ Each unit can receive each condition in sequence (with washout)?
+│   │     → Crossover/repeated measures design (more statistical power, watch for carryover effects).
+│   └─ Only groups can be randomized, not individuals (schools, clinics)?
+│         → Cluster-randomized design (analyze at the cluster level; see pseudoreplication).
 │
-├─ 筛选大量因素（5+），找出关键少数？
-│     → 部分因子或 Plackett-Burman 筛选设计。
+├─ Screen many factors (5+), finding the vital few?
+│     → Fractional factorial or Plackett-Burman screening design.
 │
-├─ 量化少数因素的主效应和交互作用？
-│     → 全 2^k 因子设计。
+├─ Quantify main effects and interactions for a few factors?
+│     → Full 2^k factorial design.
 │
-├─ 寻找优化响应的设置（曲率很重要）？
-│     → 响应面设计：中心复合或 Box-Behnken。
+├─ Find settings that optimize a response (curvature matters)?
+│     → Response surface design: central composite or Box-Behnken.
 │
-└─ 探索仿真/计算机模型的连续空间？
-      → 空间填充设计：Latin Hypercube。
+└─ Explore a continuous space for simulation/computer models?
+      → Space-filling design: Latin Hypercube.
 ```
 
-各分支的详细指南：
-- **随机化、区组、分层、对照** → `references/randomization_and_blocking.md`
-- **因子、部分因子、筛选、响应面、DOE 概念（别名、分辨率）** → `references/factorial_and_doe.md`
-- **交叉、重复测量、裂区、拉丁方、整群、嵌套设计** → `references/design_types.md`
-- **序贯、成组序贯和自适应设计（中期分析）** → `references/sequential_and_adaptive.md`
+Detailed guides for each branch:
+- **Randomization, blocking, stratification, controls** → `references/randomization_and_blocking.md`
+- **Factorial, fractional factorial, screening, response surface, DOE concepts (aliasing, resolution)** → `references/factorial_and_doe.md`
+- **Crossover, repeated measures, split-plot, Latin square, cluster, nested designs** → `references/design_types.md`
+- **Sequential, group sequential, and adaptive designs (interim analysis)** → `references/sequential_and_adaptive.md`
 
 ---
 
-## 生成设计
+## Generating Designs
 
-两个脚本生成即用且可复现的布局。从本技能的 `scripts/` 目录运行或将其添加到 `sys.path`。
-所有输出使用固定种子，使精确的分配方案可存档和重新生成——这是试验注册和良好实验室规范的要求。
+Two scripts generate ready-to-use, reproducible layouts. Run from this skill's `scripts/` directory or add to `sys.path`.
+All output uses fixed seeds so exact allocation schemes can be archived and regenerated — a requirement for trial registration and good laboratory practice.
 
-### 随机化/分配方案 — `scripts/randomization.py`
+### Randomization/Allocation Schemes — `scripts/randomization.py`
 
 ```python
 from randomization import (
@@ -110,25 +111,25 @@ from randomization import (
     assign_factorial_runs, arm_balance,
 )
 
-# 置换区组保持各组在整个入组期间平衡（适用于 n < ~100 或序贯入组——简单随机化在小样本时可能漂移失衡）
+# Permuted blocks keep arms balanced throughout enrollment (good for n < ~100 or sequential enrollment — simple randomization can drift unbalanced at small sample sizes)
 sched = block_randomization(n=60, arms=["treatment", "control"], seed=42)
 
-# 通过在每个层内随机化来平衡已知预后变量
+# Balance known prognostic variables by randomizing within each stratum
 sched = stratified_block_randomization({"siteA": 30, "siteB": 30},
                                        arms=["drug", "placebo"], ratio=(2, 1), seed=42)
 
-# 随机化整个群体，而非个体（群体是实验单元）
+# Randomize entire groups, not individuals (groups are the experimental units)
 sched = cluster_randomization(["clinic1", "clinic2", "clinic3", "clinic4"], seed=42)
 
-arm_balance(sched)            # 检查各组数量的合理性
+arm_balance(sched)            # Check that group counts are reasonable
 sched.to_csv("allocation_schedule.csv", index=False)
 ```
 
-如何选择：**简单随机化**在大样本时没问题，但小样本可能不均衡；**区组随机化**保证整个过程中平衡；
-**分层区组随机化**额外平衡已知预后因素；**整群随机化**当干预在群体层面交付时必须使用。
-参见 `references/randomization_and_blocking.md`。
+How to choose: **Simple randomization** is fine for large samples but may be imbalanced for small ones; **block randomization** guarantees balance throughout;
+**stratified block randomization** additionally balances known prognostic factors; **cluster randomization** is required when the intervention is delivered at the group level.
+See `references/randomization_and_blocking.md`.
 
-### DOE 矩阵 — `scripts/doe_designs.py`
+### DOE Matrices — `scripts/doe_designs.py`
 
 ```python
 from doe_designs import (
@@ -136,42 +137,42 @@ from doe_designs import (
     plackett_burman, central_composite, box_behnken, latin_hypercube,
 )
 
-# 因素以实际（低, 高）范围定义 -> 设计返回实际单位
+# Factors defined with actual (low, high) ranges -> design returns actual units
 factors = {"temp_C": (20, 60), "conc_mM": (1, 10), "pH": (6, 8)}
 
-# 全 2^3：所有主效应 + 所有交互（8 次运行），运行顺序已随机化
+# Full 2^3: all main effects + all interactions (8 runs), run order randomized
 design = two_level_factorial(factors, seed=42)
 
-# 2^(4-1) 部分因子：4 个因子仅需 8 次运行（generator 使用 Yates 记号）
+# 2^(4-1) fractional factorial: 4 factors in only 8 runs (generator uses Yates notation)
 f4 = {"A": (10, 50), "B": (100, 200), "C": (0.1, 1.0), "D": (5, 25)}
 design = fractional_factorial(f4, generator="a b c abc", seed=42)
-# generator 参数说明见下方「Yates 记号速查」
+# See "Yates notation quick reference" below for generator parameter details
 
-# 低成本筛选 7 个因素（使用 min_runs=12 避免饱和设计，可估计误差）
+# Low-cost screening of 7 factors (use min_runs=12 to avoid saturated design, allows error estimation)
 many = {f"factor_{i}": (0, 1) for i in range(7)}
 design = plackett_burman(many, seed=42, min_runs=12)
 
-# 中心复合设计：默认 face='inscribed' 保持轴点在因子范围内
-# （旧版默认 'circumscribed' 会使轴点超出范围，不再推荐）
+# Central composite design: default face='inscribed' keeps axial points within factor ranges
+# (Legacy default 'circumscribed' extends axial points outside ranges, no longer recommended)
 design = central_composite({"temp_C": (20, 60), "conc_mM": (1, 10)}, seed=42)
 
 design.to_csv("experimental_runs.csv", index=False)
 ```
 
-**Yates 记号速查**（用于 `fractional_factorial` 的 `generator` 参数）：
+**Yates notation quick reference** (for the `generator` parameter of `fractional_factorial`):
 ```text
-'a b'         = 2^2 全因子，4 次运行
-'a b c'       = 2^3 全因子，8 次运行
-'a b c abc'   = 2^(4-1) 部分因子（分辨率 IV），D 与 ABC 交互混淆
-'a b c ab ac' = 2^(5-2) 部分因子（分辨率 III），8 次运行
+'a b'         = 2^2 full factorial, 4 runs
+'a b c'       = 2^3 full factorial, 8 runs
+'a b c abc'   = 2^(4-1) fractional factorial (resolution IV), D aliased with ABC interaction
+'a b c ab ac' = 2^(5-2) fractional factorial (resolution III), 8 runs
 ```
-每个小写字母定义一个因子列；多字母 token（如 `abc`）将该因子与交互效应混淆。
-分辨率越高，混淆越少。详见 `references/factorial_and_doe.md`。
+Each lowercase letter defines a factor column; multi-letter tokens (e.g., `abc`) alias that factor with an interaction effect.
+Higher resolution means less aliasing. See `references/factorial_and_doe.md` for details.
 
-运行顺序默认随机化，避免因素与时间/漂移混淆（设备预热、试剂老化）。
-参见 `references/factorial_and_doe.md` 了解如何选择生成元、解读别名结构和选择分辨率。
+Run order is randomized by default to prevent confounding factors with time/drift (equipment warm-up, reagent aging).
+See `references/factorial_and_doe.md` for how to choose generators, interpret alias structures, and select resolution.
 
-### 高级设计 — `scripts/experimental_designs.py`
+### Advanced Designs — `scripts/experimental_designs.py`
 
 ```python
 from experimental_designs import (
@@ -179,13 +180,13 @@ from experimental_designs import (
     repeated_measures_design, randomize_run_order,
 )
 
-# 交叉设计：每位受试者依次接受所有处理（需足够洗脱期）
+# Crossover design: each subject receives all treatments in sequence (requires adequate washout)
 cross = crossover_design(["DrugA", "DrugB", "Placebo"], n_subjects=12, seed=42)
 
-# 拉丁方设计：同时控制行和列两个区组因素
+# Latin square design: simultaneously controls two blocking factors (rows and columns)
 square = latin_square_design(["A", "B", "C", "D"], seed=42)
 
-# 重复测量：受试者间 + 受试者内因素
+# Repeated measures: between-subject + within-subject factors
 rm = repeated_measures_design(
     between_subject_factors={"group": ["drug", "placebo"]},
     within_subject_factors={"time": ["pre", "1mo", "3mo"]},
@@ -193,66 +194,66 @@ rm = repeated_measures_design(
 )
 ```
 
-⚠️ 交叉设计需要洗脱期且无残留效应；重复测量必须用混合效应模型分析。
+⚠️ Crossover designs require a washout period and no carryover effects; repeated measures must be analyzed with mixed-effects models.
 
 ---
 
-## 毁掉研究的错误
+## Mistakes That Ruin Studies
 
-这些是结构性的——无法在分析阶段修复，只能在设计阶段避免。
+These are structural — they cannot be fixed at the analysis stage, only avoided at the design stage.
 
-1. **伪重复。** 将一个单元的重复测量当作独立重复：3 只老鼠各测 100 个细胞，
-   对施加给老鼠的处理来说，n = 3（老鼠），而不是 n = 300（细胞）。
-   重复必须在处理被随机化的层级上进行。这一错误导致大量已发表实验无效。
-   在正确的层级随机化和重复；分析时尊重嵌套结构（混合模型）。见 `references/design_types.md`。
-2. **噪声变量混淆。** 所有处理样本周一运行，所有对照周二运行——处理与日期完全混淆。
-   对所有你能列举的噪声因素（批次、日期、孔板、技术员、仪器、位置）进行随机化或区组化。
-3. **缺失或破坏的随机化。** 便利分配（先来的→处理组）让混淆因素趁虚而入。使用带种子的方案并严格执行。
-4. **缺少适当的对照。** 没有并行对照（以及相关的载体/假手术和盲法），
-   你无法将处理效应与时间、安慰剂或操作效应区分开。
-5. **批次效应被误认为生物学效应。** 尤其在组学中，跨批次以随机化/区组顺序处理样本；
-   绝不让批次与条件对齐。
-6. **孔板边缘/位置效应。** 蒸发和温度梯度使孔板边缘位置不同。
-   随机化或区组化样本位置；不要把所有对照放在第 1 列。
-7. **忽略部分因子中的别名效应。** 低分辨率部分因子设计将主效应与交互作用混淆；
-   在断言某个因素"无效"之前，先了解你的别名结构。
-8. **有曲率却不用响应面。** 二水平因子设计无法检测弯曲的响应；你会错过内部最优值。
-   使用响应面设计。
-
----
-
-## 工作流
-
-1. **陈述研究问题、实验单元和响应变量。** 什么是被随机化的？测量什么？什么层级才是真正的独立重复？这决定了后续一切。
-2. **列出噪声因素**（批次、日期、地点、操作员、位置）——计划对每个因素进行区组、分层或随机化。
-3. **使用决策树和参考文件选择设计**。
-4. **在正确层级确定重复次数**（使用标准功效分析方法计算所选设计所需的样本量 n）。
-5. **使用 `randomization.py` / `doe_designs.py` 生成布局**，使用固定种子。
-6. **随机化运行/处理顺序**和孔板/批次位置。
-7. **记录**设计、种子和方案（尽可能预注册），使分析具有验证性、布局可审计。
-8. **将分析与设计匹配**——区组、分层、整群和嵌套必须反映在模型中（在分析模型中反映区组、分层、整群和嵌套结构）。
+1. **Pseudoreplication.** Treating repeated measurements on one unit as independent replicates: 3 mice with 100 cells measured each —
+   for the treatment applied to the mice, n = 3 (mice), not n = 300 (cells).
+   Replication must occur at the level where treatment is randomized. This error has invalidated a large number of published experiments.
+   Randomize and replicate at the correct level; respect the nested structure in analysis (mixed models). See `references/design_types.md`.
+2. **Noise variable confounding.** All treatment samples run on Monday, all controls on Tuesday — treatment is completely confounded with date.
+   Randomize or block against every noise factor you can name (batch, date, plate, technician, instrument, location).
+3. **Missing or broken randomization.** Convenience allocation (first arrivals → treatment group) lets confounders in. Use a seeded scheme and follow it strictly.
+4. **Missing proper controls.** Without parallel controls (and associated vehicle/sham and blinding),
+   you cannot separate the treatment effect from time, placebo, or procedural effects.
+5. **Batch effects mistaken for biological effects.** Especially in omics, process samples across batches in randomized/blocked order;
+   never align batch with condition.
+6. **Plate edge/position effects.** Evaporation and temperature gradients make plate edge positions different.
+   Randomize or block sample positions; don't put all controls in column 1.
+7. **Ignoring aliasing in fractional factorials.** Low-resolution fractional factorial designs confound main effects with interactions;
+   understand your alias structure before asserting a factor "has no effect."
+8. **Curvature without response surface.** Two-level factorial designs cannot detect curved responses; you'll miss internal optima.
+   Use response surface designs.
 
 ---
 
-## 资源
+## Workflow
 
-### 脚本
-- `scripts/randomization.py` — 带种子的分配方案：`simple_randomization`、
-  `block_randomization`、`stratified_block_randomization`、`cluster_randomization`、
-  `assign_factorial_runs`、`arm_balance`。
-- `scripts/doe_designs.py` — 实际单位的 DOE 矩阵：`full_factorial`、
-  `two_level_factorial`、`fractional_factorial`（需要 Yates 记号 generator）、`plackett_burman`（支持 min_runs 避免饱和设计）、
-  `central_composite`（默认 face='inscribed' 避免轴点越界）、`box_behnken`、`latin_hypercube`。
-- `scripts/experimental_designs.py` — 高级实验设计：`crossover_design`（交叉设计）、
-  `latin_square_design`（拉丁方）、`repeated_measures_design`（重复测量/裂区）、`randomize_run_order`。
+1. **State the research question, experimental unit, and response variable.** What is being randomized? What is being measured? At what level are the true independent replicates? This determines everything that follows.
+2. **List noise factors** (batch, date, location, operator, position) — plan to block, stratify, or randomize against each.
+3. **Use the decision tree and reference files to choose a design.**
+4. **Determine the number of replicates at the correct level** (use standard power analysis methods to calculate required sample size n for the chosen design).
+5. **Generate the layout using `randomization.py` / `doe_designs.py`**, with a fixed seed.
+6. **Randomize the run/treatment order** and well-plate/batch positions.
+7. **Document** the design, seed, and protocol (pre-register when possible) so the analysis is confirmatory and the layout is auditable.
+8. **Match analysis to design** — blocks, strata, clusters, and nesting must be reflected in the model (reflect blocking, stratification, clustering, and nesting structure in the analysis model).
 
-### 参考文档
-- `references/randomization_and_blocking.md` — 随机化方法、区组、分层、对照、盲法、批次/孔板布局。
-- `references/factorial_and_doe.md` — 因子和部分因子设计、分辨率和别名、筛选和响应面方法论。
-- `references/design_types.md` — 完全随机、随机区组、交叉、重复测量、裂区、拉丁方、整群和嵌套设计；伪重复问题深入探讨。
-- `references/sequential_and_adaptive.md` — 成组序贯设计、alpha 消耗、中期停止和自适应样本量重估计。
+---
 
-### 经典参考文献
+## Resources
+
+### Scripts
+- `scripts/randomization.py` — Seeded allocation schemes: `simple_randomization`,
+  `block_randomization`, `stratified_block_randomization`, `cluster_randomization`,
+  `assign_factorial_runs`, `arm_balance`.
+- `scripts/doe_designs.py` — DOE matrices in actual units: `full_factorial`,
+  `two_level_factorial`, `fractional_factorial` (requires Yates notation generator), `plackett_burman` (supports min_runs to avoid saturated designs),
+  `central_composite` (default face='inscribed' to avoid axial points going out of bounds), `box_behnken`, `latin_hypercube`.
+- `scripts/experimental_designs.py` — Advanced experimental designs: `crossover_design`,
+  `latin_square_design`, `repeated_measures_design` (repeated measures / split-plot), `randomize_run_order`.
+
+### Reference Documents
+- `references/randomization_and_blocking.md` — Randomization methods, blocking, stratification, controls, blinding, batch/plate layouts.
+- `references/factorial_and_doe.md` — Factorial and fractional factorial designs, resolution and aliasing, screening and response surface methodology.
+- `references/design_types.md` — Completely randomized, randomized block, crossover, repeated measures, split-plot, Latin square, cluster, and nested designs; deep dive into pseudoreplication.
+- `references/sequential_and_adaptive.md` — Group sequential designs, alpha spending, interim stopping, and adaptive sample size re-estimation.
+
+### Classic References
 - Fisher, R. A. (1935). *The Design of Experiments*.
 - Montgomery, D. C. (2019). *Design and Analysis of Experiments* (10th ed.).
 - Hurlbert, S. H. (1984). Pseudoreplication and the design of ecological field

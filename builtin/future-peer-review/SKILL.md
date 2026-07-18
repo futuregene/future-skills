@@ -1,11 +1,11 @@
 ---
 name: future-peer-review
-version: "0.0.1"
+version: 0.0.2
 description: Structured manuscript/grant review with checklist-based evaluation. Use when writing formal peer reviews with specific criteria methodology assessment, statistical validity, reporting standards compliance (CONSORT/STROBE), and constructive feedback. Best for actual review writing, manuscript revision. For evaluating claims/evidence quality use scientific-critical-thinking; for quantitative scoring frameworks use scholar-evaluation.
-allowed-tools: Read Write Edit Bash
+allowed-tools: Read Write Edit Bash(future:*)
+category: methodology
 license: MIT license
-required_environment_variables: []
-metadata: {"skill-author": "K-Dense Inc.", "openclaw": {"primaryEnv": "FUTURE_AUTH_CREDENTIAL", "envVars": [{"name": "FUTURE_AUTH_CREDENTIAL", "required": false, "description": "Uses `future auth credential` CLI for API key and endpoint. Run `future auth login` first."}]}}
+metadata: {"skill-author": "K-Dense Inc."}
 ---
 
 # Scientific Critical Evaluation and Peer Review

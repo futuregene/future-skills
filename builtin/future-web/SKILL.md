@@ -3,6 +3,7 @@ version: 1.0.1
 name: future-web
 description: Search the public web for current information. Returns page titles, URLs, and content snippets from search results. Pair with fetch_url to retrieve full page content — if fetch_url returns empty or fails (e.g. JS-rendered pages, WeChat articles, anti-bot walls), automatically fall back to browser (command: open + snapshot). Use for fact-checking, news, documentation, and any information beyond your knowledge cutoff.
 allowed-tools: Bash(future:*)
+category: tools
 ---
 
 > **Authentication is automatic.** The `future` CLI reads your credentials from `~/.future/agent/auth.json`. You do NOT need to find, configure, or pass API keys — just call the tools below.
@@ -26,7 +27,9 @@ All tools are called via the `future` CLI using the `bash` tool:
 
 ```bash
 # Search the web
-future tools call web_search --query "BRCA1 variant classification guidelines 2025" --count 5 # Fetch a specific page (preferred first attempt)
+future tools call web_search --query "BRCA1 variant classification guidelines 2025" --count 5
+
+# Fetch a specific page (preferred first attempt)
 future tools call fetch_url --url "https://en.wikipedia.org/wiki/BRCA1" ```
 
 ## Available tools

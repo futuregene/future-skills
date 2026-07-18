@@ -1,8 +1,9 @@
 ---
 name: future-database-lookup
-version: "0.0.3"
+version: 0.0.4
 description: Query 78 public databases (PubChem, UniProt, Ensembl, PDB, NCBI, ChEMBL, KEGG, ClinicalTrials.gov, etc.) through documented REST APIs for reproducible lookup of compounds, genes, proteins, variants, structures, clinical trials, drugs, pathways, patents, and economic data. Use when the user asks to search, query, or retrieve structured facts from a specific database by name or scientific identifier — especially for biomedical, chemical, and environmental data where provenance and reproducibility matter. Not for general web search or literature search.
 allowed-tools: Read Bash
+category: databases
 license: MIT
 metadata:
   skill-author: "K-Dense Inc."

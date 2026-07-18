@@ -2,10 +2,10 @@
 name: future-deep-research
 version: 2.5.1
 description: >
-  对用户指定的主题进行端到端深度研究。自动编排多源数据采集（网页搜索、学术论文、本地文档），
-  支持用户提供 PDF/Word/URL/论文ID/笔记/CSV 等素材，通过交叉验证和引证校验确保信息可靠性，
-  最终输出一份完整的 Markdown（可选 PDF）研究报告。
-  当用户需要做深度调研、文献综述、行业分析、技术调研、竞品分析、写研究报告时使用。
+  End-to-end deep research on user-specified topics. Automatically orchestrates multi-source data collection (web search, academic papers, local documents),
+  supports user-provided materials (PDF/Word/URL/paper IDs/notes/CSV), ensures information reliability through cross-validation and citation verification,
+  and outputs a complete Markdown (optional PDF) research report.
+  Use when the user asks for deep research, literature review, industry analysis, technology research, competitive analysis, or writing research reports.
 metadata:
   requires:
     bins: ["future"]
@@ -15,773 +15,794 @@ metadata:
     - future-document
     - future-browser
     - future-image
+category: methodology
 allowed-tools: Bash(future:*)
 ---
 
-# 🔬 Deep-Research Skill v2.0
+# Deep-Research Skill v2.0
 
-端到端深度研究技能 — 像人类研究员一样：规划 → 采集 → 验证 → 综合
-
----
-
-
-## 一、编排的资源总览
-
-| 技能 | 能力 | 在研究中的角色 |
-|------|------|----------------|
-| **`future-web`** | `web_search` / `fetch_url` | Phase 1 网页搜索 + Phase 2 页面精读 |
-| **`future-paper`** | `search_paper` / `get_paper` | Phase 1/2 学术论文检索与全文获取 |
-| **`future-document`** | `parse_doc` | Phase 0 用户提供的 PDF/Word 文档解析 |
-| **`future-browser`** | `browser_*` | Phase 1 **抓取降级**: 当 fetch_url 返回空内容时自动用浏览器重试 |
-| **`future-image`** | image_generation / 分析 | Phase 5 配图生成（可选） |
+End-to-end deep research skill — think like a human researcher: Plan → Collect → Verify → Synthesize
 
 ---
 
-## 二、研究策略矩阵
+## 1. Resource Summary
 
-收到用户需求后，AI **必须主动提供三种策略供用户选择**：
-
-| 维度 | 策略A：快速扫描 | 策略B：广度研究 | 策略C：深度分析 |
-|:----:|:--------------:|:--------------:|:--------------:|
-| 耗时 | ~3 分钟 | ~8 分钟 | ~15-20 分钟 |
-| 搜索量 | 3-5 关键词 | 6-10 关键词 | 10-20 关键词 |
-| 页面精读 | 仅摘要/关键段 | Tier1 全文 | Tier1+Tier2 全文 |
-| 学术论文 | 不检索 | 搜索摘要 | 搜索+全文获取 |
-| Python 分析 | ❌ | ❌ | ✅ |
-| 交叉验证 | 基础 | 中等 | 深度+引证校验 |
-| 适用场景 | 快速了解/事实核查 | 行业调研/竞品概览 | 学术综述/技术深潜 |
+| Skill | Capability | Role in Research |
+|------|------------|------------------|
+| **`future-web`** | `web_search` / `fetch_url` | Phase 1 web search + Phase 2 page deep-reading |
+| **`future-paper`** | `search_paper` / `get_paper` | Phase 1/2 academic paper search and full-text retrieval |
+| **`future-document`** | `parse_doc` | Phase 0 user-provided PDF/Word document parsing |
+| **`future-browser`** | `browser_*` | Phase 1 **fetch fallback**: auto-retry with browser when fetch_url returns empty |
+| **`future-image`** | image_generation / analysis | Phase 5 optional image generation |
 
 ---
 
-## 三、研究工作流（6 Phase）
+## 2. Research Strategy Matrix
 
-### Phase 0：交互式需求收集 + 素材导入
+After receiving the user's request, the AI **MUST proactively offer three strategies for the user to choose from**:
 
-#### Step 0.1：接收初始需求 + AI 追问
+| Dimension | Strategy A: Quick Scan | Strategy B: Broad Research | Strategy C: Deep Analysis |
+|:----:|:---------------------:|:-------------------------:|:--------------------------:|
+| Time | ~3 min | ~8 min | ~15-20 min |
+| Search volume | 3-5 keywords | 6-10 keywords | 10-20 keywords |
+| Page reading | Abstracts / key paragraphs only | Tier 1 full text | Tier 1+2 full text |
+| Academic papers | Not retrieved | Search abstracts | Search + full text retrieval |
+| Python analysis | ❌ | ❌ | ✅ |
+| Cross-validation | Basic | Medium | Deep + citation verification |
+| Use case | Quick understanding / fact-checking | Industry research / competitive overview | Academic review / technical deep-dive |
+
+---
+
+## 3. Research Workflow (6 Phases)
+
+### Phase 0: Interactive Requirements Collection + Material Import
+
+#### Step 0.1: Receive Initial Request + AI Follow-up Questions
 
 ```
-🧑 用户说主题
+🧑 User states a topic
   │
   ▼
-🤖 AI 主动追问（按需选择问题）：
-  ├─ 📐 研究策略
-  │   ├─ "策略A快速~3min / B广度~8min / C深度~15min（含数据分析）？"
-  │   └─ "时间范围有限制吗？"
+🤖 AI proactively asks (choose questions as needed):
+  ├─ 📐 Research Strategy
+  │   ├─ "Strategy A Quick ~3min / B Broad ~8min / C Deep ~15min (with data analysis)?"
+  │   └─ "Any time range constraints?"
   │
-  ├─ 🌐 信息来源
-  │   ├─ "更关注学术论文、行业报告、还是两者都要？"
-  │   ├─ "信源语言偏好？默认英文搜索（除非主题本身更适合中文，如中国本土政策、中文社区话题）"
+  ├─ 🌐 Information Sources
+  │   ├─ "Focus more on academic papers, industry reports, or both?"
+  │   ├─ "Source language preference? Default is English search (unless the topic itself is better suited to Chinese, such as China-specific policies, Chinese community discussions)"
   │
-  ├─ 📝 输出语言
-  │   └─ "报告输出语言？默认中文（除非用户的提问本身是用英文做的，此时默认英文）"
+  ├─ 📝 Output Language
+  │   └─ "Report output language? Default is Chinese (unless the user's question was asked in English, then default to English)"
   │
-  ├─ 📊 量化分析（策略C时必问）
-  │   └─ "需要进行数据分析吗？你有数据文件吗？"
+  ├─ 📊 Quantitative Analysis (required for Strategy C)
+  │   └─ "Need data analysis? Do you have data files?"
   │
-  ├─ 🎯 重点方向
-  │   └─ "有什么子话题或角度想重点关注的？"
+  ├─ 🎯 Focus Areas
+  │   └─ "Any sub-topics or angles you want to focus on?"
   │
-  └─ 🔄 干预偏好
-      └─ "研究过程中你希望：全程自动执行 / 阶段性汇报 / 关键节点介入？"
+  └─ 🔄 Intervention Preferences
+      └─ "During the research process, do you prefer: fully automatic / phase-by-phase reporting / intervene at key checkpoints?"
 ```
 
-#### Step 0.2：接收用户提供的素材（任意组合）
+#### Step 0.2: Accept User-Provided Materials (any combination)
 
-| 素材类型 | 用户提供方式 | AI 处理方式 |
-|----------|-------------|-------------|
-| 📑 PDF/Word 文档 | 本地文件路径 | `future tools call parse_doc ` |
-| 🔗 网页 URL | 一个或多个 URL | `future tools call fetch_url --url "..." ` |
-| 📄 论文 ID | DOI / PMID / ArXiv ID | `future tools call get_paper --paper_id "DOI:..." ` |
-| 📝 笔记/大纲 | 直接粘贴文本 | 直接纳入研究基础 |
-| 📊 CSV/Excel 数据 | 本地文件路径 | 供 Phase 2b 分析 |
-| 🖼️ 截图/图片 | 本地文件路径 | 供 Phase 2d 分析 |
-| 📚 批量论文 | 多个 ID/DOI 列表 | 逐个获取 |
+| Material Type | User Provides | AI Processes |
+|---------------|---------------|--------------|
+| 📑 PDF/Word docs | Local file path | `future tools call parse_doc ` |
+| 🔗 Web URLs | One or more URLs | `future tools call fetch_url --url "..." ` |
+| 📄 Paper IDs | DOI / PMID / ArXiv ID | `future tools call get_paper --paper_id "DOI:..." ` |
+| 📝 Notes/outlines | Paste text directly | Incorporate directly into research foundation |
+| 📊 CSV/Excel data | Local file path | For Phase 2b analysis |
+| 🖼️ Screenshots/images | Local file path | For Phase 2d analysis |
+| 📚 Batch papers | Multiple IDs/DOI list | Retrieve one by one |
 
-#### Step 0.2.5：预提纲快速侦查 🔎（🚨 必须在生成大纲前执行）
+#### Step 0.2.5: Pre-Outline Reconnaissance 🔎 (🚨 MUST execute before generating the outline)
 
-> **核心原则：不对话题一无所知就凭空编大纲。真实研究员总是先快速扫文献再规划。**
-
-```
-目标：用 3-5 分钟，搜索 + 爬取顶层 URL，了解话题的真实信息格局
-
-─── 0.2.5a：种子搜索 ───
-
-  Step 1: 按用户确定的中英文需求，用 2-4 个宽泛关键词并行搜索
-    future tools call web_search --query "<主题> overview | 综述 | 全景 | landscape" --count 8 future tools call web_search --query "<英文主题> trends | comparison | analysis" --count 8
-
-  Step 2: 从搜索结果摘要中快速筛选：
-    ├─ 🌊 哪些词/概念/公司名反复出现？
-    ├─ 📅 最新动态的时间？（判断话题热度）
-    ├─ ⚔️ 是否有明显争议/对立阵营？
-    ├─ 🏷️ 有哪些事先不知道的子领域？
-    └─ 📊 有没有明显的量化数据来源？
-
-  Step 3: 按需补搜 1-2 个「锚定查询」
-    ├─ 找到权威综述/汇总页 → 补搜 "<主题> comprehensive guide | 完整指南"
-    └─ 找到争议点 → 补搜 "<争议关键词> debate | controversy | 争议"
-
-─── 0.2.5a2：锚定 URL 快速爬取（🚨 v2.3 新增 — 不看内容怎么知道真有什么？）──
-
-  Step 4: 从搜索结果中挑选 2-5 个最有价值的 URL 进行爬取
-    挑选标准（按优先级）：
-      ├─ 🥇 权威综述/汇总页（官方定价页、行业报告、arXiv 综述）
-      ├─ 🥈 知名技术媒体的深度文章（TechCrunch、Ars Technica 等）
-      ├─ 🥉 高质量技术博客（有数据/架构图/对比表的）
-      └─ 跳过：论坛帖子、纯新闻快讯、SEO 农场、重复内容
-
-    对每个挑选的 URL，执行快速爬取：
-      future tools call fetch_url --url "<pick>" Step 5: 爬取后进行「内容快速扫描」（不是精读，是扫结构）：
-    对每个爬取结果，速扫以下信号：
-      ├─ 📑 文章有目录/小标题吗？（→ 说明结构完整，是好的锚定源）
-      ├─ 📊 有表格/数据/对比吗？（→ 数据富集度高）
-      ├─ 📅 发布日期？（→ 判断时效）
-      ├─ 🔗 引用了哪些其他权威源？（→ 可做二级跳转）
-      └─ ⚠️ 是否和你从摘要中预期的内容一致？（→ 如果不一致，要追问为什么）
-
-    爬取后检查内容充分性（轻量版，不比 Phase 1 严格）：
-      ├─ content 为空 → 跳过该 URL
-      ├─ content < 500 字 → 标记 "⚠️ 内容偏短，信息有限"
-      ├─ content > 5000 字 → 标记 "📚 长文，信息密度高"
-      └─ 以上通过 → ✅ 纳入侦查素材
-
-  🕐 爬取数量控制：
-    ├─ 策略A：爬取 2 个 URL（快速）
-    ├─ 策略B：爬取 3-4 个 URL
-    └─ 策略C：爬取 4-5 个 URL（含补搜结果的 URL）
-
-─── 0.2.5b：输出侦查简报 ───
-
-  📡 预提纲侦查简报：<主题>
-
-  搜索快照（2-4 个关键词的搜索结果摘要）：
-    ├─ 🏷️ 反复出现的概念/公司/术语: [...]
-    ├─ 📅 内容时效范围: [年份范围，最新是什么时候]
-    └─ ⚔️ 潜在争议/对立阵营: [有 / 无 / 描述]
-
-  爬取洞察（从 2-5 个爬取的 URL 中提取）：
-    ├─ 📑 锚定源 1: [标题] — [文章类型：综述/报告/博文] | [日期]
-    │   └─ 🔑 核心发现: [从爬取内容中提取的 1-2 个关键点]
-    ├─ 📑 锚定源 2: [标题] — [类型] | [日期]
-    │   └─ 🔑 核心发现: [...]
-    └─ 📑 锚定源 N: [...]
-
-  📡 综合研判：
-    ├─ 🏷️ 发现的真实子话题: [列表 — 基于爬取内容确认，不是猜的]
-    ├─ 📊 数据富集度: [高 / 中 / 低 — 由爬取到的表格/数据/对比判断]
-    ├─ 🌐 语言覆盖: [中文/英文各有 X 条高质量结果]
-    └─ ⚠️ 信息盲区: [哪些子话题/角度在爬取中没有覆盖到？]
-
-  ✨ 关键发现（1-3句）: [从爬取内容中得到的最意外/最有价值的发现]
-```
-
-**⚠️ 规则**：
-- 预提纲侦查**不能跳过**，策略A也要执行（减少关键词到2个、爬取到2个URL）
-- 如果爬取发现和搜索摘要预期严重不一致 → **以爬取内容为准**
-- 如果某个方向在爬取中没有任何 URL 覆盖 → 在📡简报中标记为「⚠️ 信息盲区」
-
-#### Step 0.3：输出研究计划书供用户确认（由爬取结果驱动）
-
-> **v2.3 改进**：大纲基于 Step 0.2.5 的爬取内容生成，关键发现直接引用爬取的锚定源。
+> **Core principle: Never fabricate an outline from thin air without understanding the topic. Real researchers always do a quick literature scan before planning.**
 
 ```
-📡 预提纲侦查简报：<主题>
-  [此处简要复述 Step 0.2.5b 的搜索快照 + 爬取洞察 — 让用户看到大纲的数据基础]
+Goal: Spend 3-5 minutes searching + crawling top URLs to understand the real information landscape of the topic
 
-📋 研究计划书：<主题>
+─── 0.2.5a: Seed Search ───
 
-研究策略: 策略B（广度研究）
+  Step 1: Search in parallel with 2-4 broad keywords based on the user's confirmed language needs
+    future tools call web_search --query "<topic> overview | landscape | trends" --count 8
+    future tools call web_search --query "<topic> comparison | analysis | review" --count 8
 
-核心问题（与爬取确认的子话题对齐）:
-  - Q1: ...  ← 每个Q必须对应爬取中发现的一个真实子话题
+  Step 2: Rapidly filter from search result snippets:
+    ├─ 🌊 Which words/concepts/company names appear repeatedly?
+    ├─ 📅 How recent are the latest developments? (judge topic heat)
+    ├─ ⚔️ Are there obvious controversies/opposing camps?
+    ├─ 🏷️ What sub-fields exist that you didn't know about beforehand?
+    └─ 📊 Are there obvious quantitative data sources?
+
+  Step 3: Supplement with 1-2 "anchor queries" as needed
+    ├─ Found authoritative overview/summary pages → supplement search: "<topic> comprehensive guide"
+    └─ Found controversy points → supplement search: "<controversy keyword> debate | controversy"
+
+─── 0.2.5a2: Anchor URL Quick Crawl (🚨 v2.3 new — how can you know what's really there without reading content?) ───
+
+  Step 4: Pick 2-5 of the most valuable URLs from search results for crawling
+    Selection criteria (by priority):
+      ├─ 🥇 Authoritative overview/summary pages (official pricing pages, industry reports, arXiv reviews)
+      ├─ 🥈 In-depth articles from well-known tech media (TechCrunch, Ars Technica, etc.)
+      ├─ 🥉 High-quality tech blogs (those with data/architecture diagrams/comparison tables)
+      └─ Skip: forum posts, pure news snippets, SEO farms, duplicate content
+
+    For each selected URL, perform a quick crawl:
+      future tools call fetch_url --url "<pick>"
+
+  Step 5: After crawling, perform "quick content scanning" (not deep reading, but scanning structure):
+    For each crawl result, quickly scan for these signals:
+      ├─ 📑 Does the article have a table of contents / sub-headings? (→ well-structured, good anchor source)
+      ├─ 📊 Does it have tables/data/comparisons? (→ high data density)
+      ├─ 📅 Publication date? (→ judge timeliness)
+      ├─ 🔗 What other authoritative sources does it cite? (→ can do secondary jumps)
+      └─ ⚠️ Is the content consistent with what you expected from the snippet? (→ if not, ask why)
+
+    After crawling, check content adequacy (lightweight version, not as strict as Phase 1):
+      ├─ content is empty → skip this URL
+      ├─ content < 500 chars → mark "⚠️ short content, limited information"
+      ├─ content > 5000 chars → mark "📚 long article, high information density"
+      └─ above all pass → ✅ include in reconnaissance materials
+
+  🕐 Crawl quantity control:
+    ├─ Strategy A: crawl 2 URLs (quick)
+    ├─ Strategy B: crawl 3-4 URLs
+    └─ Strategy C: crawl 4-5 URLs (including URLs from supplementary searches)
+
+─── 0.2.5b: Output Reconnaissance Brief ───
+
+  📡 Pre-Outline Reconnaissance Brief: <topic>
+
+  Search snapshot (search result snippets from 2-4 keywords):
+    ├─ 🏷️ Recurring concepts/companies/terms: [...]
+    ├─ 📅 Content recency range: [year range, latest is when]
+    └─ ⚔️ Potential controversies/opposing camps: [yes / no / description]
+
+  Crawl insights (extracted from 2-5 crawled URLs):
+    ├─ 📑 Anchor source 1: [title] — [article type: review/report/blog post] | [date]
+    │   └─ 🔑 Key finding: [1-2 key points extracted from crawled content]
+    ├─ 📑 Anchor source 2: [title] — [type] | [date]
+    │   └─ 🔑 Key finding: [...]
+    └─ 📑 Anchor source N: [...]
+
+  📡 Synthesis:
+    ├─ 🏷️ Discovered real sub-topics: [list — confirmed from crawled content, not guessed]
+    ├─ 📊 Data density: [high / medium / low — judged by tables/data/comparisons found in crawls]
+    ├─ 🌐 Language coverage: [Chinese/English each have X high-quality results]
+    └─ ⚠️ Information blind spots: [which sub-topics/angles are not covered in crawls?]
+
+  ✨ Key finding (1-3 sentences): [the most surprising/valuable finding from crawled content]
+```
+
+**⚠️ Rules**:
+- Pre-outline reconnaissance **cannot be skipped**; Strategy A must also execute it (reduce keywords to 2, crawls to 2 URLs)
+- If crawl findings seriously contradict search snippet expectations → **trust the crawled content**
+- If a direction has zero URL coverage in crawls → mark it in the 📡 brief as "⚠️ Information blind spot"
+
+#### Step 0.3: Output Research Plan for User Confirmation (driven by crawl results)
+
+> **v2.3 improvement**: The outline is generated based on Step 0.2.5 crawl content; key findings directly cite crawled anchor sources.
+
+```
+📡 Pre-Outline Reconnaissance Brief: <topic>
+  [Briefly repeat Step 0.2.5b's search snapshot + crawl insights here — let user see the data foundation for the outline]
+
+📋 Research Plan: <topic>
+
+Research Strategy: Strategy B (Broad Research)
+
+Core Questions (aligned with crawl-confirmed sub-topics):
+  - Q1: ...  ← Each Q must correspond to a real sub-topic discovered in crawls
   - Q2: ...
-  - Q3: ...（如爬取发现争议 → 必须包含一个争议相关Q）
+  - Q3: ... (if crawls found controversies → must include a controversy-related Q)
 
-初步大纲（由爬取结果塑形，非固定模板）:
-  基于爬取内容中实际存在的子话题按需确定章节：
-  ├─ 背景与上下文（必备）
-  ├─ 核心发现 — [[按爬取确认的子话题拆分，1个子话题 = 1个小节]]
-  ├─ 争议与分歧（如爬取发现争议 → 必备；否则标注「爬取中未发现显著争议」）
-  ├─ 数据与量化分析（如爬取发现高数据密度 → 必备；否则可选）
-  ├─ 趋势与展望（必备）
-  └─ 结论与建议（必备）
+Preliminary Outline (shaped by crawl results, not a fixed template):
+  Based on sub-topics that actually exist in crawled content, structure chapters as needed:
+  ├─ Background & Context (required)
+  ├─ Core Findings — [[split by crawl-confirmed sub-topics, 1 sub-topic = 1 subsection]]
+  ├─ Controversies & Divergence (required if crawls found controversies; otherwise mark "No significant controversies found in crawls")
+  ├─ Data & Quantitative Analysis (required if crawls found high data density; otherwise optional)
+  ├─ Trends & Outlook (required)
+  └─ Conclusions & Recommendations (required)
 
-  ⚠️ 「大纲灵活性声明」：以上大纲基于快速侦查的爬取内容生成，Phase 1 和 Phase 1.5 可能调整。
+  ⚠️ "Outline flexibility statement": This outline is based on quick reconnaissance crawl content. Phases 1 and 1.5 may adjust it.
 
-已纳入素材:
-  - Step 0.2.5 爬取的锚定源: [列出标题 + URL]
-  - /path/to/doc.pdf (12页, 已解析 ✅)
-  - DOI:10.xxxx/yyyy (摘要已获取 ✅)
+Incorporated Materials:
+  - Anchor sources crawled in Step 0.2.5: [list titles + URLs]
+  - /path/to/doc.pdf (12 pages, parsed ✅)
+  - DOI:10.xxxx/yyyy (abstract retrieved ✅)
 
-搜索关键词（由侦查验证，非凭空构造）:
-  中文: [侦查中实际产生好结果的词]
-  英文: [侦查中实际产生好结果的词]
+Search Keywords (validated by reconnaissance, not fabricated from thin air):
+  Chinese: [terms that actually produced good results in reconnaissance]
+  English: [terms that actually produced good results in reconnaissance]
 
-用户干预模式: 阶段性汇报
-预计耗时: ~8分钟
-产出物: deep-research-<topic>-<date>.md
+User Intervention Mode: Phase-by-phase reporting
+Estimated Time: ~8 minutes
+Deliverable: deep-research-<topic>-<date>.md
 
-确认执行吗？还是想调整什么？
+Confirm execution? Or want to adjust something?
 ```
 
 ---
 
-### Phase 1：引文探索（快速扫描 + 迭代补抓）🔍
+### Phase 1: Citation Exploration (Quick Scan + Iterative Backfill) 🔍
 
-> **对标 Perplexity** — 快速、广覆盖、构建来源池
-> 
-> **核心改进**：内容不足时自动补抓，而非放弃；搜索查询有构造指南**
+> **Benchmarking Perplexity** — fast, broad coverage, building the source pool
+>
+> **Core improvements**: auto backfill when content is insufficient; search query construction guide
 
 ```
-目标：快速定位高质量信息来源，确保每个子话题都有足够的内容支撑
+Goal: Rapidly locate high-quality information sources, ensure each sub-topic has sufficient content coverage
 
-─── 1a：搜索查询构造指南（v2.1 新增） ───
+─── 1a: Search Query Construction Guide (v2.1 new) ───
 
-  构造有效搜索查询的规则：
-    ├─ 优先使用「主题 + 年份」→ "LLM pricing 2025"（而非 "LLM pricing"）
-    ├─ 用引号包裹专有名词 → "prompt caching" "speculative decoding"
-    ├─ 中英文搜索策略差异：
-    │   ├─ 中文：偏「实战」「指南」「报告」→ 捕获博文/知乎/CSDN
-    │   └─ 英文：偏「comparison」「analysis」「review」→ 捕获技术分析/报告
-    ├─ 避免过于宽泛 → "AI" 无效，"LLM token cost optimization 2025" 有效
-    └─ 策略C：10-20个关键词应覆盖 {主题} × {维度} × {语种} 笛卡尔积
-        └─ 例：{定价,优化技术,经济模型,争议,趋势} × {中,英} = 10个
+  Rules for constructing effective search queries:
+    ├─ Prefer "topic + year" → "LLM pricing 2025" (not "LLM pricing")
+    ├─ Wrap proper nouns in quotes → "prompt caching" "speculative decoding"
+    ├─ Chinese vs English search strategy differences:
+    │   ├─ Chinese: prefer "practical guide" "report" → captures blog posts/Zhihu/CSDN
+    │   └─ English: prefer "comparison" "analysis" "review" → captures technical analysis/reports
+    ├─ Avoid overly broad → "AI" is ineffective, "LLM token cost optimization 2025" is effective
+    └─ Strategy C: 10-20 keywords should cover {topic} × {dimension} × {language} Cartesian product
+        └─ e.g., {pricing, optimization techniques, economic models, controversies, trends} × {CN, EN} = 10
 
-─── 1b：首次搜索与分级 ───
+─── 1b: First Search and Tiering ───
 
-  Step 1: 多关键词并行搜索（中英文）
-    future tools call web_search --query "<关键词>" --count 10 future tools call search_paper --queries '["..."]'
+  Step 1: Multi-keyword parallel search (Chinese + English)
+    future tools call web_search --query "<keyword>" --count 10
+    future tools call search_paper --queries '["..."]'
 
-  Step 2: 来源快速分级（🚨 v2.1 新增三级评分维度）
-    基础 Tier 分级：
-    - 🥇 Tier 1: 直接相关+权威（官方/学术/知名媒体）
-    - 🥈 Tier 2: 相关但非权威（博客/论坛/自媒体）
-    - 🥉 Tier 3: 间接相关
+  Step 2: Rapid source tiering (🚨 v2.1 new three-tier scoring dimensions)
+    Base Tier ranking:
+    - 🥇 Tier 1: Directly relevant + authoritative (official/academic/well-known media)
+    - 🥈 Tier 2: Relevant but non-authoritative (blogs/forums/self-media)
+    - 🥉 Tier 3: Indirectly relevant
     
-    附加质量信号（不改变 Tier，影响精读优先级）：
-    - 📅 时效性: <3个月 / 3-12个月 / >1年
-    - 🔬 数据密度: 高（大量图表/数据） / 中 / 低（纯观点）
-    - ⚖️ 立场: 中立 / 有明显倾向但不影响事实 / 可能有偏
+    Additional quality signals (don't change Tier, affect deep-reading priority):
+    - 📅 Timeliness: <3 months / 3-12 months / >1 year
+    - 🔬 Data density: High (many charts/data) / Medium / Low (pure opinion)
+    - ⚖️ Stance: Neutral / Has clear slant but doesn't affect facts / Potentially biased
 
-  Step 3: 首次抓取 Tier 1 来源
-    遍历每个 Tier 1 URL，执行：
-      future tools call fetch_url --url "..." 对每个抓取结果进行「内容充分性检查」：
-      - content 为空？               → 标记 ❌ 空内容
-      - content 长度 < 200 字？      → 标记 ⚠️ 内容过短
-      - content 与搜索主题无关？     → 标记 ⚠️ 低相关性
-      - content 包含截断标记？       → 标记 ⚠️ 内容截断
-        截断标记识别: '</current_article_content>' | '... (truncated)' | '[content truncated]'
-        截断处理：如截断处含核心数据/结论 → browser 补抓；如仅截断尾部推荐/版权 → ✅ 充分
-      - 以上均通过                  → 标记 ✅ 内容充分
+  Step 3: First crawl of Tier 1 sources
+    Iterate through each Tier 1 URL, execute:
+      future tools call fetch_url --url "..."
+    After each crawl result, perform "content adequacy check":
+      - content is empty?                 → mark ❌ empty content
+      - content length < 200 chars?       → mark ⚠️ content too short
+      - content unrelated to search topic? → mark ⚠️ low relevance
+      - content contains truncation markers? → mark ⚠️ content truncated
+        Truncation marker detection: '</current_article_content>' | '... (truncated)' | '[content truncated]'
+        Truncation handling: if truncation cuts off core data/conclusions → browser backfill; if only tailing recommendations/copyright truncated → ✅ adequate
+      - All above pass                   → mark ✅ content adequate
 
-  Step 4: 抓取降级（对 ❌ 和 ⚠️ 的 URL）
-    对空内容/过短的 URL，用浏览器降级重试：
-      future tools call browser --command "start" --url "..." future tools call browser --command "snapshot" --limit 100
-      future tools call browser --command "screenshot" --fullPage true --path "./page.png" 浏览器抓取后再次检查内容充分性：
-      - 内容充分 → 标记 ✅
-      - 仍不足   → 彻底放弃该 URL
+  Step 4: Fetch Fallback (for ❌ and ⚠️ URLs)
+    For empty/too-short URLs, retry with browser degradation:
+      future tools call browser --command "start" --url "..."
+      future tools call browser --command "snapshot" --limit 100
+      future tools call browser --command "screenshot" --fullPage true --path "./page.png"
+    After browser crawl, check content adequacy again:
+      - content adequate → mark ✅
+      - still insufficient   → completely abandon this URL
 
-─── 1b：内容不足时的迭代补抓 ───
+─── 1b: Iterative Backfill When Content Is Insufficient ───
 
-  检查当前所有子话题的内容覆盖情况：
-    场景A：某子话题 ✅ 内容充分来源数 ≥ 2      → 该子话题达标，进入 Phase 2
-    场景B：某子话题 ✅ 内容充分来源数 < 2       → 需要补抓
-    场景C：所有来源都 ❌ 了（全量降级失败）     → 需要全新搜索
+  Check content coverage for all current sub-topics:
+    Scenario A: Sub-topic has ✅ adequately-sourced count ≥ 2      → sub-topic meets threshold, proceed to Phase 2
+    Scenario B: Sub-topic has ✅ adequately-sourced count < 2      → needs backfill
+    Scenario C: All sources are ❌ (all degradation failed)        → needs fresh search
 
-  补抓策略（按优先级）：
+  Backfill strategies (by priority):
     
-    策略1️⃣：从 Tier 2 来源中提取更多 URL 并抓取
-      条件：Tier 2 还有未尝试的 URL
-      操作：
-        future tools call fetch_url --url "<Tier2 URL>" 检查内容充分性 → ✅ 则纳入 / ❌ 则放弃→继续下一个 Tier 2
+    Strategy 1️⃣: Extract more URLs from Tier 2 sources and crawl
+      Condition: Tier 2 still has untried URLs
+      Action:
+        future tools call fetch_url --url "<Tier2 URL>"
+      Check content adequacy → ✅ include / ❌ abandon→continue next Tier 2
 
-    策略2️⃣：换关键词重新搜索（细化/同义/相关词）
-      条件：Tier 2 也抓完了仍然不够
-      操作：
-        future tools call web_search --query "<新关键词>" --count 10 新结果走同样分级→抓取→检查流程
+    Strategy 2️⃣: Change keywords and re-search (refine/synonym/related terms)
+      Condition: Tier 2 is also exhausted but still insufficient
+      Action:
+        future tools call web_search --query "<new keyword>" --count 10
+      New results go through same tiering→crawl→check process
 
-    策略3️⃣：扩大搜索范围（学术/英文/其它语种）
-      条件：中文结果不够，补充英文搜索
-      操作：
-        future tools call web_search --query "<英文关键词>" --count 10 future tools call search_paper --queries '["<\u82f1\u6587\u67e5\u8be2>"]'
+    Strategy 3️⃣: Expand search scope (academic/English/other languages)
+      Condition: Chinese results insufficient, supplement with English search
+      Action:
+        future tools call web_search --query "<English keyword>" --count 10
+        future tools call search_paper --queries '["<English query>"]'
 
-  每次补抓后都重新检查内容充分性，直到：
-    - ✅ 每个子话题都有 ≥2 个充分来源  → 进入 Phase 2
-    - ⚠️ 已全量尝试仍无法达标           → 标记"该子话题信息有限"，进入 Phase 2
+  After each backfill, re-check content adequacy until:
+    - ✅ Each sub-topic has ≥ 2 adequate sources  → proceed to Phase 2
+    - ⚠️ All attempts exhausted but still can't meet threshold → mark "this sub-topic has limited information", proceed to Phase 2
 
-─── 1c：来源质量统计与输出 ───
+─── 1c: Source Quality Statistics and Output ───
 
-  输出《来源候选池与抓取统计》：
-    ├─ ✅ 内容充分: X 个 (Tier1: X, Tier2: X)
-    ├─ ⚠️ 内容过短(浏览器降级后仍不足): X 个
-    ├─ ❌ 完全无法获取: X 个
-    ├─ 🔄 补抓轮数: X 轮
-    └─ 📊 子话题覆盖: 全部达标 / 部分有限 / 需重点关注
+  Output "Source Candidate Pool and Crawl Statistics":
+    ├─ ✅ Content adequate: X (Tier1: X, Tier2: X)
+    ├─ ⚠️ Content too short (still insufficient after browser degradation): X
+    ├─ ❌ Completely unreachable: X
+    ├─ 🔄 Backfill rounds: X rounds
+    └─ 📊 Sub-topic coverage: All met / partially limited / needs focused attention
 ```
 
-### Phase 1.5：大纲动态校准 🔄（🚨 v2.2 新增）
+### Phase 1.5: Dynamic Outline Calibration 🔄 (🚨 v2.2 new)
 
-> **竞品对标**：Anthropic lead agent 定期评估搜索轨迹是否对齐原始查询；OpenAI/Gemini 支持 mid-flight 重规划。Pipeline 型系统的最大弱点就是大纲一次固定后无法调整。
-
-```
-目标：Phase 1 发现的真实子话题若有重大偏差，调整报告大纲
-
-触发条件：Phase 1 实际发现的子话题与 Phase 0.3 大纲偏差 >30%
-
-操作：
-  1. 对比「Phase 0.2.5 侦查简报的子话题」vs「Phase 1 实际发现的新子话题」
-  2. 如有显著偏差：
-     ├─ 输出调整后大纲（标注"🔧 以下章节已根据 Phase 1 发现调整"）
-     └─ 标注新增/删除/合并的章节
-  3. Phase 5 报告结构跟随调整后大纲（非 Phase 0.3 原大纲）
-
-  ⚠️ 规则：
-    - 偏差 <30%：无需调整，直接进入 Phase 2
-    - 偏差 30-50%：自动调整 + 一行通知
-    - 偏差 >50%：询问用户确认
-```
-
-### Phase 2：深度研读 + 数据分析 🧠
-
-> **对标 OpenAI Deep Research + Manus** — 逐源精读、代码分析
+> **Competitor benchmarking**: Anthropic lead agent periodically evaluates whether search trajectory aligns with original query; OpenAI/Gemini support mid-flight re-planning. Pipeline-type systems' biggest weakness is that the outline, once fixed, cannot be adjusted.
 
 ```
-目标：对已获取的 ✅ 充分来源进行逐源精读，提取结构化信息
+Goal: If actual sub-topics discovered in Phase 1 deviate significantly, adjust the report outline
 
-  2a：逐源精读（🚨 v2.1 新增结构化提取模板）
-    对 Phase 1 中 ✅ 标记的每个来源，再次抓取全文：
-      future tools call fetch_url --url "..." ⚠️ 同样适用抓取降级规则：空内容用 browser 重试
-    ⚠️ 同样适用补抓规则：精读时发现内容不够 → 回到 Phase 1b 补抓
+Trigger condition: Deviation between Phase 1 actual discovered sub-topics and Phase 0.3 outline >30%
 
-    对每个来源，在下文中记录（非输出给用户，而是内部笔记）：
-      📄 来源提取卡：
-        ├─ 标题/URL/日期/Tier
-        ├─ 🔑 核心论点（1-2句）
-        ├─ 📊 关键数据点（逐条，每条标注精确段落）
-        ├─ 💬 可直接引用的原文段落（1-3段）
-        ├─ ⚠️ 方法/立场限定（该来源的局限性或偏见）
-        └─ 🔗 与其他来源的关系（矛盾/一致/补充）
+Action:
+  1. Compare "Phase 0.2.5 reconnaissance brief sub-topics" vs "Phase 1 actually discovered new sub-topics"
+  2. If significant deviation:
+     ├─ Output adjusted outline (mark "🔧 The following chapters have been adjusted based on Phase 1 findings")
+     └─ Note which chapters were added/deleted/merged
+  3. Phase 5 report structure follows the adjusted outline (not the Phase 0.3 original outline)
 
-  2a'：多源去重协议（v2.1 新增）
-    当多个来源报告同一事实时：
-      ├─ 按优先级选择引用源：Tier1 > 更新 > 数据更精确
-      ├─ 在报告中标注：「此数据被 N 个独立来源确认 [主引用源, URL]」
-      └─ 不要重复罗列每个来源 — 用数量表示共识强度，减少冗余
-
-  2b：量化数据分析（策略C + 用户有数据时）
-    ├─ 使用 Python 进行：
-    │   ├─ 从网页/PDF 提取表格数据
-    │   ├─ 数值计算与统计分析
-    │   ├─ 趋势图/对比图生成
-    │   └─ 自定义数据建模
-    └─ 分析结果 + 可视化
-
-  2c：学术深度挖掘
-    ├─ future tools call get_paper --paper_id "..." └─ 提取：方法、结果、局限性
-
-  2d：多媒体补充（策略C + 按需）
-    └─ 图片分析：通过 future-image 进行 OCR/图表理解
-
-输出: 《深度研读笔记》— 核心发现 + 精确引证 + 🔴 疑点清单
+  ⚠️ Rules:
+    - Deviation <30%: no adjustment needed, proceed directly to Phase 2
+    - Deviation 30-50%: auto-adjust + one-line notification
+    - Deviation >50%: ask user for confirmation
 ```
 
-### Phase 3：交叉验证 + 引证校验 🔬
+### Phase 2: Deep Reading + Data Analysis 🧠
 
-> **核心差异化功能** — 对标 Gemini 四层验证 + 引证幻觉检测
-
-```
-目标：确保信息可靠，检测引证幻觉
-
-  3a：跨源事实校验
-    ├─ 每个"关键事实"在多来源间比对
-    ├─ 一致 → ✅ 高置信度（标注"X个独立来源确认"）
-    ├─ 细微差异 → ⚠️ 需注意（标注差异范围，如"$0.28 vs $0.30/M"）
-    └─ 矛盾 → 🔴 争议点（列出各方观点及各自来源）
-
-  3b：引证幻觉检测（🚨 核心差异化功能）
-    ├─ 对每条引证检查：
-    │   ├─ URL 是否可访问
-    │   ├─ 来源是否真的包含所引内容
-    │   └─ 是否有断章取义或歪曲原意
-    └─ ⚠️ 可疑的用 browser 重试确认
-
-  3c：置信度综合标注
-    └─ 来源数量 + 权威性 + 一致性 → 🔴 高 / 🟡 中 / ⚪ 低
-
-输出: 《验证报告》— 置信度标注嵌入最终报告
-  ✅ 已验证: X条 | ⚠️ 需注意: X条 | 🔴 争议: X条 | 🚨 可疑引证: X条
-  ✅ 已验证: X条 | ⚠️ 需注意: X条 | 🔴 争议: X条 | 🚨 可疑引证: X条
-```
-
-### Phase 4：迭代优化（可选）🔄
-
-> 当用户选择"阶段性汇报"或"节点介入"模式时，在每个 Phase 完成后汇报进展
+> **Benchmarking OpenAI Deep Research + Manus** — source-by-source deep reading, code analysis
 
 ```
-触发条件：
-  ├─ 用户选择了"阶段性汇报"或"节点介入"模式 → Phase 结束时自动简报
-  ├─ 发现重大争议需用户决策
-  ├─ 某个方向信息不足
-  └─ 用户主动说"查一下XXX"
+Goal: Conduct source-by-source deep reading of ✅ adequate sources obtained, extract structured information
 
-用户可操作：
-  ├─ "这个部分再深入查一下XXX"
-  ├─ "换个搜索关键词YYY"
-  ├─ "这组数据冲突了，我更倾向于A方观点"
-  └─ "这个方向够了，跳过继续"
+  2a: Source-by-Source Deep Reading (🚨 v2.1 new structured extraction template)
+    For each source marked ✅ in Phase 1, re-fetch full text:
+      future tools call fetch_url --url "..."
+    ⚠️ Same fetch fallback rules apply: empty content → retry with browser
+    ⚠️ Same backfill rules apply: if deep reading finds insufficient content → go back to Phase 1b backfill
+
+    For each source, record below (internal notes, not output to user):
+      📄 Source Extraction Card:
+        ├─ Title/URL/Date/Tier
+        ├─ 🔑 Core Argument (1-2 sentences)
+        ├─ 📊 Key Data Points (itemized, each annotated with exact paragraph)
+        ├─ 💬 Directly Quotable Original Paragraphs (1-3 paragraphs)
+        ├─ ⚠️ Method/Stance Limitations (limitations or biases of this source)
+        └─ 🔗 Relationship with other sources (contradicts/consistent with/supplements)
+
+  2a': Multi-Source Deduplication Protocol (v2.1 new)
+    When multiple sources report the same fact:
+      ├─ Choose citation source by priority: Tier1 > newer > more precise data
+      ├─ In report, annotate: "This data is confirmed by N independent sources [primary citation source, URL]"
+      └─ Don't repetitively list each source — use count to indicate consensus strength, reduce redundancy
+
+  2b: Quantitative Data Analysis (Strategy C + when user has data)
+    ├─ Use Python for:
+    │   ├─ Extracting table data from web pages/PDFs
+    │   ├─ Numerical computation and statistical analysis
+    │   ├─ Trend charts/comparison chart generation
+    │   └─ Custom data modeling
+    └─ Analysis results + visualizations
+
+  2c: Academic Deep Dive
+    ├─ future tools call get_paper --paper_id "..."
+    └─ Extract: methods, results, limitations
+
+  2d: Multimedia Supplement (Strategy C + as needed)
+    └─ Image analysis: OCR/chart comprehension via future-image
+
+Output: "Deep Reading Notes" — core findings + precise citations + 🔴 suspicious items list
 ```
 
-### 阶段性进度心跳（v2.1 新增）💓
+### Phase 3: Cross-Validation + Citation Verification 🔬
 
-> **AI 必须在每个 Phase 完成后输出一行进度。**
-> 这防止了研究过程「黑箱化」——用户盯着空白等待不知道进行到哪了。
-
-```
-进度心跳格式（每个 Phase 结束后一行）：
-
-✅ Phase 0 完成 | 预提纲侦查发现 X 个子话题 | 大纲已确认
-🚀 Phase 1 启动 | 搜索 X 个关键词中...
-✅ Phase 1 完成 | 捕获 Y 个来源 (T1: a, T2: b, T3: c) | 🔄 补抓 Z 轮
-🚀 Phase 2 启动 | 逐源精读中...
-✅ Phase 2 完成 | 精读 N 个来源 | 提取 M 个关键数据点
-🚀 Phase 3 启动 | 交叉验证中
-✅ Phase 3 完成 | 验证 P 条事实 | 发现 Q 处需注意 | R 处争议
-🚀 Phase 5 启动 | 生成报告中...
-✅ Phase 5 完成 | 报告已保存: deep-research-<topic>-<date>.md
-```
-
-**⚠️ 规则**：
-- 每行附带简要统计
-- **绝不跳过** — 这是最低限度的用户可见进度
-
-### Phase 5：报告综合生成 + 差距标记 ✍️
-
-> **v2.4 核心原则：报告是一个「分析故事」，不是数据表格的堆砌。**
-> 读者应该能像读一篇深度分析文章一样流畅地看完，而不是被迫解析一个又一个表格和项目符号。
+> **Core differentiating feature** — benchmarking Gemini's four-layer verification + citation hallucination detection
 
 ```
-目标：综合所有成果，生成完整的、有叙事张力的、可追溯的分析报告
+Goal: Ensure information reliability, detect citation hallucinations
 
-─── 5.0：报告写作风格指南（🚨 v2.4 新增）───
+  3a: Cross-Source Fact Verification
+    ├─ Compare each "key fact" across multiple sources
+    ├─ Consistent → ✅ High confidence (annotate "confirmed by X independent sources")
+    ├─ Minor differences → ⚠️ Note (annotate difference range, e.g., "$0.28 vs $0.30/M")
+    └─ Contradiction → 🔴 Controversy point (list each side's view and respective sources)
 
-  核心要求：每一章读起来都应该是叙述性分析，而非数据罗列。
+  3b: Citation Hallucination Detection (🚨 Core differentiating feature)
+    ├─ Check each citation:
+    │   ├─ Is the URL accessible
+    │   ├─ Does the source actually contain the cited content
+    │   └─ Is there quoting out of context or distortion of original meaning
+    └─ ⚠️ Suspicious ones retry confirmation with browser
 
-  ❌ 禁止的写法：
-    ├─ 连续3个以上表格之间无过渡段落
-    ├─ 章节以表格或项目符号开头（必须先用一段叙述引入）
-    ├─ 「数据孤岛」：罗列数字但不解释含义、不建立关联
-    ├─ 无上下文的「裸数据」段落
-    └─ 全篇 bullet-to-bullet 跳转，缺乏叙事主线
+  3c: Confidence-Level Comprehensive Annotation
+    └─ Source count + authority + consistency → 🔴 High / 🟡 Medium / ⚪ Low
 
-  ✅ 每章必须有的结构模式：
+Output: "Verification Report" — confidence annotations embedded in final report
+  ✅ Verified: X items | ⚠️ Needs attention: X items | 🔴 Controversial: X items | 🚨 Suspicious citations: X items
+```
 
-    [叙述开段] 用 2-4 句自然语言概括本章要讲什么、为什么重要。
+### Phase 4: Iterative Optimization (Optional) 🔄
+
+> When user selects "phase-by-phase reporting" or "checkpoint intervention" mode, report progress after each Phase
+
+```
+Trigger conditions:
+  ├─ User selected "phase-by-phase reporting" or "checkpoint intervention" mode → auto-brief at Phase end
+  ├─ Major controversy found requiring user decision
+  ├─ A direction has insufficient information
+  └─ User proactively says "look deeper into XXX"
+
+User actions:
+  ├─ "Dig deeper into this part about XXX"
+  ├─ "Change search keyword to YYY"
+  ├─ "This set of data conflicts; I'm leaning towards side A's view"
+  └─ "This direction is enough, skip and continue"
+```
+
+### Phase Progress Heartbeats (v2.1 new) 💓
+
+> **AI MUST output one line of progress after each Phase completes.**
+> This prevents the research process from becoming a "black box" — user staring at blank waiting without knowing what's happening.
+
+```
+Progress heartbeat format (one line after each Phase ends):
+
+✅ Phase 0 complete | Pre-outline reconnaissance found X sub-topics | Outline confirmed
+🚀 Phase 1 starting | Searching X keywords...
+✅ Phase 1 complete | Captured Y sources (T1: a, T2: b, T3: c) | 🔄 Backfill Z rounds
+🚀 Phase 2 starting | Source-by-source deep reading...
+✅ Phase 2 complete | Deep-read N sources | Extracted M key data points
+🚀 Phase 3 starting | Cross-validating...
+✅ Phase 3 complete | Verified P facts | Found Q items needing attention | R controversies
+🚀 Phase 5 starting | Generating report...
+✅ Phase 5 complete | Report saved: deep-research-<topic>-<date>.md
+```
+
+**⚠️ Rules**:
+- Each line includes brief statistics
+- **Never skip** — this is the minimum level of user-visible progress
+
+### Phase 5: Comprehensive Report Generation + Gap Marking ✍️
+
+> **v2.4 core principle: The report is an "analytical story", not a pile of data tables.**
+> Readers should be able to read it smoothly like an in-depth analytical article, not be forced to parse one table and bullet list after another.
+
+```
+Goal: Synthesize all results, generate a complete, narratively compelling, traceable analytical report
+
+─── 5.0: Report Writing Style Guide (🚨 v2.4 new) ───
+
+  Core requirement: Every chapter should read as narrative analysis, not data dumps.
+
+  ❌ Forbidden patterns:
+    ├─ 3+ consecutive tables without transitions between them
+    ├─ Chapters starting with tables or bullet points (must introduce with a narrative paragraph first)
+    ├─ "Data silos": listing numbers without explaining meaning or establishing connections
+    ├─ "Naked data" paragraphs without context
+    └─ Entire report of bullet-to-bullet jumps, lacking a narrative thread
+
+  ✅ Required structure pattern for every chapter:
+
+    [Narrative opening] 2-4 sentences in natural language summarizing what this chapter covers and why it matters.
         ↓
-    [展开分析] 用连贯段落展开论证。数据嵌入叙述中 —
-        例：❌ "价格：GPT-5.2 $1.75/M, Claude $5/M, DeepSeek $0.28/M"
-            ✅ "价格鸿沟令人瞩目。OpenAI 最新的 GPT-5.2 输入定价为 $1.75
-                每百万 token，Anthropic 的 Claude Opus 4.6 紧随其后收 $5 —
-                而 DeepSeek 仅需 $0.28，不到 OpenAI 的六分之一。"
+    [Developed analysis] Coherent paragraphs developing the argument. Data embedded in narrative —
+        e.g., ❌ "Price: GPT-5.2 $1.75/M, Claude $5/M, DeepSeek $0.28/M"
+             ✅ "The price gap is striking. OpenAI's latest GPT-5.2 charges $1.75
+                 per million input tokens, Anthropic's Claude Opus 4.6 follows at $5 —
+                 while DeepSeek needs only $0.28, less than one-sixth of OpenAI's price."
         ↓
-    [支撑表格] 仅在需要精确对比多个维度时使用表格，且表格前后必须有解释文字：
-        ├─ 表格前：一段话说明「下表展示了什么、为什么看这个维度」
-        └─ 表格后：一段话提炼关键洞察（「从表中可以看出，最显著的 gap 是...」）
+    [Supporting tables] Use tables only when precise comparison across multiple dimensions is needed, and tables must have explanatory text before and after:
+        ├─ Before table: a paragraph explaining "what the table below shows, why look at this dimension"
+        └─ After table: a paragraph distilling key insights ("From the table, the most notable gap is...")
         ↓
-    [过渡句] 每个小节结尾 1-2 句自然过渡到下一节
+    [Transition sentence] 1-2 sentences at the end of each subsection naturally transitioning to the next
 
-  📊 表格使用约束：
-    ├─ 每个表格 ≤ 6 列（超过则拆分为多个表或用叙述替代）
-    ├─ 每个表格 ≤ 10 行（超过则只展示 top/bottom N 并说明「完整数据见附录」）
-    ├─ 两个表格之间必须有 ≥1 段叙述文字
-    └─ 表格标题必须是「分析性标题」而非「描述性标题」
-        ├─ ❌ 「表1：各家定价」
-        └─ ✅ 「定价鸿沟：同一任务在不同厂商的成本可能差 6000 倍」
+  📊 Table usage constraints:
+    ├─ Each table ≤ 6 columns (if exceeds, split into multiple tables or use narrative instead)
+    ├─ Each table ≤ 10 rows (if exceeds, show only top/bottom N and note "full data in appendix")
+    ├─ Two tables must have ≥1 paragraph of narrative text between them
+    └─ Table captions must be "analytical titles" not "descriptive titles"
+        ├─ ❌ "Table 1: Vendor Pricing"
+        └─ ✅ "The Pricing Gap: The same task can cost 6000× more depending on the vendor"
 
-  📝 项目符号使用约束：
-    ├─ 任何项目符号列表必须由一段引入文字开头
-    ├─ 避免超过 8 个项目的裸列表 — 长列表应分组并在组间插入小标题
-    ├─ 项目符号内容必须是完整句子，不是单一名词/短语
-    └─ 如果某个列表可以改写成连贯段落 → 就改写成段落
+  📝 Bullet point usage constraints:
+    ├─ Any bullet list must be introduced by an opening paragraph
+    ├─ Avoid bare lists with more than 8 items — long lists should be grouped with sub-headings between groups
+    ├─ Bullet point content must be complete sentences, not single nouns/phrases
+    └─ If a list can be rewritten as a coherent paragraph → rewrite as a paragraph
 
-  📖 执行摘要特殊性：
-    ├─ 执行摘要应该是能独立阅读的「mini 报告」
-    ├─ 包含：核心问题 → 关键发现（每个 1-2 句）→ 主要结论
-    ├─ 不依赖任何表格 — 所有数据用文字叙述
-    └─ 长度：报告总字数的 10-15%
+  📖 Executive Summary Specifics:
+    ├─ The executive summary should be a "mini report" readable independently
+    ├─ Contains: core questions → key findings (1-2 sentences each) → main conclusions
+    ├─ Does not rely on any tables — all data conveyed through narrative text
+    └─ Length: 10-15% of total report word count
 
-  🔗 引证融入方式：
-    ├─ 引证嵌入叙述中：不是 "价格差异大 [1][2][3]"，
-    │   而是 "IntuitionLabs 2025 年的全面对比 [1] 与 Anthropic
-    │   官方定价文档 [2] 都确认了这一趋势"
-    └─ 首次提及一个来源时给出足够的上下文让读者判断权威性
+  🔗 Citation Integration Method:
+    ├─ Citations embedded in narrative: not "prices differ greatly [1][2][3]",
+    │   but "IntuitionLabs' 2025 comprehensive comparison [1] and Anthropic's
+    │   official pricing documentation [2] both confirm this trend"
+    └─ On first mention of a source, give enough context for the reader to assess authority
 
-  🎯 黄金比例（每章内）：
-    ├─ ~50% 连贯叙述段落（分析、解释、论证）
-    ├─ ~25% 图表/表格（支持叙述的数据可视化）
-    ├─ ~25% 项目符号列表（结构化要点，不是数据倾泻）
-    └─ 如果列表+表格 > 叙述 → 这章不合格，需要重写
+  🎯 Golden ratio (within each chapter):
+    ├─ ~50% coherent narrative paragraphs (analysis, explanation, argumentation)
+    ├─ ~25% charts/tables (data visualization supporting the narrative)
+    ├─ ~25% bullet point lists (structured key points, not data dumping)
+    └─ If lists + tables > narrative → this chapter fails and needs rewriting
 
-─── 5.1：报告结构 ───
+─── 5.1: Report Structure ───
 
-报告结构（v2.4 强调：结构服务于叙事，而非反过来）。
+Report structure (v2.4 emphasis: structure serves narrative, not the reverse).
 
-必备章节（任何报告都必须包含）：
-  ├─ 🔖 元信息（主题、日期、策略、来源统计）
-  ├─ 📋 执行摘要（含置信度总览）
-  ├─ 📑 目录
-  ├─ 结论与建议
-  ├─ 📚 参考资料（分类：网络/论文/文档）
-  └─ 📎 附录
-      ├─ 引证验证报告（🚨 所有可疑引证列出）
-      ├─ 抓取降级记录
-      └─ 研究方法说明
+Required chapters (every report must include):
+  ├─ 🔖 Meta Information (topic, date, strategy, source statistics)
+  ├─ 📋 Executive Summary (with confidence overview)
+  ├─ 📑 Table of Contents
+  ├─ Conclusions & Recommendations
+  ├─ 📚 References (categorized: web/papers/documents)
+  └─ 📎 Appendix
+      ├─ Citation Verification Report (🚨 all suspicious citations listed)
+      ├─ Fetch Fallback Records
+      └─ Research Methodology Notes
 
-按需章节（取决于侦查发现的子话题和内容性质）：
-  ├─ 背景与上下文（当话题需要历史脉络时必加）
-  ├─ 核心发现 — [[拆分为多个子章节，每个子章节对应一个侦查发现的子话题]]
-  │   └─ inline 引证 🔗：每个数据点标注 [来源, URL] 格式
-  ├─ 争议与分歧（仅当侦查确实发现争议时，否则标注「未发现显著争议」）
-  ├─ 数据与量化分析（仅当有量化数据时）
-  ├─ 未知领域与研究局限（Known Unknowns）
-  └─ 趋势与展望
+Conditional chapters (depends on sub-topics discovered in reconnaissance and content nature):
+  ├─ Background & Context (required when topic needs historical context)
+  ├─ Core Findings — [[split into multiple sub-chapters, each corresponding to a reconnaissance-discovered sub-topic]]
+  │   └─ inline citations 🔗: each data point annotated with [source, URL] format
+  ├─ Controversies & Divergence (only when reconnaissance actually found controversies; otherwise mark "No significant controversies found")
+  ├─ Data & Quantitative Analysis (only when quantitative data exists)
+  ├─ Known Unknowns & Research Limitations
+  └─ Trends & Outlook
 
-🔥 报告命名规则：
-  ├─ 所有报告必须带有日期 → deep-research-<topic>-<YYYY-MM-DD>.md
-  └─ 防止覆盖旧报告
+🔥 Report Naming Convention:
+  ├─ All reports must include date → deep-research-<topic>-<YYYY-MM-DD>.md
+  └─ Prevents overwriting old reports
 
-多格式导出：
-  ├─ 📝 Markdown（默认）
-  └─ 📄 PDF（可选）
+Multi-format export:
+  ├─ 📝 Markdown (default)
+  └─ 📄 PDF (optional)
 
-输出: deep-research-<topic>-<YYYY-MM-DD>.md
+Output: deep-research-<topic>-<YYYY-MM-DD>.md
 ```
 
-### Phase 5.1：LLM-as-Judge 报告自评 🧪（🚨 v2.2 新增）
+### Phase 5.1: LLM-as-Judge Report Self-Assessment 🧪 (🚨 v2.2 new)
 
-> **竞品对标**：Anthropic 使用统一 LLM-Judge 对每份研究报告评分五维度（factual / citation / completeness / source / efficiency）。DeepHalluBench 研究证实中间步骤错误在端到端评测中不可见。
-
-```
-目标：对最终报告做质量自评，嵌入可信度信号
-
-操作：
-  用 LLM 对最终报告评分，四个维度（0-1分）：
-    - factual_accuracy：关键数据点是否被来源支撑
-    - citation_accuracy：引用是否真实可访问
-    - completeness：子话题是否全覆盖
-    - source_quality：来源权威性分布
-
-  在报告「执行摘要」开头嵌入一行自评：
-    🟢 合格 / 🟡 需注意 / 🔴 存疑
-
-  详细分数嵌入执行摘要元信息：
-    自评总分 X.XX | 事实 X.X / 引用 X.X / 完整度 X.X / 来源 X.X
-
-  规则：
-    - 总分 ≥0.75 → 🟢 "本报告自评通过"
-    - 总分 0.5-0.75 → 🟡 "本报告存在需注意项，请核实关键数据点"
-    - 总分 <0.5 → 🔴 "本报告置信度较低，建议人工审阅"
-    - 单项 <0.6 → 在对应章节标注 "⚠️ 低置信度 [维度]"
-
-  策略差异：
-    - 策略A：跳过自评（快速扫描不需要）
-    - 策略B：仅评分（不嵌入详细分解）
-    - 策略C：完整四维度评分 + 嵌入
-```
-
-### Phase 5.2：引用抽查 🔍（🚨 v2.2 新增）
-
-> **竞品对标**：Anthropic CitationAgent 在报告起草后独立验证每条引用。Perplexity 原生 grounded retrieval 实现 94.3% 引用精度。
+> **Competitor benchmarking**: Anthropic uses a unified LLM-Judge scoring five dimensions (factual / citation / completeness / source / efficiency) for every research report. DeepHalluBench research confirms intermediate-step errors are invisible in end-to-end evaluation.
 
 ```
-目标：保障关键引用的真实性
+Goal: Self-assess the final report's quality, embed credibility signals
 
-操作：
-  1. 从报告中抽取 5 条关键引用（最重要的数据/事实的来源）
-  2. 逐一验证：
-     - URL 是否可访问
-     - 内容是否真的包含所引用的信息
-  3. 输出抽查结果：
-     ✅ 5/5 通过
-     ⚠️ X/5 通过 (列出未通过的引用和原因)
+Action:
+  Use LLM to score the final report on four dimensions (0-1 scale):
+    - factual_accuracy: Are key data points supported by sources
+    - citation_accuracy: Are citations real and accessible
+    - completeness: Are sub-topics fully covered
+    - source_quality: Source authority distribution
 
-  规则：
-    - 不合格率 ≤20%（≤1条）→ ✅ 正常
-    - 不合格率 20-40%（2条）→ ⚠️ 在报告中标注
-    - 不合格率 >40%（≥3条）→ 🚨 提示用户"关键引用验证不通过，建议审阅"
+  Embed a one-line self-assessment at the start of the report's "Executive Summary":
+    🟢 Pass / 🟡 Needs Attention / 🔴 Dubious
 
-  策略差异：
-    - 策略A/B：跳过
-    - 策略C：必须执行
+  Detailed scores embedded in executive summary meta info:
+    Self-assessment total X.XX | Factual X.X / Citation X.X / Completeness X.X / Source X.X
+
+  Rules:
+    - Total ≥0.75 → 🟢 "This report self-assesses as passing"
+    - Total 0.5-0.75 → 🟡 "This report has items requiring attention; please verify key data points"
+    - Total <0.5 → 🔴 "This report has low confidence; manual review recommended"
+    - Individual dimension <0.6 → annotate corresponding chapter with "⚠️ Low confidence [dimension]"
+
+  Strategy differences:
+    - Strategy A: skip self-assessment (quick scan doesn't need it)
+    - Strategy B: score only (don't embed detailed breakdown)
+    - Strategy C: full four-dimension scoring + embedding
+```
+
+### Phase 5.2: Citation Spot Check 🔍 (🚨 v2.2 new)
+
+> **Competitor benchmarking**: Anthropic CitationAgent independently verifies every citation after report drafting. Perplexity's native grounded retrieval achieves 94.3% citation precision.
+
+```
+Goal: Ensure authenticity of key citations
+
+Action:
+  1. Extract 5 key citations from the report (sources of the most important data/facts)
+  2. Verify each:
+     - Is the URL accessible
+     - Does the content actually contain the cited information
+  3. Output spot check results:
+     ✅ 5/5 passed
+     ⚠️ X/5 passed (list failed citations and reasons)
+
+  Rules:
+    - Failure rate ≤20% (≤1 item) → ✅ normal
+    - Failure rate 20-40% (2 items) → ⚠️ annotate in report
+    - Failure rate >40% (≥3 items) → 🚨 alert user "Key citation verification failed; review recommended"
+
+  Strategy differences:
+    - Strategy A/B: skip
+    - Strategy C: must execute
 ```
 
 ---
 
-## 四、双层停止机制 + 补抓上限
+## 4. Dual Stopping Mechanism + Backfill Cap
 
 ```
          Phase 1 → Phase 2 → Phase 3 → Phase 4 ...
                           │
               ┌───────────┴────────────┐
               ▼                        ▼
-    Coverage-Based 停止         Budget-Based 停止
+    Coverage-Based Stopping       Budget-Based Stopping
     ┌────────────────────────┐  ┌──────────────────────┐
-    │ • 每子话题 ≥2 个充分来源│  │ • 时间上限             │
-    │ • 无新信息出现          │  │ • 搜索次数上限          │
-    │ • 矛盾已解决            │  │ • 页面读取上限          │
-    │ • 置信度达标            │  │ • 推理迭代上限          │
-    │ • 补抓轮次 ≥3（防死循环）│  │ • 补抓轮次上限 = 3 轮  │
+    │ • Each sub-topic ≥2    │  │ • Time cap            │
+    │   adequate sources     │  │ • Search count cap    │
+    │ • No new info emerging │  │ • Page fetch cap      │
+    │ • Contradictions       │  │ • Reasoning iter cap  │
+    │   resolved             │  │ • Backfill round cap  │
+    │ • Confidence met       │  │   = 3 rounds          │
+    │ • Backfill rounds ≥3   │  │                       │
+    │   (prevent infinite)   │  │                       │
     └────────────────────────┘  └──────────────────────┘
               │                        │
               └──────────┬─────────────┘
                          ▼
-               ✅ 正常结束 → Phase 5 报告生成
-               ⚠️ 预算/补抓轮次达到 → 部分报告 + 标记"该子话题信息有限"
+               ✅ Normal completion → Phase 5 report generation
+               ⚠️ Budget/backfill rounds reached → partial report + mark "this sub-topic has limited information"
 ```
 
 ---
 
-## 五、抓取降级 + 内容补抓策略 ⚠️
+## 5. Fetch Fallback + Content Backfill Strategy ⚠️
 
-这是 `fetch_url` 可能返回空内容或内容不足时的核心兜底方案。
+This is the core fallback plan for when `fetch_url` may return empty content or insufficient content.
 
-### 内容充分性检查标准
+### Content Adequacy Check Criteria
 
-每次抓取后，自动进行以下检查：
+After each fetch, automatically perform the following checks:
 
-| 检查项 | 判定标准 | 结论 |
-|--------|----------|:----:|
-| content 为空字符串 | `content == ""` | ❌ 空内容 |
-| content 长度不足 | `< 200 字` | ⚠️ 内容过短 |
-| 与主题相关性 | 内容与搜索目标无关 | ⚠️ 低相关性 |
-| 以上均通过 | - | ✅ 内容充分 |
+| Check Item | Criterion | Result |
+|-----------|-----------|:------:|
+| content is empty string | `content == ""` | ❌ empty content |
+| content length insufficient | `< 200 chars` | ⚠️ content too short |
+| topic relevance | content unrelated to search target | ⚠️ low relevance |
+| all above pass | - | ✅ content adequate |
 
-### 抓取循环流程
+### Fetch Loop Flow
 
 ```
-抓取一个 URL
+Fetch a URL
     │
     ▼
-内容充分性检查
+Content adequacy check
     │
-    ├─ ✅ 内容充分 → 纳入来源池，标记完成
+    ├─ ✅ content adequate → add to source pool, mark complete
     │
-    ├─ ❌ 空内容 → 降级到 browser 重试
+    ├─ ❌ empty content → degrade to browser retry
     │   │
     │   ▼
-    │   browser 抓取后再次检查
+    │   browser crawl → re-check
     │   │
-    │   ├─ ✅ 内容充分 → 纳入来源池
-    │   └─ ❌ 仍为空 → 彻底放弃，记录
+    │   ├─ ✅ content adequate → add to source pool
+    │   └─ ❌ still empty → completely abandon, record
     │
-    └─ ⚠️ 过短/低相关 → browser 降级重试
+    └─ ⚠️ too short/low relevance → browser degradation retry
         │
         ▼
-        browser 抓取后检查
+        browser crawl → check
         │
-        ├─ ✅ 充分 → 纳入
-        └─ ⚠️ 仍不足 → 标记"低质量来源"，记录但不再使用
+        ├─ ✅ adequate → include
+        └─ ⚠️ still insufficient → mark "low-quality source", record but don't use further
 ```
 
-### 子话题补抓循环
+### Sub-Topic Backfill Loop
 
-当某个子话题的 ✅ 充分来源 < 2 个时，自动进入补抓循环：
+When a sub-topic has < 2 ✅ adequate sources, auto-enter backfill loop:
 
 ```
-检查子话题内容覆盖
+Check sub-topic content coverage
     │
-    ├─ ✅ 充分来源 ≥ 2 → 达标，进入下一阶段
+    ├─ ✅ adequate sources ≥ 2 → meets threshold, proceed to next phase
     │
-    └─ ❌ 充分来源 < 2 → 进入补抓
+    └─ ❌ adequate sources < 2 → enter backfill
         │
-        ├─ 策略1️⃣：尝试 Tier 2 中未抓取的 URL
-        │   │   fetch_url → 检查 → 如充分则纳入
-        │   └─ 如果 Tier 2 用完仍不够 →
+        ├─ Strategy 1️⃣: try uncrawled URLs from Tier 2
+        │   │   fetch_url → check → if adequate, include
+        │   └─ if Tier 2 exhausted but still insufficient →
         │
-        ├─ 策略2️⃣：换新关键词补搜
-        │   │   web_search(new_query) → 分级 → 抓取 → 检查
-        │   └─ 如果仍不够 →
+        ├─ Strategy 2️⃣: backfill search with new keywords
+        │   │   web_search(new_query) → tier → crawl → check
+        │   └─ if still insufficient →
         │
-        ├─ 策略3️⃣：换英文/学术源补搜
-        │   │   web_search(en_query) / search_paper(...) → 抓取 → 检查
-        │   └─ 如果仍不够 →
+        ├─ Strategy 3️⃣: switch to English/academic source backfill search
+        │   │   web_search(en_query) / search_paper(...) → crawl → check
+        │   └─ if still insufficient →
         │
-        └─ ⚠️ 所有策略耗尽 → 标记"该子话题信息有限"
+        └─ ⚠️ all strategies exhausted → mark "this sub-topic has limited information"
 ```
 
-### 降级执行命令
+### Fallback Execution Commands
 
 ```bash
-# Step 1: 启动或检查浏览器
-future tools call browser --command "start" --url "<目标URL>" # Step 2: 打开页面
-future tools call browser --command "open" --url "<目标URL>" # Step 3: 等待渲染后获取 DOM 快照
-future tools call browser --command "snapshot" --limit 100 # Step 4: 如需完整页面内容，截图保存
-future tools call browser --command "screenshot" --fullPage true --path "./deep-research-page.png" # Step 5: 检测控制台错误
-future tools call browser --command "console" --level "error" ```
+# Step 1: Start or check browser
+future tools call browser --command "start" --url "<target URL>"
 
-### 降级与补抓记录
+# Step 2: Open page
+future tools call browser --command "open" --url "<target URL>"
 
-在最终报告附录中记录所有降级和补抓情况：
+# Step 3: Wait for render, then get DOM snapshot
+future tools call browser --command "snapshot" --limit 100
+
+# Step 4: If full page content needed, screenshot and save
+future tools call browser --command "screenshot" --fullPage true --path "./deep-research-page.png"
+
+# Step 5: Check console errors
+future tools call browser --command "console" --level "error"
+```
+
+### Fallback & Backfill Records
+
+Record all fallback and backfill actions in the final report appendix:
 
 ```markdown
-### ⚠️ 抓取降级与补抓记录
+### ⚠️ Fetch Fallback & Backfill Records
 
-#### 降级记录
-| URL | Tier | 首次结果 | 降级方式 | 降级后结果 |
-|-----|:----:|:--------:|:--------:|:---------:|
-| https://... | 1 | ❌ 空内容 | browser | ✅ 成功 |
-| https://... | 1 | ⚠️ 过短 | browser | ✅ 成功 |
-| https://... | 1 | ❌ 空内容 | browser | ❌ 仍失败 |
+#### Fallback Records
+| URL | Tier | First Result | Fallback Method | Post-Fallback Result |
+|-----|:----:|:------------:|:--------------:|:--------------------:|
+| https://... | 1 | ❌ empty | browser | ✅ success |
+| https://... | 1 | ⚠️ too short | browser | ✅ success |
+| https://... | 1 | ❌ empty | browser | ❌ still failed |
 
-#### 补抓轮次
-| 轮次 | 触发原因 | 补抓策略 | 新增 ✅ 来源 | 状态 |
-|:----:|----------|:--------:|:-----------:|:----:|
-| 1 | 子话题A仅1个来源 | 策略1: Tier2 | +2 | ✅ 达标 |
-| 2 | 子话题B仅0个来源 | 策略2: 新关键词 | +1 | ⚠️ 仍有限 |
-| 3 | 子话题B仍不足 | 策略3: 英文搜索 | +1 | ⚠️ 标记有限 |
+#### Backfill Rounds
+| Round | Trigger Reason | Backfill Strategy | New ✅ Sources | Status |
+|:-----:|----------------|:-----------------:|:------------:|:------:|
+| 1 | Sub-topic A only 1 source | Strategy 1: Tier2 | +2 | ✅ met threshold |
+| 2 | Sub-topic B only 0 sources | Strategy 2: new keywords | +1 | ⚠️ still limited |
+| 3 | Sub-topic B still insufficient | Strategy 3: English search | +1 | ⚠️ marked limited |
 ```
 
 ---
 
-## 六、竞品对标清单
+## 6. Competitor Benchmarking Reference
 
-本技能的设计参考了以下竞品的优势，并针对其短板进行了优化：
+This skill's design references the strengths of the following competitors and optimizes against their weaknesses:
 
-| 竞品 | 借鉴的优势 | 规避的短板 |
-|:----:|-----------|-----------|
-| **OpenAI Deep Research** | 五阶段流程、双层停止、inline 引证、代码分析 | 速度慢、中期不能干预 → 我们的三策略选择 + Phase 4 迭代优化 |
-| **Perplexity Sonar Pro** | 快速引文探索、高引证密度、来源分级 | 深度推理偏弱 → 我们的 Phase 2 精读 + Phase 3 深度验证 |
-| **Gemini Deep Research** | 100+页面阅读、四层交叉验证管线 | 信息密度低 → 我们的差距分析 + 置信度标注 |
-| **Manus** | Tool Use 能力（代码执行、文件操作） | Instruction Following 不稳定 → 我们的固定报告模板 |
-| **GPT Researcher** | 开源可定制、多 Agent 架构、本地文档 | 无专用推理模型 → 由底层模型能力保证 |
-| **LangChain Open Deep Research** | MCP 支持、多搜索提供商、模块化 | 无 UX 需自建 → 我们提供完整的编排指令 |
-| **STORM (Stanford)** | 多视角大纲、引证完整、预写阶段分离 | 仅偏综述 → 我们覆盖通用研究场景 |
-
----
+| Competitor | Strengths Adopted | Weaknesses Avoided |
+|:----------:|------------------|-------------------|
+| **OpenAI Deep Research** | Five-phase process, dual stopping, inline citations, code analysis | Slow, no mid-phase intervention → our three-strategy choice + Phase 4 iterative optimization |
+| **Perplexity Sonar Pro** | Fast citation exploration, high citation density, source tiering | Weaker deep reasoning → our Phase 2 deep reading + Phase 3 deep verification |
+| **Gemini Deep Research** | 100+ page reading, four-layer cross-validation pipeline | Low information density → our gap analysis + confidence annotation |
+| **Manus** | Tool Use capability (code execution, file operations) | Unstable Instruction Following → our fixed report templates |
+| **GPT Researcher** | Open-source customizable, multi-agent architecture, local docs | No dedicated reasoning model → guaranteed by underlying model capability |
+| **LangChain Open Deep Research** | MCP support, multi-search providers, modular | No UX, must self-build → we provide complete orchestration instructions |
+| **STORM (Stanford)** | Multi-perspective outline, citation completeness, pre-writing phase separation | Review-oriented only → we cover general research scenarios |
 
 ---
 
-> 更新日志已移至 [CHANGELOG.md](./CHANGELOG.md)
+> Changelog moved to [CHANGELOG.md](./CHANGELOG.md)
 
 ---
 
-## 七、核心设计原则
+## 7. Core Design Principles
 
-| 原则 | 说明 |
-|:----:|------|
-| 🎯 **用户主导** | 三策略可选 + 多类型素材导入 + 中期可介入 |
-| 🧠 **分层研究** | 发现层→分析层→质量层，逐层递进 |
-| ✅ **可信赖** | Inline 引证 + 引证验证 + 置信度标注 + 差距标记 |
-| 🛡️ **诚实** | 标记"未知领域"；可疑引证；未完成部分；低置信度章节 |
-| 🔍 **先侦查后规划** | Phase 0.2.5 预提纲侦查：搜索 + 爬取 2-5 个锚定 URL → 大纲源于真实内容 |
-| 🔄 **动态大纲**（v2.2） | Phase 1.5 根据真实发现调整大纲：Pipeline不僵化 |
-| 🧪 **自评闭环**（v2.2） | Phase 5.1 LLM-as-Judge 四维度评分 + 5.2 引用抽查 |
-| 📖 **叙述驱动**（v2.4） | Phase 5 写作风格指南：报告是分析故事，不是数据倾倒；黄金比例 50/25/25 |
-| 📊 **图表约束**（v2.4） | 表格≤6列≤10行，前后必备叙述段落，标题必须是分析性而非描述性 |
-| 📝 **子弹克制**（v2.4） | 项目符号需引入句，内容必须是完整句子，长列表必须分组 |
-| 💓 **全程可见** | 每 Phase 一行进度心跳附带统计，研究过程不黑箱 |
-| ⚠️ **稳健** | fetch_url → browser 降级 + 截断检测 |
-| 🔁 **迭代补抓** | Tier2→新关键词→英文/学术逐级补抓，最多3轮 |
-| 🎯 **内容充分性检查** | 每次抓取：空❌ / 过短⚠️ / 截断⚠️ / 充分✅ |
-| 🔄 **可干预** | Phase 4 中途调整方向 |
-| 🌐 **多语言** | 中英文混合搜索 |
-| 📊 **结构化提取** | Phase 2 每源「来源提取卡」格式 |
-| 🔗 **去重合入** | 多源确认 → "N个来源确认"；不重复罗列 |
+| Principle | Description |
+|:--------:|-------------|
+| 🎯 **User-Led** | Three strategies selectable + multi-type material import + mid-phase intervention |
+| 🧠 **Layered Research** | Discovery layer → Analysis layer → Quality layer, progressively layered |
+| ✅ **Trustworthy** | Inline citations + citation verification + confidence annotation + gap marking |
+| 🛡️ **Honest** | Mark "Known Unknowns"; suspicious citations; incomplete sections; low-confidence chapters |
+| 🔍 **Reconnaissance Before Planning** | Phase 0.2.5 pre-outline reconnaissance: search + crawl 2-5 anchor URLs → outline originates from real content |
+| 🔄 **Dynamic Outline** (v2.2) | Phase 1.5 adjusts outline based on real findings: pipeline is not rigid |
+| 🧪 **Self-Assessment Loop** (v2.2) | Phase 5.1 LLM-as-Judge four-dimension scoring + 5.2 citation spot check |
+| 📖 **Narrative-Driven** (v2.4) | Phase 5 writing style guide: report is an analytical story, not data dumping; golden ratio 50/25/25 |
+| 📊 **Chart Constraints** (v2.4) | Tables ≤6 columns ≤10 rows, narrative paragraphs required before and after, captions must be analytical not descriptive |
+| 📝 **Bullet Discipline** (v2.4) | Bullet points need introductory sentences, content must be complete sentences, long lists must be grouped |
+| 💓 **Fully Visible** | One-line progress heartbeat with statistics per Phase, research process not a black box |
+| ⚠️ **Robust** | fetch_url → browser fallback + truncation detection |
+| 🔁 **Iterative Backfill** | Tier2→new keywords→English/academic progressive backfill, max 3 rounds |
+| 🎯 **Content Adequacy Check** | Per fetch: empty ❌ / too short ⚠️ / truncated ⚠️ / adequate ✅ |
+| 🔄 **Intervention-Friendly** | Phase 4 mid-course direction adjustment |
+| 🌐 **Multi-Language** | Chinese-English mixed search |
+| 📊 **Structured Extraction** | Phase 2 per-source "Source Extraction Card" format |
+| 🔗 **Dedup Merging** | Multi-source confirmation → "N sources confirm"; no repetitive listing |

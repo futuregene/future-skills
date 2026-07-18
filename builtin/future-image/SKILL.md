@@ -3,6 +3,7 @@ version: 1.1.2
 name: future-image
 description: Generate images from text prompts, edit existing images using natural-language instructions, and analyze images (OCR, visual Q&A, object recognition).
 allowed-tools: Bash(future:*)
+category: tools
 ---
 
 > **Authentication is automatic.** The `future` CLI reads your credentials from `~/.future/agent/auth.json`. You do NOT need to find, configure, or pass API keys — just call the tools below.

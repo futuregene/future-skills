@@ -1,11 +1,11 @@
 ---
 name: future-scientific-writing
-version: "0.0.1"
+version: 0.0.2
 description: Core skill for the deep research and writing tool. Write scientific manuscripts in full paragraphs (never bullet points). Use two-stage process with (1) section outlines with key points using research-lookup then (2) convert to flowing prose. IMRAD structure, citations (APA/AMA/Vancouver), figures/tables, reporting guidelines (CONSORT/STROBE/PRISMA), for research papers and journal submissions.
-allowed-tools: Read Write Edit Bash
+allowed-tools: Read Write Edit Bash(future:*)
+category: methodology
 license: MIT license
-required_environment_variables: []
-metadata: {"skill-author": "K-Dense Inc.", "openclaw": {"primaryEnv": "FUTURE_AUTH_CREDENTIAL", "envVars": [{"name": "FUTURE_AUTH_CREDENTIAL", "required": false, "description": "Uses `future auth credential` CLI for API key and endpoint. Run `future auth login` first."}]}}
+metadata: {"skill-author": "K-Dense Inc."}
 ---
 
 # Scientific Writing

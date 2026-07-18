@@ -3,7 +3,7 @@ version: 1.0.1
 name: future-skill-creator
 description: Create or update app-local custom skills under ~/.future/agent/skills (macOS/Linux) or %USERPROFILE%\.future\agent\skills (Windows) using mature skill design patterns: concise SKILL.md instructions, clear triggering descriptions, optional scripts/references/assets, progressive disclosure, validation, and iteration. Use when the user asks to create, scaffold, port, review, improve, or install a custom skill, including requests like "add a skill", "make this a skill", "create my own skill", "update SKILL.md", or "创建技能".
 allowed-tools: Bash(future:*)
-category: development
+category: tools
 ---
 
 # Future Skill Creator
