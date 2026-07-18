@@ -1,5 +1,5 @@
 ---
-version: 2.0.2
+version: 2.0.3
 name: future-slides
 description: Generate presentation slides as images from a Markdown report. Supports 8 curated visual styles (minimal, dark-tech, sketched, corporate, vibrant, research-poster, molecular-aesthetic, data-driven) plus custom style input. Triggered when the user asks to create slides, PPT, or presentation from content.
 allowed-tools: Bash(future:*)
@@ -21,7 +21,7 @@ All image tools are called through `future tools call`.
 
 ```bash
 # Generate a slide image from a prompt.
-# --timeout 600 is REQUIRED: medium quality + Chinese text takes 120–300s, default 60s HTTP timeout will abort.
+# --timeout 600 is REQUIRED: medium quality + Chinese text takes 120–300s; even though the CLI defaults image tools to 600s, larger slides may need more time.
 future tools call image_gen --stdin --output "$WORK_DIR/slide_NN.png" --timeout 600 <<'JSON'
 {
   "prompt": "<SLIDE_PROMPT>",
@@ -380,7 +380,7 @@ Fallback with Pillow when `img2pdf` is unavailable.
 | `unauthorized` / `401` | Auth token missing or expired | Tell the user to run `future auth login` |
 | `403` / `model_access_denied` | Model access denied on the server | Report the access issue; do not retry login |
 | `upstream_request_failed` | Remote image or MCP service unreachable | Retry once, then report |
-| `This operation was aborted` | CLI HTTP timeout (default 60s) exceeded during generation | Regenerate with `--timeout 600` on the `future tools call` command |
+| `This operation was aborted` | CLI HTTP timeout exceeded during generation | Regenerate with `--timeout 600` on the `future tools call` command |
 | `azure_image_transport_failed` | Image transport error (often from `quality: "high"`) | Retry with `quality: "medium"` or `"low"`; high quality is unreliable |
 | `insufficient_credit` | Account balance too low | Tell the user to top up |
 | `429` / rate limit | Too much concurrency | Wait 60s and rerun failed slides one by one |

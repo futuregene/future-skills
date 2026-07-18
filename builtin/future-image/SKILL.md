@@ -1,5 +1,5 @@
 ---
-version: 1.1.3
+version: 1.1.4
 name: future-image
 description: Generate images from text prompts, edit existing images using natural-language instructions, and analyze images (OCR, visual Q&A, object recognition).
 allowed-tools: Bash(future:*)
@@ -101,7 +101,7 @@ When `future tools call` fails, it prints a JSON error object. Parse it to under
 | `azure_image_transport_failed` | Image transport error (often from `quality: "high"`) | Retry with `quality: "medium"`; high quality is unreliable |
 | `Invalid size` / `below minimum pixel budget` | Requested size is below 1024×1024 | Use `size: "1024x1024"` or larger; 1024 is the hard minimum |
 | `Argument list too long` (bash error) | Very long --prompt string exceeds shell ARG_MAX | Use `--stdin` method (see examples above) |
-| `This operation was aborted` (no JSON error) | CLI HTTP timeout (default 60s) exceeded | Regenerate with `--timeout 600` and bash tool `"timeout": 600` |
+| `This operation was aborted` (no JSON error) | CLI HTTP timeout exceeded | Add `--timeout 600` and bash tool `"timeout": 600` |
 
 **Never run `future auth login` unprompted** — the error is almost always something else.
 
