@@ -87,6 +87,14 @@
     "name_zh": "自定义技能创建",
     "description_zh": "在本地创建或更新自定义技能，采用成熟的技能设计模式"
   },
+  "future-software-install": {
+    "category": "tools",
+    "category_zh": "工具",
+    "builtin": true,
+    "enabled": true,
+    "name_zh": "轻量软件安装与镜像配置",
+    "description_zh": "跨 Windows、macOS 和 Linux 安装轻量命令行工具、Chrome 与文档处理库，并提供中国大陆网络镜像策略"
+  },
   "future-slides": {
     "category": "tools",
     "category_zh": "工具",

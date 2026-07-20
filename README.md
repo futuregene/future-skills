@@ -12,7 +12,7 @@ A skill is a lightweight AI instruction package defined by a `SKILL.md` file tha
 
 ```
 future-skills/
-├── builtin/          # FutureOS built-in skills (13)
+├── builtin/          # FutureOS built-in skills (14)
 ├── third-party/      # Curated third-party skills (125)
 ├── skills.json       # Skill metadata configuration
 ├── README.md
