@@ -1,5 +1,5 @@
 ---
-version: 2.0.0
+version: 2.1.0
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -126,9 +126,13 @@ future loop todo add --goal G --text "Copy deliverables to project root" --prior
 5. **Keep cleanup/deletion words out of test-goal objectives** — the run agent
    may execute `goal delete --force` itself if the objective mentions them.
    Delete test goals yourself.
-6. **CLI strictness**: unknown flags and unknown todo-ids are rejected; most
-   subcommands ignore `--help` (`todo update --help` prints usage). Exact flags:
-   `orchestration/loop/src/console.rs` `parse_pairs` call sites.
+6. **CLI strictness**: unknown flags are a hard error (never silently
+   ignored), and unknown todo-ids are rejected. Every subcommand renders its
+   usage on `--help`. All read-only commands accept `--format json` (alias
+   `--json`). A non-numeric `--resume-when` value prints an explicit
+   no-deadline warning. Exact flags: `orchestration/loop/src/console.rs`
+   `parse_pairs` call sites, or `future loop commands` for the grouped
+   operator view.
 7. **`todo archive` does NOT leave the frontier** — it only flips
    `archive_state`, which nothing in the decision/frontier code reads: an
    archived todo stays `open` in `status` and remains runnable by `run`. To
@@ -197,6 +201,17 @@ uncoordinated one-shot. The agent-id is the ONLY mutual-exclusion mechanism:
 - Conflict-avoidance checklist before launching: `agent list` → `ps aux | grep
   "future loop run"` → `status --goal G` → `quota should-run --goal G --agent-id
   <me>` → `lease status --goal G --todo-id T --agent-id <me>`.
+- **Workspace guard (write-conflict protection)**: agents declare the path set
+  they write into via `agent onboard --workspace p1,p2` (comma-separated, like
+  `--capabilities`). Claiming a todo while a peer holds a live lease in an
+  OVERLAPPING declared workspace is refused with a retry hint (degrade to
+  serial) unless you explicitly override: `--force` on `todo claim`,
+  `--force-workspace` on `run`. The guard is advisory and fail-open — an agent
+  that declares no workspaces never blocks (legacy peers keep working).
+  Successful claims by workspace-declaring agents append a
+  `WorkspaceLockAcquired` event, so `agent list` shows who occupies which
+  paths. Declare disjoint workspaces per parallel worker whenever they share a
+  checkout.
 
 ### 6.1 Multi-agent parallel runs
 
@@ -335,6 +350,26 @@ inline:
 future loop todo complete --goal G --todo-id <stale-id> --no-follow-up --evidence "..."
 ```
 
+### 9. Close the loop on deliveries — delivered ≠ verified
+
+Completing an advancement todo records a DELIVERY in the pending `delivered`
+state — not a verified outcome. Resolve every delivery to a terminal outcome:
+
+```bash
+future loop delivery status --goal G [--format json]     # who is delivered / resolved / overdue
+future loop delivery record --goal G --todo-id T --outcome verified|failed|rework [--note "..."]
+```
+
+- A delivery left unverified for 3 turns auto-derives a follow-up todo (the
+  run path does this; `delivery followthrough --goal G [--turns N]` runs the
+  scan manually) — an unverified delivery can never silently age out of the
+  frontier. Fires exactly once per delivery cycle.
+- `rework`/`failed` resolutions should feed a replan (successor todo), not a
+  silent retry of the same todo.
+- Every delivery resolution also auto-records a reward signal
+  (`reward-memory query`); the run path's independent validation receipt is
+  recorded the same way.
+
 ## Key semantics (do not misuse)
 
 - **Terminal ≠ all todos checked.** Completion is validated closure (todos done
@@ -353,6 +388,10 @@ future loop todo complete --goal G --todo-id <stale-id> --no-follow-up --evidenc
   plane readbacks key results.
 - **Deliverables to CWD**: the final todo copies user-facing artifacts to the
   project root.
+- **Delivered ≠ verified**: `todo complete` records a delivery in the pending
+  `delivered` state; an operator/validator must resolve it via
+  `delivery record` (`verified`/`failed`/`rework`). Unverified deliveries
+  auto-derive a follow-up todo after 3 turns (see §9).
 
 ## Command reference
 
@@ -365,44 +404,87 @@ future loop todo claim --goal G --todo-id T --agent-id A [--lease-secs N]
 future loop todo complete --goal G --todo-id T [--no-follow-up | --successor T2] [--evidence "..."]
 future loop todo supersede --goal G --todo-id T --reason "..."
 future loop gate resolve --goal G --todo-id T --decision "..." [--note "..."]
-future loop quota should-run --goal G [--agent-id A]
+future loop quota should-run --goal G [--agent-id A] [--format json]
 future loop agent register --goal G --agent-id A        # run auto-registers; onboard declares capabilities
-future loop agent list --goal G
+future loop agent onboard --goal G --agent-id A [--capabilities c1,c2] [--workspace p1,p2]
+future loop agent list --goal G [--format json]
 future loop lease claim|renew|release|expire|status
-future loop run --goal G --agent-id A [--model M] [--thinking-level L] [--max-turns N] [--max-turn-secs N] [--lease-secs N]
+future loop delivery status|record|followthrough --goal G ...   # delivered ≠ verified closure
+future loop run --goal G --agent-id A [--model M] [--thinking-level L] [--max-turns N] [--max-turn-secs N] [--lease-secs N] [--force-workspace]
 future loop backup --goal G [--list | --restore DIR]
 future loop serve-status [--port 8791]                  # browser dashboard
 future loop models                                      # same catalog as `future models`
+future loop commands [--format json]                    # grouped operator command reference
 ```
 
-### Full command surface (`future loop registry`)
+### Full command surface (`future loop registry`, `future loop commands`)
 
-Notable extras beyond the workflow commands:
+`future loop commands` renders the same registry grouped by operator journey
+(Start here / Daily operator / Loop driver / Setup & automation / Maintainer &
+adapter) — the fastest way to rediscover a command. Notable extras beyond the
+workflow commands:
 
 - **todo graph**: `task-graph` (dependency DAG, fails closed on unknown refs);
   `lease claim|renew|release|expire|status`.
 - **gates & replan**: `gate resolve`; `replan ack|obligations`.
-- **agents**: `agent list|register|onboard`; `scope`; `lane`; `supervisor
-  propose|receipt|events`.
-- **quota/scheduler**: `quota should-run|usage|spend|tools`; `scheduler
-  tick|show|record-host-failure`. `quota tools --goal G` shows per-tool
-  quota at the capability boundary (invocations used / limit / trailing
-  window): `capability propose` and the per-capability command hooks accept
-  `--goal G`, which ledgers every accepted invocation (`capability_invoked`
-  event) and refuses calls once a tool reaches 30 accepted invocations in
-  the trailing hour (the refusal itself is ledgered); without `--goal` the
-  call proceeds uncounted. A saturated tool flips the should-run packet's
-  `capability_repair_allowed` predicate to false.
+- **agents**: `agent list|register|onboard` (onboard declares `--capabilities`
+  and `--workspace` path sets — the workspace guard refuses conflicting
+  claims); `scope`; `lane`; `supervisor propose|receipt|events`.
+- **quota/scheduler**: `quota should-run|usage|spend|decisions|tools`;
+  `scheduler tick|show|record-host-failure|ack|liveness`.
+  - Every quota decision carries a machine-readable `reason_code` alongside
+    the prose reason (stable snake_case wire codes — consumers must NOT
+    substring-match prose). `quota decisions --goal G [--limit N]` projects
+    the decision receipts (decision_summary read model).
+  - `quota tools --goal G` shows per-tool quota at the capability boundary
+    (invocations used / limit / trailing window): `capability propose` and
+    the per-capability command hooks accept `--goal G`, which ledgers every
+    accepted invocation (`capability_invoked` event) and refuses calls once a
+    tool reaches 30 accepted invocations in the trailing hour (the refusal
+    itself is ledgered); without `--goal` the call proceeds uncounted. A
+    saturated tool flips the should-run packet's `capability_repair_allowed`
+    predicate to false.
+  - `scheduler liveness --goal G [--threshold-secs N]` (default 2h) answers
+    "is the host automation itself alive?": every `scheduler tick` lands a
+    heartbeat; silence beyond the threshold records a liveness alert and the
+    `attention` projection escalates the goal until a fresh tick recovers it
+    (re-alert cooldown 1h). This is the overnight-unattended-goal safety net.
+  - `scheduler tick` also projects the monitor poll plan (due / waiting /
+    stalled per open monitor) and reschedules monitors cadence-aware — a
+    `--cadence 1h` monitor reschedules 1h out, not on the fixed no-change
+    backoff.
 - **ops**: `diagnose [--format json]`; `doctor`; `runs
   history|compact|retention|stale`; `backup`; `evidence-log`; `todo-event`;
   `turn`; `privacy`; `store verify|migrate|bridge`; `authority`; `profile`;
-  `version`.
-- **work-items & handoff**: `attention`; `inbox`; `handoff --write`.
+  `version`. `store verify --goal G` checks ledger integrity AND run-history
+  index drift (read-model self-diagnosis); `--repair` rebuilds a drifted
+  index non-destructively (the event ledger is never rewritten) and records a
+  `ProjectionRepaired` audit event. Separately, every should-run decision is
+  annotated with `decision_freshness` (how stale the read model it decided
+  against was).
+- **work-items & handoff**: `attention`; `inbox`; `handoff --write`;
+  `delivery status|record|followthrough` (see §9); `reward-memory
+  query|record` (cross-run learning: validator receipts, delivery outcomes
+  and decision-outcome settles auto-record signals; `record` adds a manual
+  0.0–1.0 evidence score; `query` projects scoped feedback by
+  agent/todo/source); `decision-context assemble|outcomes|feedback`
+  (assembled decision context read model; `feedback --turn N --status
+  verified|refuted|inconclusive` is the audited outcome writeback against an
+  anchored decision digest).
 - **extensions**: `extension install|upgrade|enable|disable|rollback`;
   `capability list|propose|commands|catalog`; `agent-turn-recall`,
   `change-quality`, `content-ops`, `explore`, `integration-branch`,
-  `issue-fix`, `periodic-report`, `reward-memory`, `semantic-preference`,
-  `value-connectors` (each takes `--input`).
+  `issue-fix`, `periodic-report`, `semantic-preference`, `value-connectors`
+  (each takes `--input`).
 - **benchmark/replay/canary**: `benchmark protocol|run|ledger`; `replay
-  record|run`; `canary smoke [--profile core-control-plane|extension-runtime|release-gate]`
-  — run `canary smoke` after touching loop code.
+  record|run`; `canary smoke [--profile
+  core-control-plane|extension-runtime|release-gate|premerge]`; `canary
+  premerge [--json]` — the fast deterministic CI merge gate: isolated
+  temporary state root, seeded fixture goal, gate verdict from the smoke run.
+  CI runs it as the `loop-canary` job whenever loop code changes; run it
+  locally before opening a loop PR (plain `canary smoke` for a quick check).
+- **coverage ratchet (repo hygiene)**: `scripts/coverage.sh [--check]`
+  measures per-crate coverage and the `coverage-ratchet` CI job enforces the
+  checked-in floors (`scripts/coverage-baseline.json`) — line coverage may
+  only go UP. A drop fails CI unless the PR itself edits the floor file;
+  that diff IS the explicit ratchet-down approval.
