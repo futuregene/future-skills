@@ -1,5 +1,5 @@
 ---
-version: 2.2.0
+version: 2.3.0
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -477,6 +477,98 @@ future loop delivery record --goal G --todo-id T --outcome verified|failed|rewor
   `delivery record` (`verified`/`failed`/`rework`). Unverified deliveries
   auto-derive a follow-up todo after 3 turns (see §9).
 
+## Multi-agent topology (G12)
+
+Beyond independent parallel workers (§6.1–6.2), a goal can declare a
+**multi-agent contract** — the single declarative surface for its multi-agent
+topology: peers (each with an optional `backup_for` succession edge,
+capabilities, and workspaces), handoff rules (event → role), and named
+collectives. Everything downstream (succession, wake roster, turn ledger) is
+a PROJECTION over the event ledger — goal state is never mutated by it.
+
+```bash
+future loop agent contract set --goal G --contract '<json>'   # or --contract-file PATH
+future loop agent contract show --goal G [--format json]
+```
+
+The contract is `multi_agent_contract_v0` JSON:
+
+```json
+{
+  "schema_version": "multi_agent_contract_v0",
+  "peers": {
+    "worker-a": {"capabilities": ["shell"], "workspaces": ["repo"]},
+    "worker-b": {"backup_for": "worker-a", "capabilities": ["github"], "workspaces": []}
+  },
+  "handoff_rules": [{"from_event": "lease_expired", "to_role": "worker-b"}],
+  "collectives": {"c1": ["worker-a", "worker-b"]}
+}
+```
+
+Contract validation **fails closed** — an untrustworthy topology is never
+recorded. Rejected: empty/self `backup_for`, unknown backup targets, backup
+chains with a cycle (would oscillate succession), unknown handoff `to_role`,
+duplicate handoff rules, unknown/duplicate collective members, and an agent
+appearing in more than one collective. `contract show` re-surfaces validation
+issues for a drifted on-disk contract.
+
+**Agent recipes** (`agent recipe add|show --goal G`) are named onboarding
+profiles — capabilities + workspaces + default priority — applied by
+`agent onboard --recipe NAME` (the recipe owns the profile, so `--recipe`
+conflicts with explicit `--capabilities`/`--workspace`). Re-adding a name is
+allowed; lookups resolve the latest (latest wins).
+
+**Role succession** (`agent succession show|apply --goal G`) promotes a
+declared backup when the primary's live lease expires (`lease_expired`) or
+its scheduler heartbeat goes silent past the offline threshold (`offline`,
+default 30 min; `FUTURE_LOOP_SUCCESSOR_OFFLINE_SECS` overrides, mainly for
+tests). `show` lists recorded successions + currently-met (unrecorded)
+triggers; `apply` records them (`SuccessionOccurred`, idempotent per
+primary/backup/reason episode). Recorded successions surface as
+high-severity `role_succession` attention items until the primary heartbeats
+again (recovery suppresses the item).
+
+**Collectives** (`agent collective show --goal G [--collective NAME]`)
+project per-agent turn counts (from `TodoClaimed` events — a claim = one
+bounded turn opportunity) plus the round-robin **wake roster** (contract
+order rotated by completed turns; `full_participation_rounds` = min claims
+across members).
+
+## Goal frontier (G13)
+
+`future loop frontier show --goal G [--format json]` composes the frontier
+projection with four deepening layers over it:
+
+1. **Outcome continuity** — outcome-streak segmentation over run history. A
+   segment is a maximal run of same-kind turns (`surface_only` vs `material`;
+   material = tools invoked + non-empty evidence). A segment resets when the
+   turn kind flips OR a frontier-changing event (todo add/complete/supersede,
+   gate resolve, frontier-delta replan ack, todo archive) landed between two
+   runs. Pure projection — never a second source of truth.
+2. **Replan rules** — the ordered disposition→decision policy table. The first
+   matching rule (in policy order) is the decision, carrying
+   `derives_obligation` + `obligation_kind` when a replan obligation is owed
+   (`succession_gap`, `vision_acceptance_gap`, `monitor_no_change_streak`,
+   `surface_only_progress_streak`). The default rule set is the builtin
+   ordered list; `replan rules set --goal G --rule-ids R1,R2,...` declares a
+   full-replace custom set (the caller's order wins; unknown ids are skipped)
+   and `--rule-ids ""` resets to the default. `replan rules show` renders the
+   active set with the selected rule marked.
+3. **Semantic history** — a goal-level bounded ring (N=50, oldest dropped) of
+   semantic event summaries folded from the ledger (run landed / todo
+   completed / superseded / acceptance-gap satisfied / replan acked / monitor
+   poll / gate resolved / delivery outcome / role succession / turn
+   no-progress). Summaries are truncated to 200 chars at write time
+   (public-safe); consumed by the decision-context `semantic_history` provider.
+4. **Terminal judgement** — the single authoritative terminal gate (decide()
+   step 6): closure validated from complete sources (structured todos +
+   acceptance gaps + closure-intent contract), every remaining blocker
+   enumerated as an explicit gap (`open_todo` / `open_monitor` /
+   `pending_deferred` / `unsatisfied_acceptance` / `succession_gap`), each
+   unsatisfied acceptance gap carrying its id + description +
+   `satisfied:false`. `terminal == gaps.is_empty()` matches
+   `Goal::is_terminal()` exactly.
+
 ## Command reference
 
 ```bash
@@ -490,10 +582,16 @@ future loop todo supersede --goal G --todo-id T --reason "..."
 future loop gate resolve --goal G --todo-id T --decision "..." [--note "..."]
 future loop quota should-run --goal G [--agent-id A] [--format json]
 future loop agent register --goal G --agent-id A        # run auto-registers; onboard declares capabilities
-future loop agent onboard --goal G --agent-id A [--capabilities c1,c2] [--workspace p1,p2]
+future loop agent onboard --goal G --agent-id A [--capabilities c1,c2] [--workspace p1,p2] [--recipe NAME]
 future loop agent list --goal G [--format json]
+future loop agent contract set|show --goal G [--contract 'json'|--contract-file P] [--format json]
+future loop agent recipe add|show --goal G [--name N] [--capabilities c1,c2] [--workspace p] [--priority P0]
+future loop agent succession show|apply --goal G [--primary P] [--reason R] [--format json]
+future loop agent collective show --goal G [--collective NAME] [--format json]
 future loop lease claim|renew|release|expire|status
 future loop delivery status|record|followthrough --goal G ...   # delivered ≠ verified closure
+future loop frontier show --goal G [--format json]             # G13 goal-frontier projection (4 layers)
+future loop replan rules show|set --goal G [--rule-ids R1,R2,...]   # G13 replan policy table
 future loop run --goal G --agent-id A [--model M] [--thinking-level L] [--max-turns N] [--max-turn-secs N] [--lease-secs N] [--force-workspace]
 future loop backup --goal G [--list | --restore DIR]
 future loop serve-status [--port 8791]                  # browser dashboard
@@ -510,10 +608,16 @@ workflow commands:
 
 - **todo graph**: `task-graph` (dependency DAG, fails closed on unknown refs);
   `lease claim|renew|release|expire|status`.
-- **gates & replan**: `gate resolve`; `replan ack|obligations`.
+- **gates & replan**: `gate resolve`; `replan ack|obligations`;
+  `replan rules show|set` (G13 ordered disposition→decision policy table).
+- **goal frontier (G13)**: `frontier show --goal G` — the composed frontier
+  projection + outcome segments + replan rule decision + terminal judgement
+  + semantic history (see the Goal frontier section).
 - **agents**: `agent list|register|onboard` (onboard declares `--capabilities`
   and `--workspace` path sets — the workspace guard refuses conflicting
-  claims); `scope`; `lane`; `supervisor propose|receipt|events`.
+  claims — plus `--recipe NAME` to apply a named recipe); `agent
+  contract|recipe|succession|collective` (G12 multi-agent topology, see
+  below); `scope`; `lane`; `supervisor propose|receipt|events`.
 - **quota/scheduler**: `quota should-run|usage|spend|decisions|tools`;
   `scheduler tick|show|record-host-failure|ack|liveness`.
   - Every quota decision carries a machine-readable `reason_code` alongside
