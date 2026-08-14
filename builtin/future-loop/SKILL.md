@@ -1,5 +1,5 @@
 ---
-version: 2.1.0
+version: 2.2.0
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -54,6 +54,33 @@ For one-shot conversations, just answer normally — no goal needed.
 
 Runtime state is NEVER written outside the project. Add `.future/loop/` to the
 project `.gitignore`.
+
+## Binary & ledger forward compatibility
+
+The ledger outlives binaries: a goal written by a newer `future` may be read
+by an older one. Ledger reads are therefore tolerant of **unknown event
+kinds** — each line is parsed as JSON first; an event whose kind the running
+binary does not recognize (newer ledger) is **skipped with a warning, never a
+hard "read ledger" failure**. Only structural corruption (missing fields,
+wrong types, missing kind) fails closed.
+
+- Skipped lines are recorded in a per-goal sidecar
+  `<cwd>/.future/loop/goals/<id>/read_diagnostics.json` (auto-removed once the
+  ledger reads clean).
+- `status` / `diagnose` / `store verify` surface it as
+  `note: N unknown-kind event(s) skipped — binary older than ledger, please upgrade`;
+  the verify report gains `skipped_unknown_kinds` + `unknown_kinds`, and
+  `--format json` status/diagnose expose `ledger_read_diagnostics`.
+- Operator rule: seeing that note means the BINARY is older than the LEDGER —
+  upgrade first (`cargo build -p future-cli`) before writing, or newer events
+  will be skipped on replay (and `status` projections drift).
+
+Lock files are liveness-checked too: `ACTIVE_GOAL_STATE.md.lock` records the
+holder's **pid**; a conflict probes the holder via `kill -0` — a live holder is
+a hard "held by pid N" error, a dead holder (or an empty lock older than
+10 min) is cleared and taken over, and a fresh empty lock is refused until it
+ages out. The lock is released (removed) after the projection write. Zombie
+locks from killed runs no longer wedge `status`.
 
 ## Workflow
 
@@ -175,6 +202,22 @@ future loop todo add --goal G --text "Optimize until tests pass" --priority P0 \
 Non-zero → repair retry up to the attempts budget, then a replan gate. The agent
 can still force-complete via `todo complete --no-follow-up` (agent autonomy).
 
+**Implementation todos MUST carry `--verify`** (convention, enforced by
+review not by the CLI). An agent can mark a todo done while the code does not
+compile — the validator is the only automatic gate against that. `todo add`
+helps: when the text looks like a code task (contains `.rs`, or a token match
+on worktree/commit/cargo/clippy/rustfmt/test/compile/build/lint/refactor/
+patch/crate/git/merge/code/debug, or the Chinese 测试/代码/编译/修复) and no
+`--verify` is given, it prints an advisory hint to stderr after the add:
+`hint: 实现类 todo 建议挂 --verify "cargo check -p ..."，防不编译代码被标完成`
+(pure reminder — CLI semantics never change). Templates:
+
+```bash
+--verify "cargo check -p <crate>"                                          # compile gate
+--verify "cargo test -p <crate>"                                          # test gate
+--verify "cargo fmt --check && cargo clippy -p <crate> --all-targets -- -D warnings"  # full gate
+```
+
 ### 5. End with a deliverable-copy todo
 
 Every goal that produces files MUST end with a final P0 todo that copies
@@ -255,6 +298,18 @@ nohup future loop run --goal G --agent-id worker-1 --model <M> --thinking-level 
 5. **Wrap-up belongs to the orchestrator.** A final/validation todo left
    unchained can be picked early and close the goal prematurely — `--blocks` it
    behind everything, or do the wrap-up outside the loop.
+6. **Orchestrator takeover mode.** When a worker's output is untrustworthy
+   ("worker says done" ≠ "compiles" — faithful ports carrying in garbage:
+   non-existent std APIs, orphan helpers with no call sites, broken mod.rs
+   wiring), stop steering and take over in the orchestrator's own session:
+   (a) run the full gate yourself:
+   `cargo fmt -p <crate> && cargo clippy -p <crate> --all-targets -- -D
+   warnings && cargo test -p <crate>`; (b) **treat dead code as real
+   findings** — delete orphan helpers instead of keeping them; (c) verify the
+   worker's structural claims against main (module wiring, structs intact);
+   (d) mechanical closeout (fmt/clippy/test/commit/`todo complete`) is faster
+   done by the orchestrator than waiting for worker retries. Review what the
+   worker committed (`git show`) before trusting its "done".
 
 ### 6. Run the agent — one turn at a time
 
@@ -283,10 +338,29 @@ tail -f .future/loop/runs/<run_id>.live.jsonl
 ```
 
 **Monitoring a long turn** (multi-hour turns are normal for big tasks):
-poll the pid (`kill -0 <pid>`), tail the live jsonl for `tool_start`/
-`tool_end` liveness, and watch the worktree's `git log` for commit progress —
-`status` alone lags (see pitfall 9). If the turn must be stopped, `kill <pid>`
-is safe: the session writes back and the next `run` replays from the ledger.
+poll the pid (`kill -0 <pid>`), tail `.future/loop/runs/<run_id>.live.jsonl`
+for `tool_start`/`tool_end` liveness, and watch the worktree's `git log` for
+commit progress — `status` alone lags (see pitfall 9). **Do NOT rely on
+`logs/` for monitoring**: it is shared with parallel sessions and gets
+cleaned externally; worker stdout redirects belong in `/tmp` when they must
+persist. If the turn must be stopped, `kill <pid>` is safe: the session
+writes back and the next `run` replays from the ledger.
+
+**Idle-turn detection (`TurnNoProgress`).** The kernel detects turns that end
+with no write-class tool (`write` / `edit` / `shell`) started inside the
+no-progress window (default 15 min; `FUTURE_LOOP_NO_PROGRESS_SECS` overrides)
+and appends a `TurnNoProgress {goal_id, todo_id, agent_id, idle_secs,
+tool_calls_total}` event to the ledger — **detect + record only**: the kernel
+never auto-injects gates or kills the run on its own. The record folds into
+`goal.turn_no_progress` on replay and surfaces in `status` (human + JSON) and
+`todo-event`. Orchestrator response to an idle worker (e.g. an exploration
+loop with zero writes):
+1. Steer first: `todo update --goal G --todo-id T --text "<concrete rewrite>"`
+   — delivered mid-turn at the agent's next step boundary (~10s poll). For an
+exploring worker, rewrite the todo with concrete data structures / function
+signatures to push it into implementation state.
+2. If it stays idle, `kill <pid>` + relaunch with the same `--agent-id` —
+context replays from the ledger, always safe.
 
 **PR merge troubleshooting** (when turns produce PRs you must merge):
 - `BEHIND` — branch protection requires up-to-date: `git merge origin/main`
@@ -305,6 +379,16 @@ on every exit path — nothing durable lives in `~/.future/agent/sessions/`. A
 stray `⚠ session cleanup failed` line or accumulated sessions = stale binary
 (see Prerequisites) or leftover from other tools; clean with `future session
 list` / `future session delete <id>`.
+
+**Session event-stream gaps self-heal.** `run_turn` survives the agent's
+DataLoss "event stream gap" termination: it reconnects ONCE after a 2s
+backoff on the same session with an atomic attach resuming from the last
+observed event idx (strictly `idx > cursor` — nothing double-counts). Only a
+second CONSECUTIVE gap terminates the turn, carrying the ORIGINAL error.
+Non-gap transport errors fail immediately as before. If turns keep dying
+with "event stream gap", suspect a busy shared agent server (several workers
+on one 127.0.0.1:50051) — falling back to the takeover pattern (§6.2) is
+faster than waiting out worker retries.
 
 `run` stops when: validated closure (terminal), a human gate opens, a blocker
 waits (unresolved `--blocks`), or max-turns/max-turn-secs is reached.
