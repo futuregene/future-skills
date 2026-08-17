@@ -158,9 +158,12 @@ decisions.
   text values are hints without a deadline.
 - **Gates freeze everything** while any user gate is open; PLAN_REVIEW
   checkpoints are agent-resolved, genuine user decisions are surfaced.
-- **CLI strictness**: unknown flags are hard errors; every subcommand renders
-  usage on `--help`; all read-only commands accept `--format json` (alias
-  `--json`); a non-numeric `--resume-when` warns it has no deadline.
+- **CLI strictness**: unknown flags are hard errors; unknown `--class` /
+  `--priority` / role-class combo values are hard errors; every subcommand
+  renders usage on `--help`; all read-only commands accept `--format json`
+  (alias `--json`); a non-numeric `--resume-when` warns it has no deadline.
+- **Completion is idempotent**: re-completing an already-done todo is a no-op
+  (no duplicate ledger events); completing a superseded todo errors.
 - **Ledger forward-compat**: unknown event kinds are skipped with a diagnostic
   (a newer binary wrote them) — only structural errors fail a read.
 
