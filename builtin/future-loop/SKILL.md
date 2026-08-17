@@ -235,9 +235,9 @@ future loop frontier show --goal G [--format json]        # outcome segments / r
 future loop delivery status|record --goal G               # post-delivery closure
 future loop quota should-run|usage|spend|decisions --goal G
 future loop scheduler tick|show|record-host-failure|ack|liveness
-future loop diagnose|doctor|history|turn|todo-event|evidence-log|runs|backup|store|privacy|attention|inbox|handoff|serve-status
+future loop diagnose|doctor|history|turn|todo-event|evidence-log|runs|backup|store|privacy|attention|inbox
 future loop commands [--format json]                      # grouped operator view
-future loop benchmark|replay|canary|task-graph|replan|authority|profile|backfill|heartbeat-prompt|worker-bridge|version|registry
+future loop benchmark|canary|task-graph|replan|authority|profile|backfill|heartbeat-prompt|worker-bridge|version|registry
 ```
 
 Full surface: `future loop registry`.
@@ -261,13 +261,10 @@ future loop evidence-log --goal G --todo-id T         # full evidence trail
 future loop attention [--all]                         # attention-queue projection
 future loop inbox --goal G                            # operator inbox urgency
 future loop privacy --goal G                          # privacy-graded projection
-future loop handoff --goal G                          # handoff document + delivery contract
 future loop heartbeat-prompt --goal G                 # per-turn re-entry packet
 future loop worker-bridge                             # run the worker bridge
-future loop serve-status                              # serve the status projection
 future loop authority --goal G ...                    # set authority declaration
 future loop profile --goal G ...                      # set execution profile
 future loop benchmark protocol|run|ledger             # loop protocol qualification
-future loop replay record|...                         # decision replay corpus
 future loop canary [--premerge]                       # smoke profile / CI premerge gate
 ```
