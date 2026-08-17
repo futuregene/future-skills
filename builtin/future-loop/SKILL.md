@@ -237,7 +237,7 @@ future loop quota should-run|usage|spend|decisions --goal G
 future loop scheduler tick|show|record-host-failure|ack|liveness
 future loop diagnose|doctor|history|turn|todo-event|evidence-log|runs|backup|store|privacy|attention|inbox
 future loop commands [--format json]                      # grouped operator view
-future loop benchmark|replay|canary|task-graph|replan|authority|profile|backfill|heartbeat-prompt|worker-bridge|version|registry
+future loop benchmark|canary|task-graph|replan|authority|profile|backfill|heartbeat-prompt|worker-bridge|version|registry
 ```
 
 Full surface: `future loop registry`.
@@ -266,6 +266,5 @@ future loop worker-bridge                             # run the worker bridge
 future loop authority --goal G ...                    # set authority declaration
 future loop profile --goal G ...                      # set execution profile
 future loop benchmark protocol|run|ledger             # loop protocol qualification
-future loop replay record|...                         # decision replay corpus
 future loop canary [--premerge]                       # smoke profile / CI premerge gate
 ```
