@@ -1,5 +1,5 @@
 ---
-version: 2.3.0
+version: 2.4.0
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -233,8 +233,8 @@ future loop todo add --goal G --text "Copy the final deliverables to the project
 `run` without `--agent-id` fails fast; `--anonymous` is the legacy
 uncoordinated one-shot. The agent-id is the ONLY mutual-exclusion mechanism:
 
-- `run --agent-id <name>` auto-registers on first use; `agent onboard` declares
-  capabilities; `agent list` shows who is registered/running.
+- `run --agent-id <name>` auto-registers on first use; `agent list` shows who
+  is registered/running.
 - **Unique name per parallel worker** (e.g. `<host>-<task>`). A run sees its OWN
   leased todos as runnable, so two runs sharing one id double-execute.
 - With `--agent-id`, `run` claims a lease (default 4h; `--lease-secs N`) BEFORE
@@ -245,8 +245,8 @@ uncoordinated one-shot. The agent-id is the ONLY mutual-exclusion mechanism:
   "future loop run"` → `status --goal G` → `quota should-run --goal G --agent-id
   <me>` → `lease status --goal G --todo-id T --agent-id <me>`.
 - **Workspace guard (write-conflict protection)**: agents declare the path set
-  they write into via `agent onboard --workspace p1,p2` (comma-separated, like
-  `--capabilities`). Claiming a todo while a peer holds a live lease in an
+  they write into via `agent onboard --workspace p1,p2` (comma-separated).
+  Claiming a todo while a peer holds a live lease in an
   OVERLAPPING declared workspace is refused with a retry hint (degrade to
   serial) unless you explicitly override: `--force` on `todo claim`,
   `--force-workspace` on `run`. The guard is advisory and fail-open — an agent
@@ -450,9 +450,6 @@ future loop delivery record --goal G --todo-id T --outcome verified|failed|rewor
   frontier. Fires exactly once per delivery cycle.
 - `rework`/`failed` resolutions should feed a replan (successor todo), not a
   silent retry of the same todo.
-- Every delivery resolution also auto-records a reward signal
-  (`reward-memory query`); the run path's independent validation receipt is
-  recorded the same way.
 
 ## Key semantics (do not misuse)
 
@@ -482,7 +479,8 @@ future loop delivery record --goal G --todo-id T --outcome verified|failed|rewor
 Beyond independent parallel workers (§6.1–6.2), a goal can declare a
 **multi-agent contract** — the single declarative surface for its multi-agent
 topology: peers (each with an optional `backup_for` succession edge,
-capabilities, and workspaces), handoff rules (event → role), and named
+descriptive-only capabilities, and workspaces), handoff rules (event → role),
+and named
 collectives. Everything downstream (succession, wake roster, turn ledger) is
 a PROJECTION over the event ledger — goal state is never mutated by it.
 
@@ -505,6 +503,10 @@ The contract is `multi_agent_contract_v0` JSON:
 }
 ```
 
+`capabilities` on each peer is descriptive metadata only — nothing in the
+kernel enforces or consumes it (the capability framework and its gate were
+removed); `workspaces` feeds the workspace guard.
+
 Contract validation **fails closed** — an untrustworthy topology is never
 recorded. Rejected: empty/self `backup_for`, unknown backup targets, backup
 chains with a cycle (would oscillate succession), unknown handoff `to_role`,
@@ -513,9 +515,9 @@ appearing in more than one collective. `contract show` re-surfaces validation
 issues for a drifted on-disk contract.
 
 **Agent recipes** (`agent recipe add|show --goal G`) are named onboarding
-profiles — capabilities + workspaces + default priority — applied by
-`agent onboard --recipe NAME` (the recipe owns the profile, so `--recipe`
-conflicts with explicit `--capabilities`/`--workspace`). Re-adding a name is
+profiles — descriptive capabilities + workspaces + default priority — applied
+by `agent onboard --recipe NAME` (the recipe owns the profile, so `--recipe`
+conflicts with an explicit `--workspace`). Re-adding a name is
 allowed; lookups resolve the latest (latest wins).
 
 **Role succession** (`agent succession show|apply --goal G`) promotes a
@@ -559,7 +561,7 @@ projection with four deepening layers over it:
    completed / superseded / acceptance-gap satisfied / replan acked / monitor
    poll / gate resolved / delivery outcome / role succession / turn
    no-progress). Summaries are truncated to 200 chars at write time
-   (public-safe); consumed by the decision-context `semantic_history` provider.
+   (public-safe).
 4. **Terminal judgement** — the single authoritative terminal gate (decide()
    step 6): closure validated from complete sources (structured todos +
    acceptance gaps + closure-intent contract), every remaining blocker
@@ -581,8 +583,8 @@ future loop todo complete --goal G --todo-id T [--no-follow-up | --successor T2]
 future loop todo supersede --goal G --todo-id T --reason "..."
 future loop gate resolve --goal G --todo-id T --decision "..." [--note "..."]
 future loop quota should-run --goal G [--agent-id A] [--format json]
-future loop agent register --goal G --agent-id A        # run auto-registers; onboard declares capabilities
-future loop agent onboard --goal G --agent-id A [--capabilities c1,c2] [--workspace p1,p2] [--recipe NAME]
+future loop agent register --goal G --agent-id A        # run auto-registers
+future loop agent onboard --goal G --agent-id A [--workspace p1,p2] [--recipe NAME]
 future loop agent list --goal G [--format json]
 future loop agent contract set|show --goal G [--contract 'json'|--contract-file P] [--format json]
 future loop agent recipe add|show --goal G [--name N] [--capabilities c1,c2] [--workspace p] [--priority P0]
@@ -613,25 +615,17 @@ workflow commands:
 - **goal frontier (G13)**: `frontier show --goal G` — the composed frontier
   projection + outcome segments + replan rule decision + terminal judgement
   + semantic history (see the Goal frontier section).
-- **agents**: `agent list|register|onboard` (onboard declares `--capabilities`
-  and `--workspace` path sets — the workspace guard refuses conflicting
-  claims — plus `--recipe NAME` to apply a named recipe); `agent
+- **agents**: `agent list|register|onboard` (onboard declares the `--workspace`
+  path set — the workspace guard refuses conflicting claims — plus
+  `--recipe NAME` to apply a named recipe); `agent
   contract|recipe|succession|collective` (G12 multi-agent topology, see
   below); `scope`; `lane`; `supervisor propose|receipt|events`.
-- **quota/scheduler**: `quota should-run|usage|spend|decisions|tools`;
+- **quota/scheduler**: `quota should-run|usage|spend|decisions`;
   `scheduler tick|show|record-host-failure|ack|liveness`.
   - Every quota decision carries a machine-readable `reason_code` alongside
     the prose reason (stable snake_case wire codes — consumers must NOT
     substring-match prose). `quota decisions --goal G [--limit N]` projects
     the decision receipts (decision_summary read model).
-  - `quota tools --goal G` shows per-tool quota at the capability boundary
-    (invocations used / limit / trailing window): `capability propose` and
-    the per-capability command hooks accept `--goal G`, which ledgers every
-    accepted invocation (`capability_invoked` event) and refuses calls once a
-    tool reaches 30 accepted invocations in the trailing hour (the refusal
-    itself is ledgered); without `--goal` the call proceeds uncounted. A
-    saturated tool flips the should-run packet's `capability_repair_allowed`
-    predicate to false.
   - `scheduler liveness --goal G [--threshold-secs N]` (default 2h) answers
     "is the host automation itself alive?": every `scheduler tick` lands a
     heartbeat; silence beyond the threshold records a liveness alert and the
@@ -651,22 +645,10 @@ workflow commands:
   annotated with `decision_freshness` (how stale the read model it decided
   against was).
 - **work-items & handoff**: `attention`; `inbox`; `handoff --write`;
-  `delivery status|record|followthrough` (see §9); `reward-memory
-  query|record` (cross-run learning: validator receipts, delivery outcomes
-  and decision-outcome settles auto-record signals; `record` adds a manual
-  0.0–1.0 evidence score; `query` projects scoped feedback by
-  agent/todo/source); `decision-context assemble|outcomes|feedback`
-  (assembled decision context read model; `feedback --turn N --status
-  verified|refuted|inconclusive` is the audited outcome writeback against an
-  anchored decision digest).
-- **extensions**: `extension install|upgrade|enable|disable|rollback`;
-  `capability list|propose|commands|catalog`; `agent-turn-recall`,
-  `change-quality`, `content-ops`, `explore`, `integration-branch`,
-  `issue-fix`, `periodic-report`, `semantic-preference`, `value-connectors`
-  (each takes `--input`).
+  `delivery status|record|followthrough` (see §9).
 - **benchmark/replay/canary**: `benchmark protocol|run|ledger`; `replay
   record|run`; `canary smoke [--profile
-  core-control-plane|extension-runtime|release-gate|premerge]`; `canary
+  core-control-plane|release-gate|premerge]`; `canary
   premerge [--json]` — the fast deterministic CI merge gate: isolated
   temporary state root, seeded fixture goal, gate verdict from the smoke run.
   CI runs it as the `loop-canary` job whenever loop code changes; run it
