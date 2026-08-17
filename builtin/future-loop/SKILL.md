@@ -1,5 +1,5 @@
 ---
-version: 2.3.0
+version: 2.4.0
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -453,6 +453,88 @@ future loop delivery record --goal G --todo-id T --outcome verified|failed|rewor
 - Every delivery resolution also auto-records a reward signal
   (`reward-memory query`); the run path's independent validation receipt is
   recorded the same way.
+
+## Long-drive playbook (multi-hour goals, competitions, overnight runs)
+
+Hard-won patterns from a 24h multi-agent competition drive (37 turns, 30
+agents, 38 todos). Each rule below maps to a measured failure mode.
+
+### Completion contracts — `--evidence` floor + `--acceptance` tokens
+
+`todo complete` enforces non-empty `--evidence` for advancement todos and,
+when declared, the `--acceptance` token contract:
+
+```bash
+future loop todo add --goal G --text "submit the payload" --acceptance "attempt,scored"
+# evidence must contain EVERY token (case-insensitive) or completion is refused:
+future loop todo complete --goal G --todo-id T --no-follow-up \
+  --evidence "ATTEMPT 12345 SCORED 99 on the platform"
+# --force is the operator's explicit override for mechanical closeouts.
+future loop todo update --goal G --todo-id T --acceptance "a,b"   # retrofit mid-flight
+```
+
+- The #1 drive failure was the **empty-evidence closure**: 11/33 completions
+  carried <60-char evidence (several fully empty), each silently removing a
+  todo from the frontier. Every delivery todo must therefore carry a hard
+  gate — a `--verify` artifact check, `--acceptance` tokens, or both.
+- External-delivery todos (submit / scored / attempt …) without a contract
+  get an advisory hint at `todo add`; heed it.
+- “done” ≠ “delivered scored”: the evidence must name the external
+  observable (attempt id, file path, measurement) that proves delivery.
+
+### External-action budgets (submissions, paid calls, deletes)
+
+Anything consuming a LIMITED external resource is orchestrator-only in
+practice; encode the budget in todo text AND gate the completion:
+
+- Declare the budget explicitly in the goal doc: `submissions: 10 per
+  challenge, X left after each use`; update a shared ledger file (e.g.
+  `ops/SCORES.md`) every turn.
+- Workers finalize artifacts and write a signal file; only the assembler /
+  orchestrator executes the capped action. A worker's failed attempt still
+  consumes the resource — never let workers submit directly.
+- Measured: one drive burned 8/10 submissions on one challenge (3 of them
+  method="test") and 10/10 on another with zero scores, because two workers
+  submitted in parallel without a budget check.
+
+### Hard-task splitting
+
+A single large todo that 2+ worker generations close with no artifacts is a
+signal to split, not to retry:
+
+- Split into s1..sN section todos, each with ONE concrete artifact
+  (`work/s1/matching.json` + a verify script) and a `--verify` gate on that
+  file — empty closures become physically impossible.
+- Chain an assembler todo behind all sections (blocked); the assembler
+  merges artifacts, runs the contract checker, and submits. Give the
+  assembler a `--verify` too — it closed empty once.
+- Measured: 9 generations of whole-task todos produced zero files; the
+  split-with-verify version produced 3 verified sections in 54 minutes.
+
+### Dead-process lease cleanup
+
+Killed/killed-mid-turn runs leave 4h leases that refuse new claims:
+
+```bash
+future loop agent list --goal G          # find stale holders
+future loop lease release --goal G --todo-id T --agent-id <dead-agent>
+```
+
+Release every lease the dead agent holds before relaunching workers, or the
+workspace guard degrades the whole relaunch to serial.
+
+### Orchestrator dead-time
+
+`--max-turns 1` means every turn end is a manual relaunch point — the
+orchestrator must relaunch immediately, not after diagnosis:
+
+- Keep the agreed worker count running at all times; relaunch the moment a
+  turn exits (same `--agent-id`, context replays from the ledger).
+- A worker that stays write-idle (TurnNoProgress) should be steered once via
+  `todo update --text`, then killed + relaunched — not left to idle.
+- Escalate the model when a todo has produced NO write artifacts for 2
+  consecutive turns (e.g. deepseek-v4-pro → kimi-k3). Measured: one
+  hard-science challenge went 0 → 99.5 on the first stronger-model turn.
 
 ## Key semantics (do not misuse)
 
