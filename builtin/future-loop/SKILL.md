@@ -34,7 +34,8 @@ For one-shot conversations, answer normally — no goal needed.
   State lives in the project: `<cwd>/.future/loop/` (run from the project dir,
   or pass `--cwd`). Add `.future/loop/` to the project `.gitignore`.
 - `future loop run` needs the agent server: `future agent` (gRPC 127.0.0.1:50051).
-  Probe with `future models`.
+  Probe with `future models`. Override the address with
+  `FUTURE_LOOP_AGENT_ADDR` (e.g. a mock for tests).
 - **Binary freshness**: new features need a current binary. Probe:
   `strings $(command -v future) | grep -c "max-turn-secs"` — `≥1` = current;
   `0` = stale, rebuild. A stale binary also fails to read ledgers written by
@@ -93,10 +94,13 @@ future loop todo add --goal G --text "..." --priority P0 [--blocks T] [--verify 
     (case-insensitive), e.g. a platform attempt id — the hard form of "done ≠
     delivered".
   - Completion itself requires **non-empty `--evidence`** (what actually
-    landed: ids, paths, outputs, measurements). `--force` is the explicit
-    operator override for mechanical closeouts.
+    landed: ids, paths, outputs, measurements) AND a **declared closure
+    intent** — `--no-follow-up` or `--successor T2` is mandatory on every
+    agent completion (the kernel enforces the completion policy). `--force`
+    is the explicit operator override for mechanical closeouts.
 - **User gates** are real gates, not prose:
-  `future loop todo add --goal G --role user --class user_gate --gate-question "..."`.
+  `future loop todo add --goal G --role user --class user_gate --text "..." --gate-question "..."`.
+  (`--text` is required; `--gate-question` defaults to it.)
   Any open gate freezes all work; resolve with `gate resolve`, never
   `todo complete`.
 
@@ -163,7 +167,7 @@ decisions.
 ## Multi-agent (one goal, several workers)
 
 ```bash
-future loop agent contract set --goal G --file contract.json   # peers, backup_for, handoff rules
+future loop agent contract set --goal G --contract '<json>' | --contract-file contract.json   # peers, backup_for, handoff rules
 future loop agent recipe add --goal G --name N --capabilities c1,c2 --workspace p --priority P0
 future loop agent onboard --goal G --agent-id A --recipe N
 future loop agent succession show --goal G                     # backup promotion status
@@ -221,7 +225,7 @@ future loop status [--goal G] [--format json]
 future loop goal init --objective "..." --cwd DIR [--goal-id G]
 future loop todo add --goal G --text "..." [--priority P0|P1|P2] [--blocks T] [--verify "cmd"] [--acceptance "a,b"]
 future loop todo update --goal G --todo-id T [--text ...] [--priority ...] [--blocks T] [--acceptance ...]
-future loop todo complete --goal G --todo-id T [--no-follow-up | --successor T2] [--evidence "..."] [--force]
+future loop todo complete --goal G --todo-id T --no-follow-up | --successor T2 [--evidence "..."] [--force]
 future loop todo supersede --goal G --todo-id T --reason "..."
 future loop gate resolve --goal G --todo-id T --decision "..." [--note "..."]
 future loop lease claim|renew|release|expire|status --goal G ...
@@ -248,7 +252,7 @@ Full surface: `future loop registry`.
 future loop goal cancel|delete --goal G               # cancel ends the goal; delete removes its state
 future loop todo claim --goal G --todo-id T --agent-id A   # manual claim (run claims automatically)
 future loop todo archive --goal G --todo-id T         # archive a finished todo
-future loop replan ack|list --goal G                  # replan dispositions create obligations; ack clears them
+future loop replan ack|obligations --goal G             # replan dispositions create obligations; ack clears them
 future loop runs history|compact|index|retention|stale --goal G   # run-record lifecycle
 future loop store ...                                 # schema migration / ledger integrity / read-model repair
 future loop backfill --goal G                         # re-import markdown state into the event ledger
@@ -259,7 +263,7 @@ future loop turn --goal G --todo-id T                 # per-turn envelope for a 
 future loop todo-event --goal G --todo-id T           # event history of one todo
 future loop evidence-log --goal G --todo-id T         # full evidence trail
 future loop attention [--all]                         # attention-queue projection
-future loop inbox --goal G                            # operator inbox urgency
+future loop inbox --project DIR                          # operator inbox urgency
 future loop privacy --goal G                          # privacy-graded projection
 future loop heartbeat-prompt --goal G                 # per-turn re-entry packet
 future loop worker-bridge                             # run the worker bridge
