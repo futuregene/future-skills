@@ -1,5 +1,5 @@
 ---
-version: 3.0.1
+version: 3.0.2
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -241,3 +241,33 @@ future loop benchmark|replay|canary|task-graph|replan|authority|profile|backfill
 ```
 
 Full surface: `future loop registry`.
+
+## Ops & observability surface (one-liners)
+
+```bash
+future loop goal cancel|delete --goal G               # cancel ends the goal; delete removes its state
+future loop todo claim --goal G --todo-id T --agent-id A   # manual claim (run claims automatically)
+future loop todo archive --goal G --todo-id T         # archive a finished todo
+future loop replan ack|list --goal G                  # replan dispositions create obligations; ack clears them
+future loop runs history|compact|index|retention|stale --goal G   # run-record lifecycle
+future loop store ...                                 # schema migration / ledger integrity / read-model repair
+future loop backfill --goal G                         # re-import markdown state into the event ledger
+future loop diagnose --goal G                         # decision / gaps / runs diagnostics
+future loop doctor                                    # install health check (ledger smoke + agent probe)
+future loop history --goal G                          # goal run history
+future loop turn --goal G --todo-id T                 # per-turn envelope for a todo
+future loop todo-event --goal G --todo-id T           # event history of one todo
+future loop evidence-log --goal G --todo-id T         # full evidence trail
+future loop attention [--all]                         # attention-queue projection
+future loop inbox --goal G                            # operator inbox urgency
+future loop privacy --goal G                          # privacy-graded projection
+future loop handoff --goal G                          # handoff document + delivery contract
+future loop heartbeat-prompt --goal G                 # per-turn re-entry packet
+future loop worker-bridge                             # run the worker bridge
+future loop serve-status                              # serve the status projection
+future loop authority --goal G ...                    # set authority declaration
+future loop profile --goal G ...                      # set execution profile
+future loop benchmark protocol|run|ledger             # loop protocol qualification
+future loop replay record|...                         # decision replay corpus
+future loop canary [--premerge]                       # smoke profile / CI premerge gate
+```
