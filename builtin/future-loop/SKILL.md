@@ -1,5 +1,5 @@
 ---
-version: 3.0.0
+version: 3.0.1
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -227,6 +227,10 @@ future loop gate resolve --goal G --todo-id T --decision "..." [--note "..."]
 future loop lease claim|renew|release|expire|status --goal G ...
 future loop run --goal G --agent-id A [--model M] [--thinking-level L] [--max-turns N] [--max-turn-secs N]
 future loop agent register|onboard|contract|recipe|succession|collective ...
+future loop scope --goal G --agent-id A        # identity-scoped runnable frontier
+future loop lane --goal G --agent-id A         # lane recommendation
+future loop supervisor --goal G ...            # supervisor proposal/receipt events
+future loop models [--format json]             # models available from the agent
 future loop frontier show --goal G [--format json]        # outcome segments / replan rules / semantic history / terminal
 future loop delivery status|record --goal G               # post-delivery closure
 future loop quota should-run|usage|spend|decisions --goal G
