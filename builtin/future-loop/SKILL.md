@@ -1,5 +1,5 @@
 ---
-version: 3.0.2
+version: 3.0.3
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -156,8 +156,9 @@ decisions.
 - **Monitors**: not-due monitors must NOT be polled; due time comes from
   `--cadence`/`--defer-secs N`; `--resume-when N` (numeric) defers for real,
   text values are hints without a deadline.
-- **Gates freeze everything** while any user gate is open; PLAN_REVIEW
-  checkpoints are agent-resolved, genuine user decisions are surfaced.
+- **Gates freeze everything** while any user gate is open; user_actions
+  (non-blocking human to-dos) surface in the user channel but never freeze
+  the agent — reserve user_gate for genuine user decisions.
 - **CLI strictness**: unknown flags are hard errors; unknown `--class` /
   `--priority` / role-class combo values are hard errors; every subcommand
   renders usage on `--help`; all read-only commands accept `--format json`
@@ -233,7 +234,7 @@ future loop todo supersede --goal G --todo-id T --reason "..."
 future loop gate resolve --goal G --todo-id T --decision "..." [--note "..."]
 future loop lease claim|renew|release|expire|status --goal G ...
 future loop run --goal G --agent-id A [--model M] [--thinking-level L] [--max-turns N] [--max-turn-secs N]
-future loop agent register|onboard|contract|recipe|succession|collective ...
+future loop agent onboard|list|contract|recipe|succession|collective ...
 future loop scope --goal G --agent-id A        # identity-scoped runnable frontier
 future loop lane --goal G --agent-id A         # lane recommendation
 future loop supervisor --goal G ...            # supervisor proposal/receipt events
@@ -272,5 +273,5 @@ future loop heartbeat-prompt --goal G                 # per-turn re-entry packet
 future loop worker-bridge                             # run the worker bridge
 future loop authority --goal G ...                    # set authority declaration
 future loop profile --goal G ...                      # set execution profile
-future loop canary [--premerge]                       # smoke profile / CI premerge gate
+future loop canary smoke [--profile core-control-plane|release-gate|premerge] | canary premerge   # smoke / CI gate
 ```
