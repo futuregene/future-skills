@@ -10,8 +10,8 @@ category: tools
 
 `future loop` turns a conversation into a durable, reviewable long-running goal:
 objective, todos, gates, evidence, and completion persist outside the chat.
-The agent executes one bounded turn at a time; a deterministic kernel decides
-what should happen next.
+The agent executes one bounded turn at a time; a deterministic kernel offers
+the next runnable todo plus signals (it is a kanban, not a decision-maker).
 
 ## When to use
 
@@ -44,17 +44,41 @@ For one-shot conversations, answer normally — no goal needed.
 ## Core model
 
 ```
-goal ── todos (advancement / gate / monitor) ── kernel decision ── run one turn
+goal ── todos (advancement / gate / monitor) ── kernel offers a runnable todo + signals
         │            │                                          │
-        └── evidence + acceptance contracts + verify gates      └── writeback → next decision
+        └── evidence + acceptance contracts + verify gates      └── writeback → next offer
 ```
 
-- **Kernel decides, agent executes.** Each turn the kernel emits a decision
-  packet (run this todo / wait / replan / terminal); the agent only runs the
-  bounded slice it is handed.
+- **The agent decides; the kernel provides the kanban.** Each turn the kernel
+  offers a runnable todo plus *signals* (failure count, outcome-floor streak,
+  oscillation pattern, monitor stall, rate-limit) in the delivery reason. The
+  agent reads the signals and decides — keep going, supersede, re-split, or
+  ask the operator. The kernel enforces only the **correctness floor** (verify
+  gates, acceptance contracts, non-empty evidence, terminal closure), never a
+  policy rule like "you are stuck → replan".
 - **Terminal = validated closure**: todos done or superseded, closure intent
   declared, no acceptance gaps, no pending deferred work. Not "all todos
   checked" alone.
+
+## Agent decision guide (you decide, the kernel doesn't)
+
+The kernel surfaces signals in the delivery reason — it does NOT force a
+replan. Read the signal, then decide:
+
+| Signal (in the delivery reason) | Meaning | What YOU should do |
+|---|---|---|
+| `repair attempt N for todo X` | This todo has failed before | Re-examine the failure; if the approach is wrong, `supersede` + split; if it was a transient infra error, keep going |
+| `[signal: todo X has N failed attempt(s)]` | N previous failures | Supersede / re-split / ask the operator — do NOT blindly retry the same todo |
+| `[signal: outcome floor: N consecutive turns without a material outcome]` | You are spinning without landing an artifact | Change strategy or supersede a stale todo |
+| `[signal: oscillation … A→V→A→V]` | Deliveries flip-flop accept/reject | Change the validator, or split the todo so the gate is simpler |
+| `monitor X stalled (N consecutive no-change polls)` | The watch lane is dead | watch-lane expiry / write a blocker / supersede the monitor |
+| `rate-limited (HTTP 429)` | Engine throttled — NOT your fault | Back off, then resume; never count it as a science failure |
+| `[signal: N turns with no write-class tool]` | You may be stuck in a silent reasoning loop | Restart with a fresh session (context replays from the ledger) |
+
+The kernel NEVER converts these signals into a forced `replan`. If the same
+signal repeats across turns, it is YOUR call to `supersede` / split / ask — the
+loop keeps offering the runnable todo until you change the plan. A todo that
+keeps failing is a **plan problem**, not a kernel problem: change the plan.
 
 ## Workflow
 
@@ -118,6 +142,13 @@ future loop run --goal G --agent-id <unique-name> --model M --thinking-level L -
 - **Mid-turn steering**: `todo update --text` on the todo a worker is
   executing is delivered into the running session (~10s poll) — the primary
   tool for correcting a drifting or stuck worker.
+- **Session retention** (resume-vs-fresh is YOUR call, never the kernel's):
+  the kernel records WHY the last run was interrupted and keeps the session id
+  on disk; you decide whether to resume. `--session-policy auto` (default)
+  resumes only when the interruption was infra-recoverable (e.g. HTTP 429 —
+  LLM state intact); `resume` always resumes the retained session; `fresh`
+  always starts over. `--resume-session <id>` pins an exact session. A
+  retained session that no longer exists falls back to fresh automatically.
 - **Monitor live progress** via `.future/loop/runs/<run_id>.live.jsonl`
   (tee'd per run), not via hand-managed log files.
 - `run` stops when: validated closure (terminal), a user gate opens, a blocker
@@ -233,7 +264,7 @@ future loop todo complete --goal G --todo-id T --no-follow-up | --successor T2 [
 future loop todo supersede --goal G --todo-id T --reason "..."
 future loop gate resolve --goal G --todo-id T --decision "..." [--note "..."]
 future loop lease claim|renew|release|expire|status --goal G ...
-future loop run --goal G --agent-id A [--model M] [--thinking-level L] [--max-turns N] [--max-turn-secs N]
+future loop run --goal G --agent-id A [--model M] [--thinking-level L] [--max-turns N] [--max-turn-secs N] [--session-policy auto|fresh|resume] [--resume-session ID]
 future loop agent onboard|list|contract|recipe|succession|collective ...
 future loop scope --goal G --agent-id A        # identity-scoped runnable frontier
 future loop lane --goal G --agent-id A         # lane recommendation
