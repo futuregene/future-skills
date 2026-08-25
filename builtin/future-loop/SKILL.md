@@ -1,5 +1,5 @@
 ---
-version: 3.0.3
+version: 3.1.0
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -37,7 +37,7 @@ For one-shot conversations, answer normally — no goal needed.
   Probe with `future models`. Override the address with
   `FUTURE_LOOP_AGENT_ADDR` (e.g. a mock for tests).
 - **Binary freshness**: new features need a current binary. Probe:
-  `strings $(command -v future) | grep -c "max-turn-secs"` — `≥1` = current;
+  `strings $(command -v future) | grep -c "max-incomplete-retries"` — `≥1` = current;
   `0` = stale, rebuild. A stale binary also fails to read ledgers written by
   newer binaries ("read ledger"): update it, don't fight it.
 
@@ -139,6 +139,15 @@ future loop run --goal G --agent-id <unique-name> --model M --thinking-level L -
   Unique name per parallel worker (`<host>-<task>`).
 - `--max-turn-secs N` caps the turn wall-clock; timeout stops gracefully and
   context replays on relaunch. Relaunch with the same agent-id to continue.
+- **Incomplete turns auto-retry**: a turn ending `incomplete` (the model
+  stream was truncated mid-reply — an infra event, never a science failure)
+  is retried with an explicit CONTINUE note injected into the next turn's
+  envelope: pick up where you left off, do not restart finished work. The
+  bound is `--max-incomplete-retries N` (default 3, `0` disables) consecutive
+  incomplete turns on the same todo, replayed from the ledger so an
+  orchestrator restart does not reset it; exhausting the bound stops the run
+  (the stream keeps dying mid-turn — relaunch with a fresh session or a
+  lower `--thinking-level`).
 - **Mid-turn steering**: `todo update --text` on the todo a worker is
   executing is delivered into the running session (~10s poll) — the primary
   tool for correcting a drifting or stuck worker.
@@ -181,6 +190,9 @@ decisions.
 - **Delivery ≠ verified**: completion records a delivery in `delivered` state;
   resolve via `delivery record` (verified/failed/rework); unverified deliveries
   auto-derive a follow-up todo after 3 turns.
+- **Incomplete ≠ failure**: a turn ending `incomplete` (truncated model
+  stream) never consumes the repair budget; `future loop run` auto-retries it
+  with a CONTINUE note, bounded by `--max-incomplete-retries` (default 3).
 - **TurnNoProgress**: a turn with no write-tool activity for 15 minutes is
   recorded in the ledger; steer the worker via `todo update --text`, then
   kill + relaunch if it stays idle.
@@ -264,7 +276,7 @@ future loop todo complete --goal G --todo-id T --no-follow-up | --successor T2 [
 future loop todo supersede --goal G --todo-id T --reason "..."
 future loop gate resolve --goal G --todo-id T --decision "..." [--note "..."]
 future loop lease claim|renew|release|expire|status --goal G ...
-future loop run --goal G --agent-id A [--model M] [--thinking-level L] [--max-turns N] [--max-turn-secs N] [--session-policy auto|fresh|resume] [--resume-session ID]
+future loop run --goal G --agent-id A [--model M] [--thinking-level L] [--max-turns N] [--max-turn-secs N] [--max-incomplete-retries N] [--session-policy auto|fresh|resume] [--resume-session ID]
 future loop agent onboard|list|contract|recipe|succession|collective ...
 future loop scope --goal G --agent-id A        # identity-scoped runnable frontier
 future loop lane --goal G --agent-id A         # lane recommendation
