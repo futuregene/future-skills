@@ -148,9 +148,12 @@ future loop run --goal G --agent-id <unique-name> --model M --thinking-level L -
   orchestrator restart does not reset it; exhausting the bound stops the run
   (the stream keeps dying mid-turn — relaunch with a fresh session or a
   lower `--thinking-level`).
-- **Mid-turn steering**: `todo update --text` on the todo a worker is
-  executing is delivered into the running session (~10s poll) — the primary
-  tool for correcting a drifting or stuck worker.
+- **Mid-turn steering (interrupt)**: `supervisor steer --goal G --instruction "..."`
+  issues a real interrupt — the running worker's watch task aborts its
+  in-flight run and the next turn follows the instruction. `todo update
+  --text` remains the *non-interrupting* correction (picked up at the next
+  turn). Register your own agent session first so workers can report back:
+  `supervisor register --goal G --session-id <your-session>`.
 - **Session retention** (resume-vs-fresh is YOUR call, never the kernel's):
   the kernel records WHY the last run was interrupted and keeps the session id
   on disk; you decide whether to resume. `--session-policy auto` (default)
@@ -194,8 +197,9 @@ decisions.
   stream) never consumes the repair budget; `future loop run` auto-retries it
   with a CONTINUE note, bounded by `--max-incomplete-retries` (default 3).
 - **TurnNoProgress**: a turn with no write-tool activity for 15 minutes is
-  recorded in the ledger; steer the worker via `todo update --text`, then
-  kill + relaunch if it stays idle.
+  recorded in the ledger; interrupt a write-idle worker via
+  `supervisor steer --goal G --instruction "..."`, then kill + relaunch if it
+  stays idle.
 - **Monitors**: not-due monitors must NOT be polled; due time comes from
   `--cadence`/`--defer-secs N`; `--resume-when N` (numeric) defers for real,
   text values are hints without a deadline.
@@ -236,11 +240,17 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
    only the orchestrator executes the capped action.
 2. **Shared project memory as broadcast channel.** Instruct workers to re-read
    the project memory file at turn start; use it for cross-worker discoveries.
-3. **Steer by updating todo text, anytime.**
+3. **Steer by updating todo text, anytime** (picked up at the next turn);
+   **interrupt a running worker** with `supervisor steer --goal G
+   --instruction "..."` (aborts the in-flight turn).
 4. **Watch artifacts, not just loop status.** Long compute runs via nohup +
    checkpoint files; track output mtimes.
 5. **Wrap-up belongs to the orchestrator.** The final/validation todo must be
    `--blocks`-chained behind everything, or do the wrap-up outside the loop.
+6. **Workers report to you automatically** once you `supervisor register
+   --goal G --session-id <your-session>`: they enqueue a note when a user gate
+   opens, a todo completes, or a todo fails on a science/hard error — check
+   your session between turns instead of polling `status` for those signals.
 
 ## Drive playbook (hard-won rules)
 
@@ -255,9 +265,9 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
 4. **Dead processes:** leases auto-reclaim via pid probe; if a claim is still
    refused, `agent list` to find the stale holder and `lease release`.
 5. **Dead time is the orchestrator's fault.** Relaunch the moment a turn exits.
-   Steer a write-idle worker once via `todo update --text`, then kill +
-   relaunch. Escalate to a stronger model when a todo has produced NO write
-   artifacts for 2 consecutive turns.
+   Interrupt a write-idle worker once via `supervisor steer --goal G
+   --instruction "..."`, then kill + relaunch. Escalate to a stronger model
+   when a todo has produced NO write artifacts for 2 consecutive turns.
 6. **Repo delivery discipline.** Deliver code waves as small PRs: cherry-pick
    ONE item commit onto the freshest main per PR; local gate = fmt + clippy
    + targeted tests; `gh pr create` + `gh pr merge --squash --auto`; when
@@ -280,7 +290,7 @@ future loop run --goal G --agent-id A [--model M] [--thinking-level L] [--max-tu
 future loop agent onboard|list|contract|recipe|succession|collective ...
 future loop scope --goal G --agent-id A        # identity-scoped runnable frontier
 future loop lane --goal G --agent-id A         # lane recommendation
-future loop supervisor --goal G ...            # supervisor proposal/receipt events
+future loop supervisor register|steer|propose|receipt|events --goal G ...   # bind your session / interrupt a worker / proposal-receipt events
 future loop models [--format json]             # models available from the agent
 future loop frontier show --goal G [--format json]        # outcome segments / replan rules / semantic history / terminal
 future loop delivery status|record --goal G               # post-delivery closure
