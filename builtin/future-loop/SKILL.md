@@ -88,6 +88,17 @@ keeps failing is a **plan problem**, not a kernel problem: change the plan.
 future loop status
 ```
 
+Register your session once per goal so workers can push intervention reports
+to you (no more polling `status` to *discover* gate/completion/failure
+signals):
+
+```bash
+future loop supervisor register --goal G --session-id <your-agent-session>
+```
+
+`<your-agent-session>` is the `Current session ID` line in your own system
+prompt — you are self-aware of it, so copy it verbatim.
+
 If the objective already exists, continue it — never silently create a
 duplicate.
 
@@ -247,10 +258,23 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
    checkpoint files; track output mtimes.
 5. **Wrap-up belongs to the orchestrator.** The final/validation todo must be
    `--blocks`-chained behind everything, or do the wrap-up outside the loop.
-6. **Workers report to you automatically** once you `supervisor register
-   --goal G --session-id <your-session>`: they enqueue a note when a user gate
-   opens, a todo completes, or a todo fails on a science/hard error — check
-   your session between turns instead of polling `status` for those signals.
+6. **Workers report to you — you do not poll `status` for intervention
+   signals.** Once you `supervisor register --goal G --session-id
+   <your-session>`, a worker enqueues a note into YOUR session at each
+   intervention-worthy state transition: a user gate opens, a todo completes,
+   or a todo fails on a science/hard error. Enqueueing an idle supervisor
+   session starts a new turn, so these reports wake you — you react to them
+   instead of polling `status`.
+
+   What remains **pull, not push** (this is the loop's one-turn-per-process
+   model, not a polling gap):
+   - **Driving the next turn.** There is no long-lived worker — every turn is
+     a `future loop run` you relaunch. A report tells you a decision is due;
+     the work itself still runs because you call `run`.
+   - **Confirming closure.** `terminal` (validated closure) has no dedicated
+     report — it is decided inside a `run`'s decide step. The last todo's
+     completion report says "closure pending", so run once more to confirm
+     `terminal` and stop.
 
 ## Drive playbook (hard-won rules)
 
