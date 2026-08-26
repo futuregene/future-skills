@@ -1,5 +1,5 @@
 ---
-version: 3.1.0
+version: 3.2.0
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -67,8 +67,7 @@ replan. Read the signal, then decide:
 
 | Signal (in the delivery reason) | Meaning | What YOU should do |
 |---|---|---|
-| `repair attempt N for todo X` | This todo has failed before | Re-examine the failure; if the approach is wrong, `supersede` + split; if it was a transient infra error, keep going |
-| `[signal: todo X has N failed attempt(s)]` | N previous failures | Supersede / re-split / ask the operator — do NOT blindly retry the same todo |
+| `repair attempt N for todo X` / `[signal: todo X has N failed attempt(s)]` | This todo has failed N times | Re-examine the failure; if the approach is wrong, `supersede` + split; if it was a transient infra error, keep going |
 | `[signal: outcome floor: N consecutive turns without a material outcome]` | You are spinning without landing an artifact | Change strategy or supersede a stale todo |
 | `[signal: oscillation … A→V→A→V]` | Deliveries flip-flop accept/reject | Change the validator, or split the todo so the gate is simpler |
 | `monitor X stalled (N consecutive no-change polls)` | The watch lane is dead | watch-lane expiry / write a blocker / supersede the monitor |
@@ -97,7 +96,8 @@ future loop supervisor register --goal G --session-id <your-agent-session>
 ```
 
 `<your-agent-session>` is the `Current session ID` line in your own system
-prompt — you are self-aware of it, so copy it verbatim.
+prompt — you are self-aware of it, so copy it verbatim. Re-register whenever
+you continue from a NEW session (the id is per-session and dies with it).
 
 If the objective already exists, continue it — never silently create a
 duplicate.
@@ -150,21 +150,14 @@ future loop run --goal G --agent-id <unique-name> --model M --thinking-level L -
   Unique name per parallel worker (`<host>-<task>`).
 - `--max-turn-secs N` caps the turn wall-clock; timeout stops gracefully and
   context replays on relaunch. Relaunch with the same agent-id to continue.
-- **Incomplete turns auto-retry**: a turn ending `incomplete` (the model
-  stream was truncated mid-reply — an infra event, never a science failure)
-  is retried with an explicit CONTINUE note injected into the next turn's
-  envelope: pick up where you left off, do not restart finished work. The
-  bound is `--max-incomplete-retries N` (default 3, `0` disables) consecutive
-  incomplete turns on the same todo, replayed from the ledger so an
-  orchestrator restart does not reset it; exhausting the bound stops the run
-  (the stream keeps dying mid-turn — relaunch with a fresh session or a
-  lower `--thinking-level`).
+- **Incomplete turns auto-retry**: a turn ending `incomplete` (truncated model
+  stream — an infra event, never a science failure) is retried with a CONTINUE
+  note in the next envelope, bounded by `--max-incomplete-retries N` (default
+  3, `0` disables). Exhausting the bound stops the run; see Key semantics.
 - **Mid-turn steering (interrupt)**: `supervisor steer --goal G --instruction "..."`
-  issues a real interrupt — the running worker's watch task aborts its
-  in-flight run and the next turn follows the instruction. `todo update
-  --text` remains the *non-interrupting* correction (picked up at the next
-  turn). Register your own agent session first so workers can report back:
-  `supervisor register --goal G --session-id <your-session>`.
+  aborts the in-flight run (a real interrupt) and the next turn follows the
+  instruction. `todo update --text` remains the *non-interrupting* correction
+  (picked up at the next turn).
 - **Session retention** (resume-vs-fresh is YOUR call, never the kernel's):
   the kernel records WHY the last run was interrupted and keeps the session id
   on disk; you decide whether to resume. `--session-policy auto` (default)
@@ -223,8 +216,6 @@ decisions.
   (alias `--json`); a non-numeric `--resume-when` warns it has no deadline.
 - **Completion is idempotent**: re-completing an already-done todo is a no-op
   (no duplicate ledger events); completing a superseded todo errors.
-- **Ledger forward-compat**: unknown event kinds are skipped with a diagnostic
-  (a newer binary wrote them) — only structural errors fail a read.
 
 ## Multi-agent (one goal, several workers)
 
@@ -296,8 +287,7 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
    ONE item commit onto the freshest main per PR; local gate = fmt + clippy
    + targeted tests; `gh pr create` + `gh pr merge --squash --auto`; when
    GitHub reports BEHIND, merge main into the PR branch and push (auto-merge
-   fires). CodeQL js-ts jobs occasionally queue-stuck — an empty commit
-   retriggers them.
+   fires).
 
 ## Command reference
 
