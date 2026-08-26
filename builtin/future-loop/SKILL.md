@@ -257,6 +257,17 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
    session starts a new turn, so these reports wake you — you react to them
    instead of polling `status`.
 
+   The kernel ALSO reports **infra stops** (a worker that died before reaching
+   a writeback — its run never produced a completion/failure record, so the
+   two reports above never fire). Dedup key `infra_stopped:<todo>:<kind>`:
+   - `transport` — a gRPC stream error (h2 reset / non-gap disconnect) that
+     propagated out of the turn before writeback.
+   - `timeout` — the turn outlived `--max-turn-secs`.
+   - `incomplete_budget` — the turn kept ending `incomplete` and exhausted
+     `--max-incomplete-retries`.
+   React the same way as a science failure: relaunch (the todo stays
+   runnable; infra failures never consume the repair budget).
+
    What remains **pull, not push** (this is the loop's one-turn-per-process
    model, not a polling gap):
    - **Driving the next turn.** There is no long-lived worker — every turn is
@@ -278,11 +289,20 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
    artifact + `--verify` each; chain an assembler todo behind all of them
    (the assembler gets a `--verify` too).
 4. **Dead processes:** leases auto-reclaim via pid probe; if a claim is still
-   refused, `agent list` to find the stale holder and `lease release`.
+   refused, `agent list` to find the stale holder and `lease release`. A
+   `holder dead` marker on a todo means its lease-holding process is gone — it
+   does NOT mean the todo failed; a completed todo can still show a stale
+   orphaned lease, and that is harmless (the lease auto-reclaims on the next
+   claim).
 5. **Dead time is the orchestrator's fault.** Relaunch the moment a turn exits.
    Interrupt a write-idle worker once via `supervisor steer --goal G
    --instruction "..."`, then kill + relaunch. Escalate to a stronger model
    when a todo has produced NO write artifacts for 2 consecutive turns.
+   **Do not trust the push channel 100%.** Infra-stop reports are best-effort
+   (they ride a gRPC prompt and can be lost if the agent is down), and the
+   orchestrator's own session can die too. Keep a light fallback: every few
+   minutes, confirm each claimed todo still maps to a live process and has a
+   recent run record; treat a claimed-but-silent todo as a dead worker.
 6. **Repo delivery discipline.** Deliver code waves as small PRs: cherry-pick
    ONE item commit onto the freshest main per PR; local gate = fmt + clippy
    + targeted tests; `gh pr create` + `gh pr merge --squash --auto`; when
