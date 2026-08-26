@@ -244,7 +244,12 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
    the project memory file at turn start; use it for cross-worker discoveries.
 3. **Steer by updating todo text, anytime** (picked up at the next turn);
    **interrupt a running worker** with `supervisor steer --goal G
-   --instruction "..."` (aborts the in-flight turn).
+   --instruction "..."` (aborts the in-flight turn, then keeps running).
+   **Stop a worker for good** (including nohup/setsid ones) with
+   `worker stop --goal G --agent-id A` — unlike steer, the worker exits its
+   run loop at the next turn boundary. `worker list` shows each worker's
+   status (`running` = in-flight turn, `ended` = session exists but idle,
+   `idle` = registered but never ran).
 4. **Watch artifacts, not just loop status.** Long compute runs via nohup +
    checkpoint files; track output mtimes.
 5. **Wrap-up belongs to the orchestrator.** The final/validation todo must be
@@ -296,8 +301,12 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
    claim).
 5. **Dead time is the orchestrator's fault.** Relaunch the moment a turn exits.
    Interrupt a write-idle worker once via `supervisor steer --goal G
-   --instruction "..."`, then kill + relaunch. Escalate to a stronger model
-   when a todo has produced NO write artifacts for 2 consecutive turns.
+   --instruction "..."`; if the worker must not continue, stop it with
+   `worker stop --goal G --agent-id A` (clean in-band stop: the run client
+   exits at the next turn boundary, the session is retained and resumable;
+   `--delete` also reclaims the session), then relaunch when ready. Escalate
+   to a stronger model when a todo has produced NO write artifacts for 2
+   consecutive turns.
    **Do not trust the push channel 100%.** Infra-stop reports are best-effort
    (they ride a gRPC prompt and can be lost if the agent is down), and the
    orchestrator's own session can die too. Keep a light fallback: every few
@@ -325,6 +334,8 @@ future loop agent onboard|list|contract|recipe|succession|collective ...
 future loop scope --goal G --agent-id A        # identity-scoped runnable frontier
 future loop lane --goal G --agent-id A         # lane recommendation
 future loop supervisor register|steer|propose|receipt|events --goal G ...   # bind your session / interrupt a worker / proposal-receipt events
+future loop worker list --goal G [--format json] # registered workers + backing session + running/ended/idle
+future loop worker stop --goal G --agent-id A | --all [--delete]  # stop worker(s) cleanly (ledger signal + gRPC abort)
 future loop models [--format json]             # models available from the agent
 future loop frontier show --goal G [--format json]        # outcome segments / replan rules / semantic history / terminal
 future loop delivery status|record --goal G               # post-delivery closure
@@ -358,6 +369,7 @@ future loop inbox --project DIR                          # operator inbox urgenc
 future loop privacy --goal G                          # privacy-graded projection
 future loop heartbeat-prompt --goal G                 # per-turn re-entry packet
 future loop worker-bridge                             # run the worker bridge
+future loop worker list|stop --goal G                 # worker observability + clean stop (see Orchestration patterns)
 future loop authority --goal G ...                    # set authority declaration
 future loop profile --goal G ...                      # set execution profile
 future loop canary smoke [--profile core-control-plane|release-gate|premerge] | canary premerge   # smoke / CI gate
