@@ -1,5 +1,5 @@
 ---
-version: 3.2.0
+version: 3.3.0
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -270,6 +270,12 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
    - `timeout` — the turn outlived `--max-turn-secs`.
    - `incomplete_budget` — the turn kept ending `incomplete` and exhausted
      `--max-incomplete-retries`.
+   - `host_died` — the worker's process is gone (SIGKILL / crash / host
+     failure) with no release. This one is NOT reported at the turn boundary
+     (a dead process executes no code): the periodic `scheduler tick` detects
+     the orphaned lease (dead holder pid) and pushes the note, so keep a
+     scheduler tick running on the goal's cadence or you only learn of the
+     dead worker on your next `status` poll.
    React the same way as a science failure: relaunch (the todo stays
    runnable; infra failures never consume the repair budget).
 
