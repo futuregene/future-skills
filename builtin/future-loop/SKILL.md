@@ -1,5 +1,5 @@
 ---
-version: 3.6.0
+version: 3.7.0
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -296,6 +296,17 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
    run loop at the next turn boundary. `worker list` shows each worker's
    status (`running` = in-flight turn, `ended` = session exists but idle,
    `idle` = registered but never ran).
+
+   **`worker stop` reaches the actual agent session, even an orphaned turn.**
+   Every `run` records an `agent-id → session-id` binding in the goal ledger
+   (`worker_session_bound` event) BEFORE its first prompt. `worker stop`/
+   `worker list` read that binding, then issue a real `abort` over gRPC — the
+   abort interrupts the in-flight turn AND any running tool call (the shell
+   tool polls the interrupt flag and kills the child). The binding is written
+   first so a turn whose prompt failed (or whose `run` client was killed)
+   before its `.live.jsonl` run_header was written is still discoverable and
+   abortable — the run_header alone (written only after the prompt ack) cannot
+   see that orphan window.
 4. **Watch artifacts, not just loop status.** Long compute runs via nohup +
    checkpoint files; track output mtimes.
 5. **Wrap-up belongs to the orchestrator.** The final/validation todo must be
