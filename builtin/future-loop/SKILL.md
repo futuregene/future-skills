@@ -1,5 +1,5 @@
 ---
-version: 3.4.0
+version: 3.5.0
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -73,6 +73,21 @@ replan. Read the signal, then decide:
 | `monitor X stalled (N consecutive no-change polls)` | The watch lane is dead | watch-lane expiry / write a blocker / supersede the monitor |
 | `rate-limited (HTTP 429)` | Engine throttled — NOT your fault | Back off, then resume; never count it as a science failure |
 | `[signal: N turns with no write-class tool]` | You may be stuck in a silent reasoning loop | Restart with a fresh session (context replays from the ledger) |
+
+**The turn envelope also ends with a `Prior activity:` block** (goal memory,
+separate from the delivery-reason signals above):
+
+- `prior attempts on this todo: N failed; last = <classification>` — the
+  classification is the failure *kind*, not just a count. Read it to decide
+  retry vs fix vs supersede:
+  - `infra-recoverable (retry is safe)` — HTTP 429 / disconnect / stream gap;
+    retry, never a science failure.
+  - `verify-gate rejected the output` — the `--verify` command failed; fix the
+    gate or supersede the todo (retrying the same turn is wasted).
+  - `hard error (no recoverable infra cause)` — treat as a science failure.
+- `recent goal history:` — the last few turn outcomes (todo completed / run
+  landed / gate resolved / …) so you don't re-derive context the goal already
+  established.
 
 The kernel NEVER converts these signals into a forced `replan`. If the same
 signal repeats across turns, it is YOUR call to `supersede` / split / ask — the
