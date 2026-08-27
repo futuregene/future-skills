@@ -1,5 +1,5 @@
 ---
-version: 3.3.0
+version: 3.4.0
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -44,7 +44,7 @@ For one-shot conversations, answer normally — no goal needed.
 ## Core model
 
 ```
-goal ── todos (advancement / gate / monitor) ── kernel offers a runnable todo + signals
+goal ── todos (advancement / gate / monitor / coordination) ── kernel offers a runnable todo + signals
         │            │                                          │
         └── evidence + acceptance contracts + verify gates      └── writeback → next offer
 ```
@@ -113,7 +113,7 @@ contains the full objective AND explicit operating constraints.
 
 ```bash
 future loop goal init --objective "..." --cwd DIR [--goal-id ID]
-future loop todo add --goal G --text "..." --priority P0 [--blocks T] [--verify "cmd"] [--acceptance "tok1,tok2"]
+future loop todo add --goal G --text "..." --priority P0 [--blocks T] [--verify "cmd"] [--acceptance "tok1,tok2"] [--owner A] [--class coordination]
 ```
 
 - Capture todo ids from the `todo add` output; verify wiring with
@@ -121,6 +121,17 @@ future loop todo add --goal G --text "..." --priority P0 [--blocks T] [--verify 
 - **Dependencies**: `--blocks` keeps a todo out of the frontier until
   predecessors are done/superseded. The final acceptance todo MUST `--blocks`
   every implementation todo, or it can run while they are still stubs.
+- **Coordination todos** (`--class coordination`): the goal's own parent /
+  summary / final-validation todos are bookkeeping, NOT worker work. Mark
+  them `coordination` so they never enter a worker's runnable frontier — the
+  orchestrator completes them directly. Without this, a worker's `run`
+  first-claim-wins them once their lease lapses ("the worker steals the
+  orchestrator's summary todo").
+- **Owner scope** (`--owner A`): declare *which agent this todo is for*. An
+  owner-scoped todo is only runnable by that agent — and the assignment
+  survives lease expiry (a lease releases the lock, never the assignment).
+  `None` owner = shared pool (first-claim-wins). Use it to hand work to a
+  specific worker so workers don't steal each other's slices.
 - **Hard checks beat conventions** — attach them at creation time:
   - `--verify "cmd"`: the kernel runs the command after each turn; only exit 0
     completes the todo (bounded by `--max-validation-attempts`). Attach
@@ -210,6 +221,12 @@ decisions.
 - **Gates freeze everything** while any user gate is open; user_actions
   (non-blocking human to-dos) surface in the user channel but never freeze
   the agent — reserve user_gate for genuine user decisions.
+- **Coordination vs owner (anti-steal)**: `coordination` todos (goal
+  bookkeeping) and `owner`-scoped todos never enter the shared worker
+  frontier — the first is never agent work, the second is single-agent work.
+  Both prevent the "worker `run` auto-claims a todo that isn't theirs" failure
+  mode; keep the shared pool (`advancement` + no `--owner`) for genuinely
+  first-claim-wins work so backup takeover / load-balancing still work.
 - **CLI strictness**: unknown flags are hard errors; unknown `--class` /
   `--priority` / role-class combo values are hard errors; every subcommand
   renders usage on `--help`; all read-only commands accept `--format json`
@@ -253,7 +270,10 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
 4. **Watch artifacts, not just loop status.** Long compute runs via nohup +
    checkpoint files; track output mtimes.
 5. **Wrap-up belongs to the orchestrator.** The final/validation todo must be
-   `--blocks`-chained behind everything, or do the wrap-up outside the loop.
+   `--blocks`-chained behind everything — and mark it `--class coordination`
+   so a worker's `run` can never auto-claim it once its lease lapses. Give
+   each worker's slice `--owner <agent-id>` so parallel workers can't steal
+   each other's work either; leave only genuinely shared work unowned.
 6. **Workers report to you — you do not poll `status` for intervention
    signals.** Once you `supervisor register --goal G --session-id
    <your-session>`, a worker enqueues a note into YOUR session at each
@@ -329,8 +349,8 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
 ```bash
 future loop status [--goal G] [--format json]
 future loop goal init --objective "..." --cwd DIR [--goal-id G]
-future loop todo add --goal G --text "..." [--priority P0|P1|P2] [--blocks T] [--verify "cmd"] [--acceptance "a,b"]
-future loop todo update --goal G --todo-id T [--text ...] [--priority ...] [--blocks T] [--acceptance ...]
+future loop todo add --goal G --text "..." [--priority P0|P1|P2] [--blocks T] [--verify "cmd"] [--acceptance "a,b"] [--owner A] [--class coordination]
+future loop todo update --goal G --todo-id T [--text ...] [--priority ...] [--blocks T] [--acceptance ...] [--owner A]
 future loop todo complete --goal G --todo-id T --no-follow-up | --successor T2 [--evidence "..."] [--force]
 future loop todo supersede --goal G --todo-id T --reason "..."
 future loop gate resolve --goal G --todo-id T --decision "..." [--note "..."]
