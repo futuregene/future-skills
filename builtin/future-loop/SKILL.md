@@ -1,5 +1,5 @@
 ---
-version: 3.5.0
+version: 3.6.0
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -133,6 +133,14 @@ future loop todo add --goal G --text "..." --priority P0 [--blocks T] [--verify 
 
 - Capture todo ids from the `todo add` output; verify wiring with
   `status --goal G`.
+- **`goal init` auto-adds a bootstrap todo** — a P1 advancement with
+  `action_kind=onboarding_connection_validation` ("Run `future loop status`
+  for this goal … or declare an explicit no-follow-up rationale"). This is
+  expected, not a stray todo: it forces the first turn to prove the
+  loop↔agent connection before real work. Either complete it (run `status`,
+  record the goal count as evidence) or supersede it with an explicit
+  no-follow-up — never treat it as a mystery. Re-running `goal init` on an
+  existing goal does NOT duplicate it.
 - **Dependencies**: `--blocks` keeps a todo out of the frontier until
   predecessors are done/superseded. The final acceptance todo MUST `--blocks`
   every implementation todo, or it can run while they are still stubs.
@@ -264,6 +272,12 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
 - Role succession: a primary agent offline past the threshold auto-promotes
   its backup (event + attention alert).
 - Declared workspaces feed the workspace guard.
+- **Launching N workers at once**: the workspace guard sees N runs claiming
+  the same cwd and degrades to serial unless each passes `--force-workspace`
+  (legitimate when workers write to disjoint subdirs). They also contend on a
+  single `ACTIVE_GOAL_STATE.md.lock` at session-retention time — harmless
+  (best-effort) but noisy; stagger launches by a second or two if it bothers
+  you.
 
 ## Orchestration patterns
 
