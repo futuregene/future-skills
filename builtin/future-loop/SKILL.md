@@ -1,5 +1,5 @@
 ---
-version: 3.7.0
+version: 3.8.0
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -314,7 +314,28 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
    so a worker's `run` can never auto-claim it once its lease lapses. Give
    each worker's slice `--owner <agent-id>` so parallel workers can't steal
    each other's work either; leave only genuinely shared work unowned.
-6. **Workers report to you — you do not poll `status` for intervention
+6. **Iterate after a result — extend, revise, or interrupt.** A worker is NOT
+   a long-lived process: "keep working on it" means re-`run` the SAME
+   `--agent-id`, which resumes the SAME session (reasoning history carries
+   over); the *work* is expressed as todos. When a result lands and you want
+   a new direction, pick the lever that matches:
+
+   - **Extend** (new direction = new work): `todo add --owner <same-agent>
+     --blocks <old>` for the new slice, then close the old one with
+     `todo complete --successor <new>`. `--owner` keeps it on the same worker
+     (survives lease expiry); completion REQUIRES `--successor` or
+     `--no-follow-up`, so a silent stop is rejected. Then `run --goal G
+     --agent-id <same>` resumes the session.
+   - **Revise** (same work, new angle): `todo update --text` (non-interrupting,
+     picked up next turn) or `todo supersede` + re-split into finer todos.
+   - **Interrupt** (redirect a running worker now): `supervisor steer --goal G
+     --agent-id A --instruction "..."` aborts the in-flight turn and injects the
+     instruction into the next envelope; for a paused worker it persists as
+     `pending_steer` and is consumed on the next `run`.
+
+   The kernel only signals (replan rule set, oscillation / outcome-floor
+   signals in `frontier show`); it never chooses the lever — you do.
+7. **Workers report to you — you do not poll `status` for intervention
    signals.** Once you `supervisor register --goal G --session-id
    <your-session>`, a worker enqueues a note into YOUR session at each
    intervention-worthy state transition: a user gate opens, a todo completes,
