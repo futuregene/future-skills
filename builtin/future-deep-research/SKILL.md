@@ -1,6 +1,6 @@
 ---
 name: future-deep-research
-version: 2.5.3
+version: 2.6.0
 description: >
   End-to-end deep research on user-specified topics. Automatically orchestrates multi-source data collection (web search, academic papers, local documents),
   supports user-provided materials (PDF/Word/URL/paper IDs/notes/CSV), ensures information reliability through cross-validation and citation verification,
@@ -47,9 +47,27 @@ After receiving the user's request, the AI **MUST proactively offer three strate
 | Search volume | 3-5 keywords | 6-10 keywords | 10-20 keywords |
 | Page reading | Abstracts / key paragraphs only | Tier 1 full text | Tier 1+2 full text |
 | Academic papers | Not retrieved | Search abstracts | Search + full text retrieval |
+| **Final citation count** 🆕 v2.6 | **5–15 refs** | **20–40 refs** | **60–120 refs** |
 | Python analysis | ❌ | ❌ | ✅ |
 | Cross-validation | Basic | Medium | Deep + citation verification |
 | Use case | Quick understanding / fact-checking | Industry research / competitive overview | Academic review / technical deep-dive |
+
+#### Citation Count Guidance (🆕 v2.6)
+
+> **Why**: Search volume (keywords) constrains retrieval breadth, but NOT output density. Without a citation floor, a Strategy C report can be "broadly searched but thinly cited".
+
+| Metric | Strategy A | Strategy B | Strategy C |
+|--------|:----------:|:----------:|:----------:|
+| Total references | 5–15 | 20–40 | 60–120 |
+| Academic paper share | 0–30% (optional) | ≥40% | ≥60% |
+| Min adequate sources per sub-topic | ≥2 | ≥2 | ≥3 |
+| Tier 1 authoritative share | ≥50% | ≥60% | ≥70% |
+| References from last 3 years | ≥40% recommended | ≥40% recommended | ≥50% recommended |
+
+**Rules**:
+- **Below the floor** → trigger backfill retrieval (Phase 1b); do NOT pad with low-quality sources just to hit the number
+- **Naturally scarce topics** (niche subjects) → may fall below the floor, but MUST be declared in the report's "Known Unknowns & Research Limitations" section
+- **Above the ceiling** (e.g. >120 for Strategy C) → per-source adequacy checks degrade; cap the pool and prioritize Tier 1 + recent refs
 
 ---
 
@@ -316,7 +334,8 @@ Goal: Rapidly locate high-quality information sources, ensure each sub-topic has
         future tools call search_paper --queries '["<English query>"]'
 
   After each backfill, re-check content adequacy until:
-    - ✅ Each sub-topic has ≥ 2 adequate sources  → proceed to Phase 2
+    - ✅ Each sub-topic has ≥ 2 adequate sources (≥ 3 for Strategy C, v2.6)  → proceed to Phase 2
+    - ✅ Citation pool is on track for the strategy floor (A: 5 / B: 20 / C: 60 refs, v2.6); if below the floor after sub-topic coverage is met, run extra backfill rounds targeting under-covered sub-topics
     - ⚠️ All attempts exhausted but still can't meet threshold → mark "this sub-topic has limited information", proceed to Phase 2
 
 ─── 1c: Source Quality Statistics and Output ───
@@ -326,6 +345,7 @@ Goal: Rapidly locate high-quality information sources, ensure each sub-topic has
     ├─ ⚠️ Content too short (still insufficient after browser degradation): X
     ├─ ❌ Completely unreachable: X
     ├─ 🔄 Backfill rounds: X rounds
+    ├─ 📚 Citation pool vs strategy floor (v2.6): X refs / floor Y (below floor → extra backfill)
     └─ 📊 Sub-topic coverage: All met / partially limited / needs focused attention
 ```
 
@@ -638,6 +658,7 @@ Action:
     ┌────────────────────────┐  ┌──────────────────────┐
     │ • Each sub-topic ≥2    │  │ • Time cap            │
     │   adequate sources     │  │ • Search count cap    │
+    │   (≥3 for Strategy C)  │  │                       │     │ • Citation pool ≥      │  │                       │     │   strategy floor       │  │                       │     │   (A:5/B:20/C:60)      │  │                       │
     │ • No new info emerging │  │ • Page fetch cap      │
     │ • Contradictions       │  │ • Reasoning iter cap  │
     │   resolved             │  │ • Backfill round cap  │
