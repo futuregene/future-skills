@@ -1,5 +1,5 @@
 ---
-version: 3.8.0
+version: 3.9.0
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -360,6 +360,19 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
    React the same way as a science failure: relaunch (the todo stays
    runnable; infra failures never consume the repair budget).
 
+   **Worker mid-run progress (`future loop report`)** is the opposite of the
+   push channel above: it is **projection-only, never pushed**. A worker
+   calls `future loop report --goal G --agent-id A [--todo-id T]
+   --message "..."` mid-turn (a tool call between LLM steps — submitted an
+   attempt, waiting on a score) and the note lands as a `ProgressReported`
+   ledger event. It deliberately does NOT prompt your session: no gate, no
+   status transition, no dedup beyond the content-derived event id (an
+   identical note within the same second is a no-op; distinct moments always
+   append). Read it from the projection: `supervisor events --goal G` shows
+   a `progress` array (agent_id / todo_id / message / ts). This is the
+   pull-side companion to the push notifications — use it when a worker's
+   intermediate milestones matter but don't warrant waking you.
+
    What remains **pull, not push** (this is the loop's one-turn-per-process
    model, not a polling gap):
    - **Driving the next turn.** There is no long-lived worker — every turn is
@@ -421,6 +434,7 @@ future loop agent onboard|list|contract|recipe|succession|collective ...
 future loop scope --goal G --agent-id A        # identity-scoped runnable frontier
 future loop lane --goal G --agent-id A         # lane recommendation
 future loop supervisor register|steer|propose|receipt|events --goal G ...   # bind your session / interrupt a worker / proposal-receipt events
+future loop report --goal G --agent-id A [--todo-id T] --message "..."       # worker mid-run progress note (ledger event; read via supervisor events)
 future loop worker list --goal G [--format json] # registered workers + backing session + running/ended/idle
 future loop worker stop --goal G --agent-id A | --all [--delete]  # stop worker(s) cleanly (ledger signal + gRPC abort)
 future loop models [--format json]             # models available from the agent
