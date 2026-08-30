@@ -1,5 +1,5 @@
 ---
-version: 3.9.0
+version: 3.9.1
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -149,7 +149,10 @@ future loop todo add --goal G --text "..." --priority P0 [--blocks T] [--verify 
   them `coordination` so they never enter a worker's runnable frontier — the
   orchestrator completes them directly. Without this, a worker's `run`
   first-claim-wins them once their lease lapses ("the worker steals the
-  orchestrator's summary todo").
+  orchestrator's summary todo"). **`--class` is immutable after creation**
+  (`todo update` rejects the flag): a mis-classed todo is fixed by
+  `todo supersede` + re-`todo add` with the right class/owner — never in
+  place.
 - **Owner scope** (`--owner A`): declare *which agent this todo is for*. An
   owner-scoped todo is only runnable by that agent — and the assignment
   survives lease expiry (a lease releases the lock, never the assignment).
@@ -424,7 +427,7 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
 future loop status [--goal G] [--format json]
 future loop goal init --objective "..." --cwd DIR [--goal-id G]
 future loop todo add --goal G --text "..." [--priority P0|P1|P2] [--blocks T] [--verify "cmd"] [--acceptance "a,b"] [--owner A] [--class coordination]
-future loop todo update --goal G --todo-id T [--text ...] [--priority ...] [--blocks T] [--acceptance ...] [--owner A]
+future loop todo update --goal G --todo-id T [--text ...] [--priority ...] [--blocks T] [--acceptance ...] [--owner A]   # no --class: class is immutable (supersede + re-add instead)
 future loop todo complete --goal G --todo-id T --no-follow-up | --successor T2 [--evidence "..."] [--force]
 future loop todo supersede --goal G --todo-id T --reason "..."
 future loop gate resolve --goal G --todo-id T --decision "..." [--note "..."]
