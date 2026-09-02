@@ -1,5 +1,5 @@
 ---
-version: 3.9.1
+version: 3.9.2
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -31,8 +31,12 @@ For one-shot conversations, answer normally — no goal needed.
 
 - Everything runs through the unified CLI: **`future loop <cmd>`** (an existing
   install: `command -v future`; also `~/.local/bin/future`, `~/bin/future`).
-  State lives in the project: `<cwd>/.future/loop/` (run from the project dir,
-  or pass `--cwd`). Add `.future/loop/` to the project `.gitignore`.
+  State lives in the project: `<cwd>/.future/loop/`, where `<cwd>` is the
+  directory the command is RUN from — there is no `--cwd` flag that relocates
+  the ledger; the state root is the process cwd, or `FUTURE_LOOP_ROOT` when
+  set (`root_dir()` in `orchestration/loop/src/console.rs`). Run every
+  `future loop` command from the project dir, and add `.future/loop/` to the
+  project `.gitignore`.
 - `future loop run` needs the agent server: `future agent` (gRPC 127.0.0.1:50051).
   Probe with `future models`. Override the address with
   `FUTURE_LOOP_AGENT_ADDR` (e.g. a mock for tests).
@@ -129,10 +133,15 @@ contains the full objective AND explicit operating constraints.
 ### 3. Create the goal and todos
 
 ```bash
-future loop goal init --objective "..." --cwd DIR [--goal-id ID]
+future loop goal init --objective "..." [--goal-id ID]
 future loop todo add --goal G --text "..." --priority P0 [--blocks T] [--verify "cmd"] [--acceptance "tok1,tok2"] [--owner A] [--class coordination]
 ```
 
+- `goal init` registers the goal in the ledger at the state root of the
+  PROCESS cwd (`<cwd>/.future/loop/`, or `FUTURE_LOOP_ROOT`) — run it from
+  the project dir. Its optional `--cwd DIR` only records the goal's project
+  directory (the anchor for agent sessions, `GOAL.md`, and liveness inbox
+  alerts); it does NOT relocate the ledger.
 - Capture todo ids from the `todo add` output; verify wiring with
   `status --goal G`.
 - **`goal init` auto-adds a bootstrap todo** — a P1 advancement with
@@ -228,9 +237,26 @@ future loop run --goal G --agent-id <unique-name> --model M --thinking-level L -
   verbatim log). This is the loop's own observability window into what a
   worker is *actually doing* so you can steer / stop / let it run — no
   hand-tailing files.
-- `run` stops when: validated closure (terminal), a user gate opens, a blocker
-  waits, or max-turns / max-turn-secs is reached. Non-zero exit = budget hit;
-  rerun if open todos remain.
+- A `run` executes one decision at a time and exits as soon as the kernel
+  stops offering executable work — then YOU relaunch. `run` stops when:
+  - **validated closure** (`terminal`) — all todos done, no acceptance gaps;
+    the goal is closed;
+  - **a user gate opens** (`ask_user`) — stop until the gate is resolved
+    (`gate resolve`), then relaunch;
+  - **quiet wait** (`wait_monitor`) — nothing is executable right now and the
+    run exits cleanly (NOT a budget hit): a monitor exists but is not due (or
+    is stalled), a blocker waits with no runnable fallback, deferred work is
+    not yet due, or the open advancement work is leased to other agents.
+    Relaunch when the wait clears (due time / blocker resolved / lease
+    released);
+  - **a replan obligation** (`replan`) — e.g. a completion that never declared
+    a successor / `--no-follow-up`, or an acceptance gap with no runnable
+    work: no auto path, stop and fix the plan (see `status`);
+  - **worker stop** — the in-band operator stop; the run client exits at the
+    next turn boundary (session retained);
+  - **budget bounds** — max-turns reached (error exit) or a turn outlived
+    `--max-turn-secs` (graceful, resumable). Non-zero exit = budget hit; rerun
+    if open todos remain.
 
 ### 5. Report, reflect, steer
 
@@ -296,14 +322,21 @@ decisions.
 future loop agent contract set --goal G --contract '<json>' | --contract-file contract.json   # peers, backup_for, handoff rules
 future loop agent recipe add --goal G --name N --capabilities c1,c2 --workspace p --priority P0
 future loop agent onboard --goal G --agent-id A --recipe N
-future loop agent succession show --goal G                     # backup promotion status
+future loop agent succession show --goal G [--format json]  # report pending triggers + recorded promotions
+future loop agent succession apply --goal G [--primary P] [--reason R]   # record pending promotion(s) as ledger events
 future loop agent collective show --goal G [--format json]     # wake roster + turn ledger
 ```
 
 - Contract `capabilities` on peers are **descriptive strings only** — nothing
   in the kernel enforces them.
-- Role succession: a primary agent offline past the threshold auto-promotes
-  its backup (event + attention alert).
+- Role succession: the kernel DETECTS a trigger — a primary's lease expired
+  mid-slice, or its scheduler heartbeat went silent past the offline
+  threshold — and `agent succession show` reports it as **pending**.
+  `agent succession apply` records the promotion (`SuccessionOccurred`
+  ledger event; idempotent per trigger episode). A recorded promotion raises
+  a `role_succession` attention alert until the primary's heartbeat proves it
+  recovered. `agent contract set` must come first (succession follows the
+  contract's `backup_for` edges).
 - Declared workspaces feed the workspace guard.
 - **Launching N workers at once**: the workspace guard sees N runs claiming
   the same cwd and degrades to serial unless each passes `--force-workspace`
@@ -347,24 +380,37 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
    so a worker's `run` can never auto-claim it once its lease lapses. Give
    each worker's slice `--owner <agent-id>` so parallel workers can't steal
    each other's work either; leave only genuinely shared work unowned.
-6. **Iterate after a result — extend, revise, or interrupt.** A worker is NOT
-   a long-lived process: "keep working on it" means re-`run` the SAME
-   `--agent-id`, which resumes the SAME session (reasoning history carries
-   over); the *work* is expressed as todos. When a result lands and you want
-   a new direction, pick the lever that matches:
+6. **Iterate after a result — extend, revise, interrupt, or respawn.** A
+   worker is NOT a long-lived process: "keep working on it" means re-`run`
+   the SAME `--agent-id` — the *work* is expressed as todos, and context is
+   replayed from the ledger, not from session memory (a re-`run` resumes the
+   retained session only per `--session-policy`: the default `auto` resumes
+   only after an infra interruption; otherwise it starts a fresh session that
+   cold-starts from the ledger). When a result lands and you want a new
+   direction, pick the lever that matches:
 
    - **Extend** (new direction = new work): `todo add --owner <same-agent>
      --blocks <old>` for the new slice, then close the old one with
      `todo complete --successor <new>`. `--owner` keeps it on the same worker
      (survives lease expiry); completion REQUIRES `--successor` or
      `--no-follow-up`, so a silent stop is rejected. Then `run --goal G
-     --agent-id <same>` resumes the session.
+     --agent-id <same>` keeps driving the same worker (session resumes per
+     `--session-policy`; context replays from the ledger either way).
    - **Revise** (same work, new angle): `todo update --text` (non-interrupting,
      picked up next turn) or `todo supersede` + re-split into finer todos.
    - **Interrupt** (redirect a running worker now): `supervisor steer --goal G
      --agent-id A --instruction "..."` aborts the in-flight turn and injects the
      instruction into the next envelope; for a paused worker it persists as
      `pending_steer` and is consumed on the next `run`.
+   - **Respawn** (change what it RUNS ON — model / thinking level): steer
+     changes the *task*; model and thinking level are session configuration,
+     fixed at spawn and not hot-updatable ("steer changes the task; respawn
+     changes the worker" — ARCHITECTURE.md). Changing them retires the worker
+     and spawns a fresh one on the new configuration: `worker stop --goal G
+     --agent-id A --delete` (reclaim the old session so the respawn is a true
+     cold start — or pass `--session-policy fresh` on the next run), then
+     `run --goal G --agent-id A --model M --thinking-level L`; the fresh
+     session cold-starts its context from the ledger.
 
    The kernel only signals (replan rule set, oscillation / outcome-floor
    signals in `frontier show`); it never chooses the lever — you do.
@@ -455,7 +501,7 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
 
 ```bash
 future loop status [--goal G] [--format json]
-future loop goal init --objective "..." --cwd DIR [--goal-id G]
+future loop goal init --objective "..." [--goal-id ID]   # state root = process cwd / FUTURE_LOOP_ROOT
 future loop todo add --goal G --text "..." [--priority P0|P1|P2] [--blocks T] [--verify "cmd"] [--acceptance "a,b"] [--owner A] [--class coordination]
 future loop todo update --goal G --todo-id T [--text ...] [--priority ...] [--blocks T] [--acceptance ...] [--owner A]   # no --class: class is immutable (supersede + re-add instead)
 future loop todo complete --goal G --todo-id T --no-follow-up | --successor T2 [--evidence "..."] [--force]
