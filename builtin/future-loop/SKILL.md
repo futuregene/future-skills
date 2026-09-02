@@ -159,9 +159,18 @@ future loop todo add --goal G --text "..." --priority P0 [--blocks T] [--verify 
   `None` owner = shared pool (first-claim-wins). Use it to hand work to a
   specific worker so workers don't steal each other's slices.
 - **Hard checks beat conventions** — attach them at creation time:
-  - `--verify "cmd"`: the kernel runs the command after each turn; only exit 0
-    completes the todo (bounded by `--max-validation-attempts`). Attach
-    `cargo check`/artifact-existence gates to every delivery todo.
+  - `--verify "cmd"`: the kernel runs the command after each *turn* (in the
+    `run` boundary); only exit 0 lets that turn's todo complete (bounded by
+    `--max-validation-attempts`). It is a *machine-checkable* gate for
+    deterministic deliverables (`cargo check`, `Test-Path report.md`).
+    **Do NOT hang `--verify` on exploratory todos** — a research/report todo
+    produces files whose *correctness* the kernel cannot judge; only YOU (the
+    orchestrator) can, by reading the artifact. Note the deliberate asymmetry:
+    `--verify` fires at the `run` turn boundary, NOT on a manual
+    `todo complete` — that manual path is YOUR judgement call overriding the
+    machine gate, which is exactly what you want when you (not a shell script)
+    decide an exploratory result is good enough. `--force` is the explicit
+    escape hatch either way.
   - `--acceptance "tok1,tok2"`: completion evidence must contain EVERY token
     (case-insensitive), e.g. a platform attempt id — the hard form of "done ≠
     delivered".
@@ -202,8 +211,21 @@ future loop run --goal G --agent-id <unique-name> --model M --thinking-level L -
   LLM state intact); `resume` always resumes the retained session; `fresh`
   always starts over. `--resume-session <id>` pins an exact session. A
   retained session that no longer exists falls back to fresh automatically.
-- **Monitor live progress** via `.future/loop/runs/<run_id>.live.jsonl`
-  (tee'd per run), not via hand-managed log files.
+  **A session from a *normally completed* run is NOT resumable** — when a
+  worker finishes its turn without an infra failure (`failure_kind = None`),
+  the kernel marks the session non-resumable and the backing agent session is
+  gone, so a later `run` (even `--session-policy resume` on the same
+  `--agent-id`) silently starts a FRESH session. Do NOT rely on session
+  memory to carry context across turns: put cross-turn state in a durable
+  artifact (the report file, a shared ledger, the goal doc) that each turn
+  re-reads. Resume only helps after an *infra interruption* (429 / disconnect
+  / operator stop), where the LLM context is genuinely still alive.
+- **Watch a worker live** with `future loop worker tail --goal G
+  [--agent-id A] [--lines N] [--raw]` — it renders the worker's
+  `.live.jsonl` turn stream as a condensed tool/usage view (`--raw` dumps the
+  verbatim log). This is the loop's own observability window into what a
+  worker is *actually doing* so you can steer / stop / let it run — no
+  hand-tailing files.
 - `run` stops when: validated closure (terminal), a user gate opens, a blocker
   waits, or max-turns / max-turn-secs is reached. Non-zero exit = budget hit;
   rerun if open todos remain.
@@ -230,7 +252,11 @@ decisions.
   are auto-reclaimed on the next claim (no manual `lease release` dance).
   Pre-liveness ledgers (no pid) keep the old hard error.
 - **Workspace guard**: agents declare workspace paths; conflicting claims
-  degrade to serial unless `--force-workspace`.
+  degrade to serial unless `--force-workspace`. The guard keys on the *cwd*,
+  not on which agent is writing — so it ALSO fires when the same orchestrator
+  re-runs with a *different* `--agent-id` on the same project (the first
+  worker's lease is still held). When you know no parallel writes race (e.g.
+  serial re-drive, or workers on disjoint subdirs), pass `--force-workspace`.
 - **Delivery ≠ verified**: completion records a delivery in `delivered` state;
   resolve via `delivery record` (verified/failed/rework); unverified deliveries
   auto-derive a follow-up todo after 3 turns.
@@ -255,7 +281,9 @@ decisions.
   first-claim-wins work so backup takeover / load-balancing still work.
 - **CLI strictness**: unknown flags are hard errors; unknown `--class` /
   `--priority` / role-class combo values are hard errors; every subcommand
-  renders usage on `--help`; all read-only commands accept `--format json`
+  renders its *own* exact usage on `--help` (`future loop supervisor steer
+  --help` → the verb's flags, not the merged top-level line; `<command>
+  --help` also lists a multi-verb command's subcommands); all read-only commands accept `--format json`
   (alias `--json`); a non-numeric `--resume-when` warns it has no deadline.
 - **Completion is idempotent**: re-completing an already-done todo is a no-op
   (no duplicate ledger events); completing a superseded todo errors.
@@ -439,6 +467,7 @@ future loop lane --goal G --agent-id A         # lane recommendation
 future loop supervisor register|steer|propose|receipt|events --goal G ...   # bind your session / interrupt a worker / proposal-receipt events
 future loop report --goal G --agent-id A [--todo-id T] --message "..."       # worker mid-run progress note (ledger event; read via supervisor events)
 future loop worker list --goal G [--format json] # registered workers + backing session + running/ended/idle
+future loop worker tail --goal G [--agent-id A] [--lines N] [--raw]  # watch a worker's live turn (condensed tool/usage view)
 future loop worker stop --goal G --agent-id A | --all [--delete]  # stop worker(s) cleanly (ledger signal + gRPC abort)
 future loop models [--format json]             # models available from the agent
 future loop frontier show --goal G [--format json]        # outcome segments / replan rules / semantic history / terminal
