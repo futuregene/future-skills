@@ -71,7 +71,7 @@ goal ── todos (advancement / gate / monitor / coordination) ── kernel of
 The kernel surfaces signals in the delivery reason — it does NOT force a
 replan. Read the signal, then decide:
 
-| Signal (in the delivery reason) | Meaning | What YOU should do |
+| Signal (delivery reason / envelope `signals:` block) | Meaning | What YOU should do |
 |---|---|---|
 | `repair attempt N for todo X` / `[signal: todo X has N failed attempt(s)]` | This todo has failed N times | Re-examine the failure; if the approach is wrong, `supersede` + split; if it was a transient infra error, keep going |
 | `[signal: outcome floor: N consecutive turns without a material outcome]` | You are spinning without landing an artifact | Change strategy or supersede a stale todo |
@@ -80,8 +80,8 @@ replan. Read the signal, then decide:
 | `rate-limited (HTTP 429)` | Engine throttled — NOT your fault | Back off, then resume; never count it as a science failure |
 | `[signal: N turns with no write-class tool]` | You may be stuck in a silent reasoning loop | Restart with a fresh session (context replays from the ledger) |
 
-**The turn envelope also ends with a `Prior activity:` block** (goal memory,
-separate from the delivery-reason signals above):
+**The turn envelope also carries goal memory and signals.** A `Prior
+activity:` block (goal memory):
 
 - `prior attempts on this todo: N failed; last = <classification>` — the
   classification is the failure *kind*, not just a count. Read it to decide
@@ -94,6 +94,9 @@ separate from the delivery-reason signals above):
 - `recent goal history:` — the last few turn outcomes (todo completed / run
   landed / gate resolved / …) so you don't re-derive context the goal already
   established.
+- `signals: [signal: …] …` — the same advisories the delivery reason carries
+  (failure count, outcome floor, oscillation, no-progress), recomputed from
+  the ledger for THIS todo, so you see them even without the packet.
 
 The kernel NEVER converts these signals into a forced `replan`. If the same
 signal repeats across turns, it is YOUR call to `supersede` / split / ask — the
