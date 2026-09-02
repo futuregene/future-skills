@@ -1,5 +1,5 @@
 ---
-version: 3.9.2
+version: 3.9.3
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -196,14 +196,24 @@ future loop todo add --goal G --text "..." --priority P0 [--blocks T] [--verify 
 - **User gates** are real gates, not prose:
   `future loop todo add --goal G --role user --class user_gate --text "..." --gate-question "..."`.
   (`--text` is required; `--gate-question` defaults to it.)
-  Any open gate freezes all work; resolve with `gate resolve`, never
-  `todo complete`.
+  An open gate **freezes the gated work** (its dependents) and pushes a
+  decision report to the registered supervisor; gate-independent work keeps
+  running (escalate-not-freeze — ARCHITECTURE.md "Workers escalate"). Resolve
+  with `gate resolve`, never `todo complete`.
 
-### 4. Run — one turn at a time
+### 4. Run — one turn at a time, launched detached
 
 ```bash
-future loop run --goal G --agent-id <unique-name> --model M --thinking-level L --max-turns 1
+nohup future loop run --goal G --agent-id <unique-name> --model M --thinking-level L --max-turns 1 > /tmp/<agent-id>.log 2>&1 &
 ```
+
+- **NEVER run `run` synchronously and wait for the todo to finish.** Runs are
+  detached by design (ARCHITECTURE.md "Runs are detached"); `run` is a
+  foreground CLI call, so YOU detach it (shell background / nohup / setsid /
+  scheduler). While you block on a run you cannot watch other workers, answer
+  gates, or read signals — the goal's dead time is your fault. Relaunch the
+  moment a turn exits; a completed/failed run is a prompt to act on, not a
+  result to wait for.
 
 - `--agent-id` is mandatory and is the only mutual-exclusion mechanism: a run
   sees its OWN leased todos as runnable; two runs sharing one id double-execute.
@@ -244,8 +254,9 @@ future loop run --goal G --agent-id <unique-name> --model M --thinking-level L -
   stops offering executable work — then YOU relaunch. `run` stops when:
   - **validated closure** (`terminal`) — all todos done, no acceptance gaps;
     the goal is closed;
-  - **a user gate opens** (`ask_user`) — stop until the gate is resolved
-    (`gate resolve`), then relaunch;
+  - **a user gate opens** (`ask_user`) — the gate report is pushed; with a
+    gate-independent fallback the run KEEPS RUNNING it, otherwise it stops
+    until the gate is resolved (`gate resolve`), then relaunch;
   - **quiet wait** (`wait_monitor`) — nothing is executable right now and the
     run exits cleanly (NOT a budget hit): a monitor exists but is not due (or
     is stalled), a blocker waits with no runnable fallback, deferred work is
@@ -301,9 +312,12 @@ decisions.
 - **Monitors**: not-due monitors must NOT be polled; due time comes from
   `--cadence`/`--defer-secs N`; `--resume-when N` (numeric) defers for real,
   text values are hints without a deadline.
-- **Gates freeze everything** while any user gate is open; user_actions
-  (non-blocking human to-dos) surface in the user channel but never freeze
-  the agent — reserve user_gate for genuine user decisions.
+- **Gates freeze gated work, not the goal**: an open user gate blocks its
+  dependents and reports up-channel, but gate-independent fallback work keeps
+  running and the orchestrator decides whether a hard stop is wanted
+  (`worker stop`). user_actions (non-blocking human to-dos) surface in the
+  user channel and never freeze anything — reserve user_gate for genuine
+  user decisions.
 - **Coordination vs owner (anti-steal)**: `coordination` todos (goal
   bookkeeping) and `owner`-scoped todos never enter the shared worker
   frontier — the first is never agent work, the second is single-agent work.
