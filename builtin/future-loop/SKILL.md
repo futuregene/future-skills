@@ -49,8 +49,10 @@ goal ── todos (advancement / gate / monitor / coordination) ── kernel of
         └── evidence + acceptance contracts + verify gates      └── writeback → next offer
 ```
 
-- **The agent decides; the kernel provides the kanban.** Each turn the kernel
-  offers a runnable todo plus *signals* (failure count, outcome-floor streak,
+- **The agent decides; the kernel provides the kanban.** (Design principles:
+  `orchestration/loop/ARCHITECTURE.md` in the future-os repo — this skill is
+  the driving manual, not the architecture doc.) Each turn the kernel offers
+  a runnable todo plus *signals* (failure count, outcome-floor streak,
   oscillation pattern, monitor stall, rate-limit) in the delivery reason. The
   agent reads the signals and decides — keep going, supersede, re-split, or
   ask the operator. The kernel enforces only the **correctness floor** (verify
