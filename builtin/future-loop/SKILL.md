@@ -1,5 +1,5 @@
 ---
-version: 3.9.3
+version: 3.9.4
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -363,6 +363,20 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
   you.
 
 ## Orchestration patterns
+
+0. **The orchestrator schedules; workers do the heavy lifting.** When you are
+   driving this skill, your own session is the supervisor - keep it that way.
+   Do NOT run the heavy work (large reads, code edits, long analyses,
+   multi-step tool chains) inside the orchestrating session: every token you
+   spend there bloats the context you need for watching workers, reading
+   signals, answering gates, and replanning - the actual scheduling job.
+   Instead: express the work as todos, dispatch detached workers (`run`
+   returns immediately), observe via `worker tail` / artifacts / supervisor
+   reports, and steer from the board. Direct work in the orchestrator session
+   is reserved for small glue actions: CLI calls, a quick file glance, a gate
+   decision, a PR merge. If you catch yourself mid-implementation in the
+   scheduling session, stop: write the todo, dispatch a worker, go back to
+   watching.
 
 1. **Orchestrator-only dangerous actions.** Anything consuming a limited
    external resource (submission quotas, paid calls, irrecoverable deletes)
