@@ -1,5 +1,5 @@
 ---
-version: 3.9.4
+version: 3.9.5
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -97,6 +97,9 @@ activity:` block (goal memory):
 - `signals: [signal: …] …` — the same advisories the delivery reason carries
   (failure count, outcome floor, oscillation, no-progress), recomputed from
   the ledger for THIS todo, so you see them even without the packet.
+- `Upstream evidence:` — for a fan-in (synthesis) todo, each done/superseded
+  `--blocks` predecessor contributes its evidence snippet. This is how
+  cross-worker insight flows; wire the dependency or the reader sees nothing.
 
 The kernel NEVER converts these signals into a forced `replan`. If the same
 signal repeats across turns, it is YOUR call to `supersede` / split / ask — the
@@ -201,19 +204,25 @@ future loop todo add --goal G --text "..." --priority P0 [--blocks T] [--verify 
   running (escalate-not-freeze — ARCHITECTURE.md "Workers escalate"). Resolve
   with `gate resolve`, never `todo complete`.
 
-### 4. Run — one turn at a time, launched detached
+### 4. Run — one turn at a time, detached by default
 
 ```bash
-nohup future loop run --goal G --agent-id <unique-name> --model M --thinking-level L --max-turns 1 > /tmp/<agent-id>.log 2>&1 &
+future loop run --goal G --agent-id <unique-name> --model M --thinking-level L --max-turns 1
+# ⏏ detached run pid=... — log <root>/detached/<goal>/<agent-id>-<ts>.log
 ```
 
-- **NEVER run `run` synchronously and wait for the todo to finish.** Runs are
-  detached by design (ARCHITECTURE.md "Runs are detached"); `run` is a
-  foreground CLI call, so YOU detach it (shell background / nohup / setsid /
-  scheduler). While you block on a run you cannot watch other workers, answer
-  gates, or read signals — the goal's dead time is your fault. Relaunch the
-  moment a turn exits; a completed/failed run is a prompt to act on, not a
-  result to wait for.
+- **`run` detaches ITSELF by default** (ARCHITECTURE.md "Runs are detached"
+  is now kernel-enforced): the parent prints the child pid and returns
+  immediately; the child runs the turn loop with its own log under
+  `<root>/detached/<goal>/`. You never need `nohup`/`&`, and you can no
+  longer accidentally block on a todo. Tail the log with
+  `worker tail --goal G --agent-id A` (below) — not by reading the file.
+- **Do NOT opt back into blocking**: `--detach` runs the child in the
+  foreground and `FUTURE_LOOP_NO_DETACH=1` disables dispatch (both exist for
+  tests/embedders). If you catch yourself waiting on a run, stop — while you
+  block you cannot watch other workers, answer gates, or read signals; the
+  goal's dead time is your fault. A completed/failed run is a prompt to act
+  on, not a result to wait for.
 
 - `--agent-id` is mandatory and is the only mutual-exclusion mechanism: a run
   sees its OWN leased todos as runnable; two runs sharing one id double-execute.
@@ -266,8 +275,14 @@ nohup future loop run --goal G --agent-id <unique-name> --model M --thinking-lev
   - **a replan obligation** (`replan`) — e.g. a completion that never declared
     a successor / `--no-follow-up`, or an acceptance gap with no runnable
     work: no auto path, stop and fix the plan (see `status`);
-  - **worker stop** — the in-band operator stop; the run client exits at the
-    next turn boundary (session retained);
+  - **worker stop / goal cancel / goal delete / todo supersede** — lifecycle
+    commands stop the runs they invalidate: the same in-band ledger signal
+    exits the run client at its next turn boundary (session retained) and the
+    in-flight turn is aborted. `goal delete` stops BEFORE removing state (the
+    run client tails events.jsonl — deleting first would strand it); a todo
+    superseded mid-run stops its holder. You never need to hunt worker pids
+    yourself;
+
   - **budget bounds** — max-turns reached (error exit) or a turn outlived
     `--max-turn-secs` (graceful, resumable). Non-zero exit = budget hit; rerun
     if open todos remain.
@@ -293,6 +308,11 @@ decisions.
 - **Lease liveness**: leases record the holder's pid; a killed run's leases
   are auto-reclaimed on the next claim (no manual `lease release` dance).
   Pre-liveness ledgers (no pid) keep the old hard error.
+- **Lifecycle owns the process**: `goal cancel`, `goal delete`, and
+  `todo supersede` automatically stop affected detached runs (ledger signal +
+  gRPC abort, the same channel as `worker stop`) — never pkill. A superseded
+  todo's late writeback can also NOT resurrect it (replay guard: terminal
+  states are monotonic).
 - **Workspace guard**: agents declare workspace paths; conflicting claims
   degrade to serial unless `--force-workspace`. The guard keys on the *cwd*,
   not on which agent is writing — so it ALSO fires when the same orchestrator
@@ -301,7 +321,12 @@ decisions.
   serial re-drive, or workers on disjoint subdirs), pass `--force-workspace`.
 - **Delivery ≠ verified**: completion records a delivery in `delivered` state;
   resolve via `delivery record` (verified/failed/rework); unverified deliveries
-  auto-derive a follow-up todo after 3 turns.
+  auto-derive a follow-up todo after 3 turns. A `--outcome verified` ALSO
+  satisfies the terminal validator-receipt floor for that todo — the close-out
+  path for validator-todos whose run history predates the receipt mechanism.
+  At close-out, a stuck `terminal: false` with `closure_proof=valid` means a
+  validator-todo has no passed receipt: re-run its `--verify` command (if it
+  passes now), then `delivery record --outcome verified`.
 - **Incomplete ≠ failure**: a turn ending `incomplete` (truncated model
   stream) never consumes the repair budget; `future loop run` auto-retries it
   with a CONTINUE note, bounded by `--max-incomplete-retries` (default 3).
@@ -348,12 +373,13 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
   in the kernel enforces them.
 - Role succession: the kernel DETECTS a trigger — a primary's lease expired
   mid-slice, or its scheduler heartbeat went silent past the offline
-  threshold — and `agent succession show` reports it as **pending**.
-  `agent succession apply` records the promotion (`SuccessionOccurred`
-  ledger event; idempotent per trigger episode). A recorded promotion raises
-  a `role_succession` attention alert until the primary's heartbeat proves it
-  recovered. `agent contract set` must come first (succession follows the
-  contract's `backup_for` edges).
+  threshold — and **auto-promotes the backup** (`SuccessionOccurred` ledger
+  event; idempotent per trigger episode), driven by `scheduler tick` alongside
+  its dead-holder sweep. `agent succession show` reports triggers as pending /
+  recorded; `agent succession apply` still force-records a pending promotion
+  manually. A recorded promotion raises a `role_succession` attention alert
+  until the primary's heartbeat proves it recovered. `agent contract set`
+  must come first (succession follows the contract's `backup_for` edges).
 - Declared workspaces feed the workspace guard.
 - **Launching N workers at once**: the workspace guard sees N runs claiming
   the same cwd and degrades to serial unless each passes `--force-workspace`
@@ -539,7 +565,7 @@ future loop todo complete --goal G --todo-id T --no-follow-up | --successor T2 [
 future loop todo supersede --goal G --todo-id T --reason "..."
 future loop gate resolve --goal G --todo-id T --decision "..." [--note "..."]
 future loop lease claim|renew|release|expire|status --goal G ...
-future loop run --goal G --agent-id A [--model M] [--thinking-level L] [--max-turns N] [--max-turn-secs N] [--max-incomplete-retries N] [--session-policy auto|fresh|resume] [--resume-session ID]
+future loop run --goal G --agent-id A [--model M] [--thinking-level L] [--max-turns N] [--max-turn-secs N] [--max-incomplete-retries N] [--session-policy auto|fresh|resume] [--resume-session ID]   # detached by default; --detach / FUTURE_LOOP_NO_DETACH=1 to run foreground
 future loop agent onboard|list|contract|recipe|succession|collective ...
 future loop scope --goal G --agent-id A        # identity-scoped runnable frontier
 future loop lane --goal G --agent-id A         # lane recommendation
