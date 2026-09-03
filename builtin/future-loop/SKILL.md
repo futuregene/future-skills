@@ -40,10 +40,16 @@ For one-shot conversations, answer normally — no goal needed.
 - `future loop run` needs the agent server: `future agent` (gRPC 127.0.0.1:50051).
   Probe with `future models`. Override the address with
   `FUTURE_LOOP_AGENT_ADDR` (e.g. a mock for tests).
-- **Binary freshness**: new features need a current binary. Probe:
-  `strings $(command -v future) | grep -c "max-incomplete-retries"` — `≥1` = current;
-  `0` = stale, rebuild. A stale binary also fails to read ledgers written by
-  newer binaries ("read ledger"): update it, don't fight it.
+- **Binary freshness**: new features need a current binary. Probe with a
+  string that only a recent build embeds — the detached-run fix (PR #473)
+  added `verify gate rejected (exit …)` to the supervisor failure report, so
+  it exists only in binaries built from that fix onward:
+  `strings $(command -v future) | grep -c "verify gate rejected (exit"` —
+  `≥1` = includes the detached-run + verify-fail-report + token-accounting
+  fixes; `0` = stale, rebuild. Do NOT rely on the older `max-incomplete-retries`
+  probe: it only confirms one feature flag exists and passes even on a binary
+  that still ships the detached-run re-exec bug. A stale binary also fails to
+  read ledgers written by newer binaries ("read ledger"): update it, don't fight it.
 
 ## Core model
 
