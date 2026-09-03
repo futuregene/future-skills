@@ -98,8 +98,16 @@ activity:` block (goal memory):
   (failure count, outcome floor, oscillation, no-progress), recomputed from
   the ledger for THIS todo, so you see them even without the packet.
 - `Upstream evidence:` — for a fan-in (synthesis) todo, each done/superseded
-  `--blocks` predecessor contributes its evidence snippet. This is how
-  cross-worker insight flows; wire the dependency or the reader sees nothing.
+  `--blocks` predecessor contributes a **truncated evidence snippet** (the
+  combined block is capped at ~1200 chars, each predecessor's evidence is
+  itself capped at 4000 chars when stored, and the supervisor completion
+  report shows only ~300 chars). This is a *pointer/summary*, NOT a full
+  hand-off of the predecessor's work. For real cross-worker knowledge
+  transfer, the worker MUST write a durable artifact (e.g. `work/rN-*.md`)
+  and you must name that file path in the successor todo's text (`Read
+  work/rN-w2.md …`) so the successor *reads the file* — never rely on the
+  envelope alone to carry conclusions between rounds. Wire the dependency or
+  the reader sees nothing.
 
 The kernel NEVER converts these signals into a forced `replan`. If the same
 signal repeats across turns, it is YOUR call to `supersede` / split / ask — the
@@ -214,15 +222,39 @@ future loop run --goal G --agent-id <unique-name> --model M --thinking-level L -
 - **`run` detaches ITSELF by default** (ARCHITECTURE.md "Runs are detached"
   is now kernel-enforced): the parent prints the child pid and returns
   immediately; the child runs the turn loop with its own log under
-  `<root>/detached/<goal>/`. You never need `nohup`/`&`, and you can no
-  longer accidentally block on a todo. Tail the log with
+  `<root>/detached/<goal>/`. Tail the log with
   `worker tail --goal G --agent-id A` (below) — not by reading the file.
+- **⚠ Detached mode has a known re-exec bug when the only installed entry
+  point is the unified `future` binary.** The detached child re-execs
+  `current_exe` but (before the fix) forgot to re-prepend the `loop` group,
+  so `future loop run …` spawned `future run …` — the unrelated one-shot
+  command — which rejects `--goal` (`Unknown option: --goal`) and exits
+  instantly while the parent still prints a fake pid. **After every detached
+  launch, verify the child actually started** before moving on: either
+  `ps -o pid,command | grep 'future loop run'` must show a live process, or
+  `worker tail --goal G --agent-id A` must show turn events. If you see only
+  `Unknown option: --goal` in `<root>/detached/<goal>/*.log` (or nothing is
+  running), do NOT trust the pid — relaunch in the foreground-background
+  wrapper:
+  `FUTURE_LOOP_NO_DETACH=1 nohup future loop run --goal G --agent-id A … > <log> 2>&1 &`
+  (that env var is not just for tests/embedders; it is the working bypass for
+  this bug). The standalone `future-loop` binary does not have the bug.
 - **Do NOT opt back into blocking**: `--detach` runs the child in the
-  foreground and `FUTURE_LOOP_NO_DETACH=1` disables dispatch (both exist for
-  tests/embedders). If you catch yourself waiting on a run, stop — while you
-  block you cannot watch other workers, answer gates, or read signals; the
-  goal's dead time is your fault. A completed/failed run is a prompt to act
-  on, not a result to wait for.
+  foreground and `FUTURE_LOOP_NO_DETACH=1` disables dispatch. If you catch
+  yourself waiting on a run, stop — while you block you cannot watch other
+  workers, answer gates, or read signals; the goal's dead time is your fault.
+  A completed/failed run is a prompt to act on, not a result to wait for.
+- **No per-turn token/cost budget — watch for silent token burn.** `run` has
+  wall-clock and no-progress limits but NO token/cost cap. A strong model at
+  `high` thinking can spend 5M+ tokens in a single turn without writing a
+  single artifact (deep-reasoning loops). The `TurnNoProgress` signal fires
+  only after 15 minutes of no write-class tool — plenty of time to burn a
+  large budget. If a worker's turn has produced no write artifacts after a
+  few minutes, don't wait for it: `worker tail` to confirm it is stuck, then
+  `supervisor steer` / `worker stop` and relaunch with a lower thinking level
+  or a harder instruction. **Escalating to a stronger model is often the
+  WRONG move here** — the problem is usually "thinking too long", not
+  "thinking too weak"; lower the thinking level or split the todo.
 
 - `--agent-id` is mandatory and is the only mutual-exclusion mechanism: a run
   sees its OWN leased todos as runnable; two runs sharing one id double-execute.
@@ -542,12 +574,22 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
    exits at the next turn boundary, the session is retained and resumable;
    `--delete` also reclaims the session), then relaunch when ready. Escalate
    to a stronger model when a todo has produced NO write artifacts for 2
-   consecutive turns.
+   consecutive turns. **But if the worker IS thinking (non-empty
+   `worker tail`, active tool/thinking events) yet still produces nothing,
+   the fix is usually the opposite: a strong model at high thinking can spin
+   for millions of tokens without landing an artifact. Lower the thinking
+   level, tighten the todo text to demand a written file, or split — do not
+   escalate the model.**
    **Do not trust the push channel 100%.** Infra-stop reports are best-effort
    (they ride a gRPC prompt and can be lost if the agent is down), and the
    orchestrator's own session can die too. Keep a light fallback: every few
    minutes, confirm each claimed todo still maps to a live process and has a
    recent run record; treat a claimed-but-silent todo as a dead worker.
+   **Push reports only wake an IDLE supervisor — an active orchestrator gets
+   them late (or never).** If you stay active polling `status`, the workers'
+   completion/failure reports queue up and arrive only after you go idle, so
+   you will still need to poll. Polling `status` is a legitimate fallback,
+   not a smell.
 6. **Repo delivery discipline.** Deliver code waves as small PRs: cherry-pick
    ONE item commit onto the freshest main per PR; local gate = fmt + clippy
    + targeted tests; `gh pr create` + `gh pr merge --squash --auto`; when
