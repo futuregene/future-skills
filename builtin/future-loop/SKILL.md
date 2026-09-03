@@ -254,12 +254,23 @@ future loop run --goal G --agent-id <unique-name> --model M --thinking-level L -
   wall-clock and no-progress limits but NO token/cost cap. A strong model at
   `high` thinking can spend 5M+ tokens in a single turn without writing a
   single artifact (deep-reasoning loops). The `TurnNoProgress` signal fires
-  only after 15 minutes of no write-class tool — plenty of time to burn a
-  large budget. If a worker's turn has produced no write artifacts after a
-  few minutes, don't wait for it: `worker tail` to confirm it is stuck, then
-  `supervisor steer` / `worker stop` and relaunch with a lower thinking level
-  or a harder instruction. **Escalating to a stronger model is often the
-  WRONG move here** — the problem is usually "thinking too long", not
+  only after 1 hour of no write-class tool — plenty of time to burn a
+  large budget. **Distinguish two idle modes — they need different handling:**
+  - **Truly dead (few minutes of *nothing*):** `worker tail` shows no new
+    events at all — no `tool_start`, no `[usage]` growth, no thinking/text in
+    `--raw`. The worker is stuck or the process is gone. Act immediately:
+    `supervisor steer --goal G --instruction "..."`, then
+    `worker stop --goal G --agent-id A` + relaunch if it stays silent.
+  - **Write-idle but still thinking (the common case):** `worker tail --raw`
+    shows a continuous `thinking_delta` stream and `[usage]` tokens climbing,
+    but no write-class `tool_start`. This is deep reasoning, not a hang — it
+    is what the 1-hour `TurnNoProgress` window is meant to tolerate. Do NOT
+    steer it as if dead: lower the thinking level, tighten the todo text to
+    demand a written file, or split the todo. The `TurnNoProgress` ledger
+    record (1h) is the *fallback* signal for this case, not the trigger for
+    the "dead worker" drill.
+  **Escalating to a stronger model is often the WRONG move in the
+  write-idle case** — the problem is usually "thinking too long", not
   "thinking too weak"; lower the thinking level or split the todo.
   **Not every model accepts every level** — some reasoning-only models reject
   `off`/`minimal` with an HTTP 400 ("该模型始终思考，不支持关闭思考"); the
@@ -391,10 +402,15 @@ decisions.
 - **Incomplete ≠ failure**: a turn ending `incomplete` (truncated model
   stream) never consumes the repair budget; `future loop run` auto-retries it
   with a CONTINUE note, bounded by `--max-incomplete-retries` (default 3).
-- **TurnNoProgress**: a turn with no write-tool activity for 15 minutes is
-  recorded in the ledger; interrupt a write-idle worker via
-  `supervisor steer --goal G --instruction "..."`, then kill + relaunch if it
-  stays idle.
+- **TurnNoProgress**: a turn with no write-class tool (`write`/`edit`/`shell`)
+  started for 1 hour is recorded in the ledger — the *fallback* signal for a
+  **write-idle-but-thinking** worker, NOT the trigger for the dead-worker
+  drill. Do not wait a full hour before looking: a worker that is **truly
+  dead** (no events at all for a few minutes — see the token-burn note above)
+  needs `supervisor steer --goal G --instruction "..."`, then
+  `worker stop --goal G --agent-id A` + relaunch immediately. A worker that
+  is thinking but not writing needs the *opposite*: lower the thinking level
+  / split the todo, not an interrupt.
 - **Monitors**: not-due monitors must NOT be polled; due time comes from
   `--cadence`/`--defer-secs N`; `--resume-when N` (numeric) defers for real,
   text values are hints without a deadline.
