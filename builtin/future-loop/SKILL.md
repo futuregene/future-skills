@@ -1,5 +1,5 @@
 ---
-version: 3.9.5
+version: 3.10.0
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -261,12 +261,36 @@ future loop run --goal G --agent-id <unique-name> --model M --thinking-level L -
   or a harder instruction. **Escalating to a stronger model is often the
   WRONG move here** — the problem is usually "thinking too long", not
   "thinking too weak"; lower the thinking level or split the todo.
+  **Not every model accepts every level** — some reasoning-only models reject
+  `off`/`minimal` with an HTTP 400 ("该模型始终思考，不支持关闭思考"); the
+  floor is per-model. When `high` spins without writing, drop one level at a
+  time and watch for the write signal (`worker tail` → `tool_start`), rather
+  than guessing a level that the model then rejects.
 
 - `--agent-id` is mandatory and is the only mutual-exclusion mechanism: a run
   sees its OWN leased todos as runnable; two runs sharing one id double-execute.
-  Unique name per parallel worker (`<host>-<task>`).
-- `--max-turn-secs N` caps the turn wall-clock; timeout stops gracefully and
-  context replays on relaunch. Relaunch with the same agent-id to continue.
+  Unique name per parallel worker (`<host>-<task>`). Its one alternative,
+  `--anonymous`, runs an **uncoordinated one-shot**: no `agent-id → session-id`
+  binding, no lease claim, no workspace guard, no steer targeting — for a
+  single throwaway turn that must not interact with other workers (or when
+  you genuinely need no identity in the ledger). Never use it for work you
+  will steer / stop / resume later.
+- `--lease-secs N` (default 4h) sets how long a claimed todo stays locked to
+  this worker before another agent may steal it. Shorten it for fast reclaim
+  after a crash, lengthen it for a long slice that must not be stolen
+  mid-flight. A dead holder is still auto-reclaimed on the next claim via the
+  pid probe regardless of this value — the lease is a *priority window*, not
+  a deadlock.
+- `--max-turns N` (default 6) caps the number of **turn iterations in this one
+  `run` process** — it is NOT a token/LLM-call limit. One turn = one
+  decide-then-prompt; a single prompt may itself drive many internal
+  LLM+tool rounds (that inner bound is the agent settings `max_turns`, default
+  0 = unlimited). A run that hits `--max-turns` without validated closure
+  exits with an error; rerun to continue.
+- `--model M` / `--thinking-level L` pin the session's model / reasoning level
+  for this run (transparent pass-through to the agent). They are fixed at
+  spawn — changing them means respawn, not steer (see Orchestration
+  patterns §6).
 - **Incomplete turns auto-retry**: a turn ending `incomplete` (truncated model
   stream — an infra event, never a science failure) is retried with a CONTINUE
   note in the next envelope, bounded by `--max-incomplete-retries N` (default
@@ -321,9 +345,8 @@ future loop run --goal G --agent-id <unique-name> --model M --thinking-level L -
     superseded mid-run stops its holder. You never need to hunt worker pids
     yourself;
 
-  - **budget bounds** — max-turns reached (error exit) or a turn outlived
-    `--max-turn-secs` (graceful, resumable). Non-zero exit = budget hit; rerun
-    if open todos remain.
+  - **budget bounds** — max-turns reached (error exit). Non-zero exit = budget
+    hit; rerun if open todos remain.
 
 ### 5. Report, reflect, steer
 
@@ -522,7 +545,6 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
    two reports above never fire). Dedup key `infra_stopped:<todo>:<kind>`:
    - `transport` — a gRPC stream error (h2 reset / non-gap disconnect) that
      propagated out of the turn before writeback.
-   - `timeout` — the turn outlived `--max-turn-secs`.
    - `incomplete_budget` — the turn kept ending `incomplete` and exhausted
      `--max-incomplete-retries`.
    - `host_died` — the worker's process is gone (SIGKILL / crash / host
@@ -601,6 +623,28 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
    + targeted tests; `gh pr create` + `gh pr merge --squash --auto`; when
    GitHub reports BEHIND, merge main into the PR branch and push (auto-merge
    fires).
+7. **Supervisor waits without burning (the dispatch-wait discipline).** When
+   workers are out on a slice and you must wait for them, the cost comes from
+   HOW you wait, not the waiting itself. Each `sleep N && check` shell is a
+   FULL LLM turn in your own session — high-frequency short polls are the
+   single most expensive pattern in an orchestrating session (measured: 55
+   `sleep ~95s` polls = 81 min wall time, ~10.9M input tokens, last_prompt
+   ballooned to 158K). Three rules, in priority order:
+   - **Event-driven first.** Once you `supervisor register`, completion /
+     failure / gate / infra-stop reports push into YOUR session and wake you.
+     Only poll for what push cannot deliver: worker *progress* (no event) and
+     closure confirmation.
+   - **Merge into ONE turn.** Never `sleep 95` then check, then `sleep 110`
+     then check — each is a separate turn. Batch into one long shell:
+     `sleep 240 && future loop status --goal G && sleep 100 && for w in …; do future loop worker tail --goal G --agent-id $w; done`.
+     Fewer turns = fewer LLM calls = smaller context.
+   - **Lengthen the interval.** Poll on a 3–5 min cadence, not ~90s. A worker
+     writing artifacts needs minutes between meaningful writes; polling faster
+     than it writes only re-reads the same state.
+   - **Poll for the write signal, not the prose.** The one thing that matters
+     is whether a worker is producing write-class activity (`worker tail` →
+     `tool_start`/`write`). Active = let it run; silent for a few minutes =
+     `supervisor steer` / `worker stop` + relaunch. Everything else is noise.
 
 ## Command reference
 
@@ -613,7 +657,7 @@ future loop todo complete --goal G --todo-id T --no-follow-up | --successor T2 [
 future loop todo supersede --goal G --todo-id T --reason "..."
 future loop gate resolve --goal G --todo-id T --decision "..." [--note "..."]
 future loop lease claim|renew|release|expire|status --goal G ...
-future loop run --goal G --agent-id A [--model M] [--thinking-level L] [--max-turns N] [--max-turn-secs N] [--max-incomplete-retries N] [--session-policy auto|fresh|resume] [--resume-session ID]   # detached by default; --detach / FUTURE_LOOP_NO_DETACH=1 to run foreground
+future loop run --goal G --agent-id A [--model M] [--thinking-level L] [--max-turns N] [--max-incomplete-retries N] [--lease-secs N] [--force-workspace] [--session-policy auto|fresh|resume] [--resume-session ID] [--anonymous]   # detached by default; --detach / FUTURE_LOOP_NO_DETACH=1 to run foreground
 future loop agent onboard|list|contract|recipe|succession|collective ...
 future loop scope --goal G --agent-id A        # identity-scoped runnable frontier
 future loop lane --goal G --agent-id A         # lane recommendation
