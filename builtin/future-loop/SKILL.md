@@ -1,5 +1,5 @@
 ---
-version: 3.10.0
+version: 3.11.0
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -312,20 +312,27 @@ future loop run --goal G --agent-id <unique-name> --model M --thinking-level L -
   (picked up at the next turn).
 - **Session retention** (resume-vs-fresh is YOUR call, never the kernel's):
   the kernel records WHY the last run was interrupted and keeps the session id
-  on disk; you decide whether to resume. `--session-policy auto` (default)
-  resumes only when the interruption was infra-recoverable (e.g. HTTP 429 —
-  LLM state intact); `resume` always resumes the retained session; `fresh`
-  always starts over. `--resume-session <id>` pins an exact session. A
-  retained session that no longer exists falls back to fresh automatically.
+  on disk; you decide whether to resume. **Every `run` starts a FRESH session
+  by default — there is no `--session-policy` flag at all.** The ONLY way to
+  resume is an explicit pin: `--resume-session <id>` resumes that exact
+  session (a dead id falls back to fresh automatically). The explicit pin is
+  mandatory because the goal-level retention is a SINGLE field (whatever run
+  wrote back last) — with parallel workers, an unpinned "resume the retained
+  session" would hand one worker's session to another. Multi-worker recovery =
+  one `--resume-session <旧id>` per worker, old ids taken from `worker list` /
+  the run logs.
   **A session from a *normally completed* run is NOT resumable** — when a
   worker finishes its turn without an infra failure (`failure_kind = None`),
   the kernel marks the session non-resumable and the backing agent session is
-  gone, so a later `run` (even `--session-policy resume` on the same
-  `--agent-id`) silently starts a FRESH session. Do NOT rely on session
-  memory to carry context across turns: put cross-turn state in a durable
-  artifact (the report file, a shared ledger, the goal doc) that each turn
-  re-reads. Resume only helps after an *infra interruption* (429 / disconnect
-  / operator stop), where the LLM context is genuinely still alive.
+  gone, so a later `run` on the same `--agent-id` starts a FRESH session
+  (the default). Do NOT rely on session memory to carry context across turns:
+  put cross-turn state in a durable artifact (the report file, a shared
+  ledger, the goal doc) that each turn re-reads. Resume only helps after an
+  *infra interruption* (429 / disconnect / operator stop), where the LLM
+  context is genuinely still alive. Before deciding resume-vs-fresh, CHECK
+  THE DISK: does `~/.future/agent/sessions/<id>.jsonl` still have real
+  content, and did the kernel print "retained (resumable)"? Then pin-resume;
+  only relaunch without the pin if the resumed session immediately dies again.
 - **Watch a worker live** with `future loop worker tail --goal G
   [--agent-id A] [--lines N] [--raw]` — it renders the worker's
   `.live.jsonl` turn stream as a condensed tool/usage view (`--raw` dumps the
@@ -434,6 +441,12 @@ decisions.
   (alias `--json`); a non-numeric `--resume-when` warns it has no deadline.
 - **Completion is idempotent**: re-completing an already-done todo is a no-op
   (no duplicate ledger events); completing a superseded todo errors.
+- **Dead-worker safety net is owned by the run path**: every `run`, on
+  exit, sweeps dead-holder leases (a holder whose pid is gone) and pushes
+  `host_died` to the supervisor — no cron needed. `scheduler tick` / `show` /
+  `liveness` / `record-host-failure` / `ack` are the host-automation
+  adapter's surface (backoff cursor + heartbeat + succession auto-promotion),
+  normally not needed in the single-process model.
 
 ## Multi-agent (one goal, several workers)
 
@@ -517,19 +530,18 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
 6. **Iterate after a result — extend, revise, interrupt, or respawn.** A
    worker is NOT a long-lived process: "keep working on it" means re-`run`
    the SAME `--agent-id` — the *work* is expressed as todos, and context is
-   replayed from the ledger, not from session memory (a re-`run` resumes the
-   retained session only per `--session-policy`: the default `auto` resumes
-   only after an infra interruption; otherwise it starts a fresh session that
-   cold-starts from the ledger). When a result lands and you want a new
-   direction, pick the lever that matches:
+   replayed from the ledger, not from session memory (a re-`run` starts a
+   FRESH session by default; resume only via an explicit `--resume-session
+   <id>` pin, see Session retention above). When a result lands and you want
+   a new direction, pick the lever that matches:
 
    - **Extend** (new direction = new work): `todo add --owner <same-agent>
      --blocks <old>` for the new slice, then close the old one with
      `todo complete --successor <new>`. `--owner` keeps it on the same worker
      (survives lease expiry); completion REQUIRES `--successor` or
      `--no-follow-up`, so a silent stop is rejected. Then `run --goal G
-     --agent-id <same>` keeps driving the same worker (session resumes per
-     `--session-policy`; context replays from the ledger either way).
+     --agent-id <same>` keeps driving the same worker (fresh session by
+     default; context replays from the ledger either way).
    - **Revise** (same work, new angle): `todo update --text` (non-interrupting,
      picked up next turn) or `todo supersede` + re-split into finer todos.
    - **Interrupt** (redirect a running worker now): `supervisor steer --goal G
@@ -542,8 +554,8 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
      changes the worker" — ARCHITECTURE.md). Changing them retires the worker
      and spawns a fresh one on the new configuration: `worker stop --goal G
      --agent-id A --delete` (reclaim the old session so the respawn is a true
-     cold start — or pass `--session-policy fresh` on the next run), then
-     `run --goal G --agent-id A --model M --thinking-level L`; the fresh
+     cold start), then `run --goal G --agent-id A --model M --thinking-level
+     L` (fresh is the default; do NOT pass the old session id); the fresh
      session cold-starts its context from the ledger.
 
    The kernel only signals (replan rule set, oscillation / outcome-floor
@@ -565,10 +577,12 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
      `--max-incomplete-retries`.
    - `host_died` — the worker's process is gone (SIGKILL / crash / host
      failure) with no release. This one is NOT reported at the turn boundary
-     (a dead process executes no code): the periodic `scheduler tick` detects
-     the orphaned lease (dead holder pid) and pushes the note, so keep a
-     scheduler tick running on the goal's cadence or you only learn of the
-     dead worker on your next `status` poll.
+     (a dead process executes no code): it is detected by the **post-run
+     supervision sweep** — every `run`, on exit, sweeps dead-holder leases
+     (a holder whose pid is gone) and pushes the note, so you do NOT need a
+     separate `scheduler tick` running; the run path owns it (a manual
+     `scheduler tick` still exists for the operator to force a sweep on
+     demand).
    React the same way as a science failure: relaunch (the todo stays
    runnable; infra failures never consume the repair budget).
 
@@ -677,7 +691,7 @@ future loop todo complete --goal G --todo-id T --no-follow-up | --successor T2 [
 future loop todo supersede --goal G --todo-id T --reason "..."
 future loop gate resolve --goal G --todo-id T --decision "..." [--note "..."]
 future loop lease claim|renew|release|expire|status --goal G ...
-future loop run --goal G --agent-id A [--model M] [--thinking-level L] [--max-turns N] [--max-incomplete-retries N] [--lease-secs N] [--force-workspace] [--session-policy auto|fresh|resume] [--resume-session ID] [--anonymous]   # detached by default; --detach / FUTURE_LOOP_NO_DETACH=1 to run foreground
+future loop run --goal G --agent-id A [--model M] [--thinking-level L] [--max-turns N] [--max-incomplete-retries N] [--lease-secs N] [--force-workspace] [--resume-session ID] [--anonymous]   # detached by default; --detach / FUTURE_LOOP_NO_DETACH=1 to run foreground
 future loop agent onboard|list|contract|recipe|succession|collective ...
 future loop scope --goal G --agent-id A        # identity-scoped runnable frontier
 future loop lane --goal G --agent-id A         # lane recommendation
@@ -690,7 +704,11 @@ future loop models [--format json]             # models available from the agent
 future loop frontier show --goal G [--format json]        # outcome segments / replan rules / semantic history / terminal
 future loop delivery status|record --goal G               # post-delivery closure
 future loop quota should-run|usage|spend|decisions --goal G
-future loop scheduler tick|show|record-host-failure|ack|liveness
+future loop scheduler tick --goal G [--agent-id A] [--progression 15,30,60] [--action A]   # advance the backoff cursor; bootstrap-only on first tick
+future loop scheduler show --goal G [--agent-id A] [--format json]   # persisted scheduler state
+future loop scheduler liveness --goal G [--agent-id A] [--threshold-secs N] [--format json]  # heartbeat silence check (default 2h)
+future loop scheduler record-host-failure --goal G --target-rrule R [--observed-rrule R] --failure-kind K [--failure-count N]
+future loop scheduler ack --goal G --action A [--agent-id A] [--cadence-class C] [--rrule R] [--source S]
 future loop diagnose|doctor|history|turn|todo-event|evidence-log|runs|backup|store|privacy|attention|inbox
 future loop commands [--format json]                      # grouped operator view
 future loop canary|task-graph|replan|authority|profile|backfill|heartbeat-prompt|worker-bridge|version|registry
