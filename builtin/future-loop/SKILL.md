@@ -604,7 +604,11 @@ future loop agent collective show --goal G [--format json]     # wake roster + t
 3. **A large todo that 2+ worker generations close with no artifacts is a
    signal to split, not retry.** Split into sections with ONE concrete
    artifact + `--verify` each; chain an assembler todo behind all of them
-   (the assembler gets a `--verify` too).
+   (the assembler gets a `--verify` too). `--verify` is per-todo and fires
+   only on that todo's own turn — it does NOT re-run when a later todo edits
+   a shared file. The terminal assembler's `--verify` is therefore your only
+   regression net: make it run the full check (`cargo test` / full suite),
+   not just the assembler's own artifact.
 4. **Dead processes:** leases auto-reclaim via pid probe; if a claim is still
    refused, `agent list` to find the stale holder and `lease release`. A
    `holder dead` marker on a todo means its lease-holding process is gone — it
