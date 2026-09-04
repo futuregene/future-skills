@@ -1,5 +1,5 @@
 ---
-version: 3.12.0
+version: 3.13.0
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -306,6 +306,24 @@ future loop run --goal G --agent-id <unique-name> --model M --thinking-level L -
   stream — an infra event, never a science failure) is retried with a CONTINUE
   note in the next envelope, bounded by `--max-incomplete-retries N` (default
   3, `0` disables). Exhausting the bound stops the run; see Key semantics.
+- **A transport `error` also keeps the run going.** When the model stream dies
+  (`[UPSTREAM_DISCONNECTED]`, connection reset, idle timeout), the agent emits
+  a `type:"error"` event and the loop commits the turn as `terminal_state =
+  error`; `classify_failure` sees the `upstream_disconnected` marker and
+  classifies it `InfraRecoverable`, so the todo stays runnable and the SAME
+  `run` process starts the next turn immediately (fresh `run_id` + fresh
+  `.live.jsonl`). Two log-reading gotchas:
+  - The `error` is the **last line** of that turn's `.live.jsonl` (the tee
+    stops writing the file on the error event) — "nothing after the error" is
+    normal and does NOT mean the worker stopped.
+  - The `error` line carries only `{type, idx, wall_ts}` — the tee adds extra
+    fields only for `tool_start`/`usage`, so the message is NOT in the file.
+    To see WHY it errored: the loop's detached log line shows `state=error`;
+    the agent session journal `~/.future/agent/sessions/<session>.jsonl` has a
+    `run_terminal` event whose `truncation.detected_by` is
+    `upstream_disconnected` / `model_response_error` / `eof_no_terminal`
+    (note: the agent commits it as `state=incomplete`, the loop as
+    `terminal_state=error` — same event, two names).
 - **Mid-turn steering (interrupt)**: `supervisor steer --goal G --instruction "..."`
   aborts the in-flight run (a real interrupt) and the next turn follows the
   instruction. `todo update --text` remains the *non-interrupting* correction
@@ -339,6 +357,16 @@ future loop run --goal G --agent-id <unique-name> --model M --thinking-level L -
   verbatim log). This is the loop's own observability window into what a
   worker is *actually doing* so you can steer / stop / let it run — no
   hand-tailing files.
+- **The `.live.jsonl` is PER-TURN, not per-worker.** Every turn in one `run`
+  process gets a fresh `run_id` and a fresh `run_<run_id>.live.jsonl`; the
+  previous turn's file freezes the instant that turn ends (terminal event or
+  a transport `error`). `worker tail --agent-id A` resolves the worker's
+  *latest* run file for you. **Never hard-code a `run_<id>.live.jsonl` path
+  in a polling script** — after an `error` (or any turn end) the worker keeps
+  running in the NEXT turn's file, so a script watching the old file sees
+  zero new events and mis-reports the worker as dead ("error 后无任何活动").
+  If you must read a file directly, resolve the current run via `worker tail`
+  first; "last line is `error`" is a turn boundary, not the worker's death.
 - A `run` executes one decision at a time and exits as soon as the kernel
   stops offering executable work — then YOU relaunch. `run` stops when:
   - **validated closure** (`terminal`) — all todos done, no acceptance gaps;
