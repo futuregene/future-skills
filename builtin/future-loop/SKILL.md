@@ -1,5 +1,5 @@
 ---
-version: 3.11.0
+version: 3.12.0
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todo lists, human gates, monitors, and validated completion via the loop control plane. Use when the user wants a long-lived/multi-step/cross-session task tracked as a goal, asks to "keep working on X", "track this issue", "run this overnight", needs progress/status of ongoing agent work, or starts a message with "/future-loop" (treat everything after the prefix as the goal).
 allowed-tools: Bash(future-loop:*)
@@ -445,31 +445,18 @@ decisions.
   exit, sweeps dead-holder leases (a holder whose pid is gone) and pushes
   `host_died` to the supervisor — no cron needed. `scheduler tick` / `show` /
   `liveness` / `record-host-failure` / `ack` are the host-automation
-  adapter's surface (backoff cursor + heartbeat + succession auto-promotion),
-  normally not needed in the single-process model.
+  adapter's surface (backoff cursor + heartbeat), normally not needed in the
+  single-process model.
 
-## Multi-agent (one goal, several workers)
+## Multi-worker (one goal, several workers)
 
 ```bash
-future loop agent contract set --goal G --contract '<json>' | --contract-file contract.json   # peers, backup_for, handoff rules
-future loop agent recipe add --goal G --name N --capabilities c1,c2 --workspace p --priority P0
-future loop agent onboard --goal G --agent-id A --recipe N
-future loop agent succession show --goal G [--format json]  # report pending triggers + recorded promotions
-future loop agent succession apply --goal G [--primary P] [--reason R]   # record pending promotion(s) as ledger events
-future loop agent collective show --goal G [--format json]     # wake roster + turn ledger
+future loop agent onboard --goal G --agent-id A [--workspace p1,p2]   # register a peer + declare the workspace-guard write set
+future loop agent list --goal G [--format json]                        # registered agents + live lease status
+future loop scope --goal G --agent-id A [--exclude X]                  # identity-scoped runnable frontier
+future loop lane --goal G --agent-id A                                 # lane recommendation
 ```
 
-- Contract `capabilities` on peers are **descriptive strings only** — nothing
-  in the kernel enforces them.
-- Role succession: the kernel DETECTS a trigger — a primary's lease expired
-  mid-slice, or its scheduler heartbeat went silent past the offline
-  threshold — and **auto-promotes the backup** (`SuccessionOccurred` ledger
-  event; idempotent per trigger episode), driven by `scheduler tick` alongside
-  its dead-holder sweep. `agent succession show` reports triggers as pending /
-  recorded; `agent succession apply` still force-records a pending promotion
-  manually. A recorded promotion raises a `role_succession` attention alert
-  until the primary's heartbeat proves it recovered. `agent contract set`
-  must come first (succession follows the contract's `backup_for` edges).
 - Declared workspaces feed the workspace guard.
 - **Launching N workers at once**: the workspace guard sees N runs claiming
   the same cwd and degrades to serial unless each passes `--force-workspace`
@@ -692,10 +679,10 @@ future loop todo supersede --goal G --todo-id T --reason "..."
 future loop gate resolve --goal G --todo-id T --decision "..." [--note "..."]
 future loop lease claim|renew|release|expire|status --goal G ...
 future loop run --goal G --agent-id A [--model M] [--thinking-level L] [--max-turns N] [--max-incomplete-retries N] [--lease-secs N] [--force-workspace] [--resume-session ID] [--anonymous]   # detached by default; --detach / FUTURE_LOOP_NO_DETACH=1 to run foreground
-future loop agent onboard|list|contract|recipe|succession|collective ...
+future loop agent onboard|list ...
 future loop scope --goal G --agent-id A        # identity-scoped runnable frontier
 future loop lane --goal G --agent-id A         # lane recommendation
-future loop supervisor register|steer|propose|receipt|events --goal G ...   # bind your session / interrupt a worker / proposal-receipt events
+future loop supervisor register|steer|events --goal G ...   # bind your session / interrupt a worker / read the supervisor event projection
 future loop report --goal G --agent-id A [--todo-id T] --message "..."       # worker mid-run progress note (ledger event; read via supervisor events)
 future loop worker list --goal G [--format json] # registered workers + backing session + running/ended/idle
 future loop worker tail --goal G [--agent-id A] [--lines N] [--raw]  # watch a worker's live turn (condensed tool/usage view)
