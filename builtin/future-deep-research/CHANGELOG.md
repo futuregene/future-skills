@@ -1,5 +1,16 @@
 # Deep Research Skill — Changelog
 
+## v3.0
+
+- Separate standalone/delegated entry, A/B/C depth, and report/methods/delta delivery; accept traceable prior approval and ask only about missing or changed fields.
+- Add a bounded subtask handoff and return receipt compatible with future-research; retain full-report citation/source requirements and explicitly scoped scarcity exceptions.
+- Trace original evidence and repost lineages; distinguish snippets, AI summaries, abstracts and inspected body text.
+- Replace averaged citation-failure passes and uncalibrated self-score gates with claim-level verification, corrections and disclosed limitations.
+- Preserve user questions, reuse verified material, cache retrievals, and share a single allowance and maximum backfill count across phases.
+- Keep readable narrative reports without mechanical prose/table ratios; move operational details into references and add reproducible validation fixtures.
+
+Earlier entries below are historical design notes, not current execution rules or independently verified competitor benchmarks. Follow the current SKILL.md and referenced contracts.
+
 ## v2.6（2026-08-29）
 
 基于用户反馈：不能只看关键词数量，最终引用文献数同样重要 — 关键词数约束的是"检索广度"，引用数约束的才是"产出密度"。
