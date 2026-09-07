@@ -26,11 +26,13 @@ import pandas as pd
 def _normalize_ratio(arms, ratio):
     """Turn arms + integer ratio into a block template list, e.g.
     arms=['A','B'], ratio=(2,1) -> ['A','A','B']."""
+    if not arms or len(set(arms)) != len(arms):
+        raise ValueError("arms must contain distinct labels")
     if ratio is None:
         ratio = [1] * len(arms)
     if len(ratio) != len(arms):
         raise ValueError("ratio must have one entry per arm")
-    if any(r <= 0 for r in ratio):
+    if any(isinstance(r, (bool, np.bool_)) or not isinstance(r, (int, np.integer)) or r <= 0 for r in ratio):
         raise ValueError("ratio entries must be positive integers")
     template = []
     for arm, r in zip(arms, ratio):
@@ -45,6 +47,8 @@ def simple_randomization(n, arms=("treatment", "control"), ratio=None, seed=0):
     (like flipping few coins). Fine for large n. Use block_randomization when you
     need balance, especially for n < ~100 or sequential enrollment.
     """
+    if isinstance(n, (bool, np.bool_)) or not isinstance(n, (int, np.integer)) or n < 0:
+        raise ValueError("n must be a nonnegative integer")
     rng = np.random.default_rng(seed)
     arms = list(arms)
     template = _normalize_ratio(arms, ratio)
@@ -63,12 +67,16 @@ def block_randomization(n, arms=("treatment", "control"), block_size=None,
     None picks a small valid size. Mild caveat: fixed small blocks are slightly
     predictable in unblinded trials — vary block size if that matters.
     """
+    if isinstance(n, (bool, np.bool_)) or not isinstance(n, (int, np.integer)) or n < 0:
+        raise ValueError("n must be a nonnegative integer")
     rng = np.random.default_rng(seed)
     arms = list(arms)
     template = _normalize_ratio(arms, ratio)
     unit = len(template)
     if block_size is None:
         block_size = unit * 2  # two of each ratio-unit per block
+    if isinstance(block_size, (bool, np.bool_)) or not isinstance(block_size, (int, np.integer)) or block_size <= 0:
+        raise ValueError("block_size must be a positive integer")
     if block_size % unit != 0:
         raise ValueError(f"block_size ({block_size}) must be a multiple of "
                          f"sum(ratio)={unit}")
@@ -93,7 +101,8 @@ def stratified_block_randomization(strata, arms=("treatment", "control"),
     Use when a prognostic variable (site, sex, disease stage) must be balanced
     across arms. `strata` is a dict {stratum_label: n_in_that_stratum} or a
     sequence of stratum labels (one per unit). Each stratum gets its own permuted
-    blocks, guaranteeing balance within every subgroup.
+    blocks. Complete blocks preserve the allocation ratio; a final partial block
+    can be imbalanced. Sequence input retains its original 1-based unit IDs.
     """
     if isinstance(strata, dict):
         groups = []

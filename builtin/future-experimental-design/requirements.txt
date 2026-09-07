@@ -1,0 +1,4 @@
+# Install in a task-local virtual environment, not the system Python.
+numpy>=1.26,<3
+pandas>=2,<4
+pyDOE3>=1.6.2,<2
