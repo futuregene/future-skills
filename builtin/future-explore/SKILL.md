@@ -1,5 +1,5 @@
 ---
-version: 3.4.0
+version: 3.5.0
 name: future-explore
 description: Evidence-driven exploration, method comparison, experimentation, optimization and feasibility assessment when the answer is not yet known. Use for scientific/engineering exploration or explicitly requested multi-worker reflection. Not for routine factual lookup, a code change with known implementation steps, or editing this skill itself.
 allowed-tools: Bash(future:*)
@@ -24,7 +24,7 @@ Choose the smallest sufficient mode:
 |---|---|---|
 | Light | Bounded mechanism review or targeted comparison | Inspect primary evidence and run targeted checks; usually one agent, no mandatory workspace bureaucracy |
 | Standard | Uncertain implementation or consequential decision | Method map, exploratory iteration and an agreed verification plan |
-| Heavy | Broad frontier or expensive/high-stakes experiments | Distinct hypotheses in parallel, synthesis and independent validation |
+| Heavy | Broad frontier or expensive/high-stakes experiments | Branch on consequential assumptions, discriminate between routes, synthesize and independently validate |
 
 Before paid dispatch, agree on model/thinking settings and resource limits. Default
 to the current session model, not a hard-coded roster. A preauthorized model pool
@@ -37,8 +37,9 @@ experiments; the supervisor audits decisive evidence and selects methods; a stro
 solver handles demonstrated reasoning/modeling/visual bottlenecks when authorized.
 First distinguish missing inputs, infrastructure, implementation, measurement,
 method and capability failures. Do not upgrade solely after a fixed retry count.
-The supervisor may derive, implement and correct work, but must preserve its actual
-contribution and cannot claim to independently validate its own candidate.
+Within its user-authorized role, the supervisor may derive, implement and correct
+work, but must preserve its actual contribution and cannot claim to independently
+validate its own candidate.
 
 For concurrent work, maintain one resource ledger. For each additive budget unit,
 require `C + R + V + N <= B` before dispatch: authorized total B, consumed C,
@@ -74,6 +75,45 @@ investigation; do not require ceremonial web research. Authorized asset checks,
 environment smoke tests and cheap baselines independent of unresolved methods can
 proceed in parallel; method-dependent heavy work still needs an evidential basis.
 
+## Hypothesis-led branching
+
+Parallel implementation is not independent exploration. Splitting theory, data,
+optimization and sampling among workers can propagate one untested assumption to
+all outputs. Different agents, models or libraries alone do not establish distinct
+routes. When the user requests multi-direction exploration, branch on consequential
+assumptions or methods, not merely on deliverable components.
+
+Before committing substantial method-dependent work, identify the assumptions
+whose failure could invalidate acceptance. Prioritize by consequence, uncertainty
+and cost of the cheapest discriminating check. Record compactly in the existing
+method map, not a new bureaucracy:
+
+- The assumption, affected requirement and current evidence or uncertainty.
+- A credible alternative or independent challenge, and a check that could separate
+  the explanations. State what result would change the method or allocation.
+- An owner, shared dependencies, bounded cost/checkpoint and downstream work that
+  depends on the assumption. Label an untested default as provisional.
+
+Choose the smallest useful set of branches. A baseline plus a targeted challenge
+may be enough; one worker can compare variants for a light task. If alternatives
+are unclear, ask for independent assumption critiques before converging on a shared
+implementation. Do not invent alternatives, require a fixed branch count or launch
+extra workers simply to look diverse. Explain when no worthwhile fork is available.
+Implementation-only splits are useful, but describe them as such, not corroboration.
+
+Branch briefs must say what is being challenged, what may be shared, and which
+independent evidence is needed. Give challengers the task contract and permitted
+primary inputs, not the baseline's assumptions as settled facts. Cross-branch
+agreement counts only within the dependencies actually tested: two validators
+using the same theory may verify algebra but not the theory. Numerical refinement
+inside a fixed approximation does not validate that approximation's adequacy.
+
+Run cheap, high-impact challenges early, before expensive downstream tuning or
+sampling. Preserve a working baseline and allow independent preparation to proceed;
+do not serialize unrelated work. Method-dependent results remain conditional until
+their critical assumptions have adequate evidence. Early collaborators who help
+tune the candidate do not thereby become its independent final reviewers.
+
 ## Evidence-driven supervision and correction
 
 Before declaring data inaccessible, an interface broken, a worker wrong, a route
@@ -98,6 +138,15 @@ inputs or evaluation without restarting unrelated work. Keep unaffected baseline
 Conflicts stay unresolved until evidence discriminates; majority agreement among
 workers sharing one implementation is not independent corroboration. None of this
 authorizes changing user constraints or accessing prohibited answers/test data.
+
+An unresolved acceptance-critical risk also requires a decision; do not wait for a
+proven defect before investigating. At a checkpoint, connect new evidence to a
+concrete action: retain a supported assumption, schedule the next discriminating
+check, redirect affected work, or pause it with a stated reason. When a useful check
+fits the remaining authorized budget, assign its owner, artifact and time allowance
+while preserving final-review resources. If deferred, state what remains conditional
+and why; listing a risk in a report is not resolving it. A partial test at one point
+or range cannot clear a requirement over an untested domain.
 
 ## Explore, hand off and resume
 
@@ -159,8 +208,13 @@ A valid negative feasibility assessment can meet the user's acceptance contract.
 Budget exhaustion or an empty idea queue is not a proof of global infeasibility.
 When recommending low-return stopping with budget left, identify plausible untried
 actions, what they could distinguish, cost/prerequisites and why not to pursue them.
-If there is no next idea, say so; do not invent a proof or busywork. Preserve useful
-partial artifacts, settle outstanding work and ask before extending resources.
+If there is no next idea, say so; do not invent a proof or busywork. Completion of
+the initial worker roster is not itself a stopping criterion or budget exhaustion.
+Reallocate to useful unresolved checks within still-valid authorization rather than
+requesting permission merely because an initial assignment ended. Respect explicit
+worker/attempt limits and the resource ledger; never silently expand or relabel a
+budget. Preserve useful partial artifacts, settle outstanding work and ask before
+extending authorized resources.
 
 Never fabricate execution, citations, cost, provenance or reviewer independence.
 Record collaboration honestly and apply task-specific answer isolation. Changing
