@@ -55,7 +55,7 @@ Common generators:
   4 factors in 8 runs (2^(4-1), Res IV): "a b c abc"
   5 factors in 8 runs (2^(5-2), Res III): "a b c ab ac"
   5 factors in 16 runs (2^(5-1), Res V): "a b c d abcd"
-  7 factors in 8 runs (2^(7-4), Res III): "a b c abc abd acd bcd"
+  7 factors in 8 runs (2^(7-4), Res III): "a b ab c ac bc abc"
 """
 
 from __future__ import annotations
@@ -74,11 +74,8 @@ def _ensure_pydoe3():
             "║  pyDOE3 is required for DOE designs but not installed.      ║\n"
             "║                                                            ║\n"
             "║  Install with:                                             ║\n"
-            "║    pip install pyDOE3                                       ║\n"
-            "║    # or if PEP 668 enforced:                                ║\n"
-            "║    pip install --break-system-packages pyDOE3               ║\n"
-            "║    # or with uv:                                            ║\n"
-            "║    uv pip install --system pyDOE3                           ║\n"
+            "║  Use a task-local virtual environment, then install the    ║\n"
+            "║  versions in this skill's requirements.txt.                ║\n"
             "║                                                            ║\n"
             "║  Randomization functions (randomization.py) work without it.║\n"
             "╚══════════════════════════════════════════════════════════════╝",
@@ -87,8 +84,17 @@ def _ensure_pydoe3():
         raise ImportError("pyDOE3 is required. See install instructions above.")
 
 
+def _validate_ranges(factors):
+    if not factors:
+        raise ValueError("at least one factor is required")
+    for name, levels in factors.items():
+        if len(levels) != 2 or not np.isfinite(np.asarray(levels, dtype=float)).all() or levels[0] >= levels[1]:
+            raise ValueError(f"{name}: expected finite low < high")
+
+
 def _decode_two_level(coded, factors):
     """Map a -1/+1 coded matrix to real (low/high) units per factor."""
+    _validate_ranges(factors)
     names = list(factors)
     out = {}
     for j, name in enumerate(names):
@@ -173,8 +179,9 @@ def plackett_burman(factors, randomize=True, seed=0, min_runs=None):
     interactions.
     
     Run-count behavior (pyDOE3 pbdesign):
-      k=1..7   → 8 runs    (saturated for k=7; consider min_runs=12 for error df)
-      k=8..11  → 12 runs   (4 df for error when k=8)
+      k=1..3   → 4 runs
+      k=4..7   → 8 runs    (saturated for k=7; consider min_runs=12 for residual df)
+      k=8..11  → 12 runs   (3 residual df when k=8, including an intercept)
       k=12..15 → 16 runs
     
     For k=7, pyDOE3 pbdesign returns 8 runs (saturated design — all degrees of
@@ -189,8 +196,10 @@ def plackett_burman(factors, randomize=True, seed=0, min_runs=None):
     """
     _ensure_pydoe3()
     from pyDOE3 import pbdesign
+    _validate_ranges(factors)
     n_factors = len(factors)
-    
+    if min_runs is not None and (isinstance(min_runs, (bool, np.bool_)) or not isinstance(min_runs, (int, np.integer)) or min_runs <= 0):
+        raise ValueError("min_runs must be a positive integer")
     if min_runs is not None and min_runs < n_factors + 1:
         print(f"Warning: min_runs={min_runs} is too low for {n_factors} factors "
               f"(need at least {n_factors + 1}). Using {n_factors + 1} instead.",
@@ -200,7 +209,7 @@ def plackett_burman(factors, randomize=True, seed=0, min_runs=None):
     if min_runs is not None:
         # Find the smallest number of "total factors" (including dummies) that
         # produces a PB matrix with >= min_runs rows.
-        # pbdesign(k) for k up to 7 gives 8 runs; k=8-11 gives 12; k=12-15 gives 16.
+        # pbdesign(k): k=1-3 gives 4 rows, 4-7 gives 8, 8-11 gives 12.
         # We search upward until we find a design with enough rows.
         target_n_factors = n_factors
         while True:
@@ -244,25 +253,15 @@ def central_composite(factors, center=(0, 1), alpha="orthogonal",
     _ensure_pydoe3()
     from pyDOE3 import ccdesign
     
-    if face == "circumscribed":
-        # Warn about axial points exceeding factor ranges
-        names = list(factors)
-        for name in names:
-            lo, hi = factors[name]
-            alpha_val = 1.414  # approximate alpha for orthogonal 2-factor CCD
-            ax_lo = (hi + lo) / 2.0 - (hi - lo) / 2.0 * alpha_val
-            ax_hi = (hi + lo) / 2.0 + (hi - lo) / 2.0 * alpha_val
-            if ax_lo < lo:
-                print(f"⚠️  {name}: axial point ({ax_lo:.2f}) < stated low ({lo}). "
-                      f"Consider face='inscribed' to stay within range.",
-                      file=sys.stderr)
-            if ax_hi > hi:
-                print(f"⚠️  {name}: axial point ({ax_hi:.2f}) > stated high ({hi}). "
-                      f"Consider face='inscribed' to stay within range.",
-                      file=sys.stderr)
-    
+    _validate_ranges(factors)
     coded = ccdesign(len(factors), center=center, alpha=alpha, face=face)
-    return _randomize(_decode_two_level(coded, factors), randomize, seed)
+    decoded = _decode_two_level(coded, factors)
+    for name, (lo, hi) in factors.items():
+        actual_lo, actual_hi = decoded[name].min(), decoded[name].max()
+        if actual_lo < lo or actual_hi > hi:
+            print(f"{name}: design spans [{actual_lo:.4g}, {actual_hi:.4g}], "
+                  f"outside [{lo}, {hi}]. Consider face='inscribed'.", file=sys.stderr)
+    return _randomize(decoded, randomize, seed)
 
 
 def box_behnken(factors, center=1, randomize=True, seed=0):
@@ -291,10 +290,12 @@ def latin_hypercube(factors, n_samples, criterion="maximin", seed=0,
     """
     _ensure_pydoe3()
     from pyDOE3 import lhs
-    rng_state = int(seed)  # pyDOE3 lhs uses numpy global RNG; seed it for repeatability
-    np.random.seed(rng_state)
+    _validate_ranges(factors)
+    if isinstance(n_samples, (bool, np.bool_)) or not isinstance(n_samples, (int, np.integer)) or n_samples <= 0:
+        raise ValueError("n_samples must be a positive integer")
     names = list(factors)
-    unit = lhs(len(names), samples=n_samples, criterion=criterion)  # in [0,1]
+    # pyDOE3 >= 1.6.2 owns a Generator; global np.random.seed does not seed it.
+    unit = lhs(len(names), samples=n_samples, criterion=criterion, seed=seed)  # in [0,1]
     out = {}
     for j, n in enumerate(names):
         low, high = factors[n][0], factors[n][1]

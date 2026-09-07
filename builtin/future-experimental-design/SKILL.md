@@ -1,6 +1,6 @@
 ---
 name: future-experimental-design
-version: 0.0.3
+version: 0.0.4
 description: >
   Design experiments and research protocols before data collection — select design type, randomization, blocking, treatment combination layout,
   and ensure experimental results are interpretable. For planning studies, assigning subjects/samples to groups, randomization, blocking, stratification,
@@ -100,7 +100,7 @@ Detailed guides for each branch:
 ## Generating Designs
 
 Three scripts generate allocation and design layouts. Validate their invariants before use in a real study. Run from this skill's `scripts/` directory or add to `sys.path`.
-All output uses fixed seeds so exact allocation schemes can be archived and regenerated — a requirement for trial registration and good laboratory practice.
+Use the compatible versions in `requirements.txt` in a task-local virtual environment. Record dependency versions, inputs and seed with the allocation schedule. Before changing these scripts, run `python -m unittest discover -s tests -v` from this skill directory. Tests cover seed reproducibility, sample counts, unit identity, matrix rank and invalid inputs.
 
 ### Randomization/Allocation Schemes — `scripts/randomization.py`
 
@@ -125,7 +125,7 @@ arm_balance(sched)            # Check that group counts are reasonable
 sched.to_csv("allocation_schedule.csv", index=False)
 ```
 
-How to choose: **Simple randomization** is fine for large samples but may be imbalanced for small ones; **block randomization** guarantees balance throughout;
+How to choose: **Simple randomization** is fine for large samples but may be imbalanced for small ones; **block randomization** preserves the ratio within complete blocks (a final partial block can be imbalanced);
 **stratified block randomization** additionally balances known prognostic factors; **cluster randomization** is required when the intervention is delivered at the group level.
 See `references/randomization_and_blocking.md`.
 
@@ -148,7 +148,8 @@ f4 = {"A": (10, 50), "B": (100, 200), "C": (0.1, 1.0), "D": (5, 25)}
 design = fractional_factorial(f4, generator="a b c abc", seed=42)
 # See "Yates notation quick reference" below for generator parameter details
 
-# Low-cost screening of 7 factors (use min_runs=12 to avoid saturated design, allows error estimation)
+# Low-cost screening of 7 factors (min_runs=12 provides residual degrees of freedom;
+# interpreting these as error still assumes the omitted effects are negligible)
 many = {f"factor_{i}": (0, 1) for i in range(7)}
 design = plackett_burman(many, seed=42, min_runs=12)
 
