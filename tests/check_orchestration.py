@@ -11,7 +11,7 @@ import re
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-DOCS = [ROOT / "builtin" / name / "SKILL.md" for name in ("future-loop", "future-research")]
+DOCS = [ROOT / "builtin" / name / "SKILL.md" for name in ("future-loop", "future-explore")]
 CASES = [
     ("wrong-task-log", "Task B has a pending receipt. A search returned task A's old timeout log.",
      "Is B's current failure established?", False),
@@ -52,7 +52,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", help="Explicit opt-in to one billed no-tools model call")
     args = parser.parse_args()
+    registry = json.loads((ROOT / "skills.json").read_text(encoding="utf-8"))
+    assert "future-research" not in registry
+    assert not (ROOT / "builtin" / "future-research").exists()
     for path in DOCS:
+        assert registry[path.parent.name]["builtin"] is True
+        assert registry[path.parent.name]["enabled"] is True
         text = path.read_text(encoding="utf-8")
         header = re.match(r"\A---\n(.*?)\n---\n", text, re.S)
         assert header, path

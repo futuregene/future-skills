@@ -1,12 +1,12 @@
 ---
-version: 3.3.0
-name: future-research
-description: Evidence-driven research, method comparison, optimization and feasibility assessment when the answer is not yet known. Use for scientific/engineering exploration or explicitly requested multi-worker reflection. Not for routine factual lookup, a code change with known implementation steps, or editing this skill itself.
+version: 3.4.0
+name: future-explore
+description: Evidence-driven exploration, method comparison, experimentation, optimization and feasibility assessment when the answer is not yet known. Use for scientific/engineering exploration or explicitly requested multi-worker reflection. Not for routine factual lookup, a code change with known implementation steps, or editing this skill itself.
 allowed-tools: Bash(future:*)
 category: tools
 ---
 
-# Evidence-driven research
+# Future Explore — Explore, Experiment, Verify
 
 Reduce decision-critical uncertainty within the authorized resources. Separate
 execution status, delivery acceptance and scientific conclusions; none is a

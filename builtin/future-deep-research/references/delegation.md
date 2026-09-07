@@ -1,7 +1,7 @@
 # Entry, Delegation and Return Contract
 
 This is an instruction-level handoff, not a new CLI command or RPC. It works with
-future-research or another caller; it does not require the parent skill to be installed.
+future-explore or another caller; it does not require the parent skill to be installed.
 
 ## Input contract
 
