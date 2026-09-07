@@ -96,20 +96,30 @@ def stratified_block_randomization(strata, arms=("treatment", "control"),
     blocks, guaranteeing balance within every subgroup.
     """
     if isinstance(strata, dict):
-        items = list(strata.items())
-    else:  # sequence of labels
-        s = pd.Series(list(strata))
-        items = list(s.value_counts().sort_index().items())
+        groups = []
+        offset = 0
+        for label, count in strata.items():
+            if isinstance(count, (bool, np.bool_)) or not isinstance(count, (int, np.integer)) or count < 0:
+                raise ValueError("stratum counts must be nonnegative integers")
+            groups.append((label, np.arange(offset + 1, offset + count + 1)))
+            offset += count
+    else:
+        # Keep enrollment/unit identity: grouping must not reassign an input
+        # label to a different unit when the allocation table is joined back.
+        labels = pd.Series(list(strata), dtype=object)
+        groups = [(label, group.index.to_numpy() + 1)
+                  for label, group in labels.groupby(labels, sort=False, dropna=False)]
 
     frames = []
-    for i, (label, count) in enumerate(items):
-        df = block_randomization(count, arms=arms, block_size=block_size,
+    for i, (label, unit_ids) in enumerate(groups):
+        df = block_randomization(len(unit_ids), arms=arms, block_size=block_size,
                                  ratio=ratio, seed=seed + 1 + i)
+        df["unit_id"] = unit_ids
         df.insert(1, "stratum", label)
         frames.append(df)
-    out = pd.concat(frames, ignore_index=True)
-    out["unit_id"] = np.arange(1, len(out) + 1)
-    return out
+    if not frames:
+        return pd.DataFrame(columns=["unit_id", "stratum", "block", "arm"])
+    return pd.concat(frames, ignore_index=True).sort_values("unit_id").reset_index(drop=True)
 
 
 def cluster_randomization(clusters, arms=("treatment", "control"), ratio=None,
