@@ -1,65 +1,54 @@
 ---
-version: 1.0.3
+version: 1.1.0
 name: future-paper
-description: Search academic literature across multiple databases and retrieve full paper content by identifier (PMID, DOI). Returns structured Paper objects with bibliographic metadata (title, authors, journal, year, DOI, PMID, ArXiv, citation count) and AI-summarized findings. Use for literature reviews, finding papers on a topic, and extracting specific findings from the scientific literature. Also supports retrieving complete paper body text.
+description: >
+  Search academic literature and retrieve paper content by PMID, DOI or other supported
+  identifiers. Use for finding papers, literature reviews and extracting specific findings.
+  Distinguish generated search summaries from inspected original passages and report unavailable full text.
 allowed-tools: Bash(future:*)
 category: tools
 ---
 
-> **Authentication is automatic.** The `future` CLI reads your credentials from `~/.future/agent/auth.json`. You do NOT need to find, configure, or pass API keys — just call the tools below.
+# Academic Paper Retrieval
 
-> **Tip:** use `future tools describe <tool>` to see all available arguments for any tool.
-# Paper Search
+The Future CLI handles authentication. Read relevant supplied papers first and respect
+source/privacy constraints. Consult `future tools describe search_paper` / `get_paper`
+for current arguments instead of relying on a copied response schema.
 
-## When to use this skill
-
-Load this skill when the user asks to:
-- Search for academic papers, articles, or scientific literature
-- Find research on a specific topic or disease
-- Retrieve a paper by PMID, DOI, or other identifier
-- Do a literature review or find recent publications
-- 搜索论文 / 查找文献 / 找学术文章 / 文献检索 / 查论文
-
-**If the user mentions any of the above, stop what you're doing and use this skill.** Do not explore the filesystem, do not use curl or web search to find papers — use the tools below.
-
-## How to use
-
-All tools are called via the `future` CLI. You have access to the `bash` tool — use it to run these commands:
+## Commands
 
 ```bash
-# Search for papers on a topic (multiple queries allowed, each returns independent results)
-future tools call search_paper --queries '["inheritance pattern of Marfan syndrome", "typical age of onset Marfan syndrome"]' --information_to_extract "extract key findings" --max_results_per_query 5
-
-# Search with a single query
-future tools call search_paper --queries '["BRCA1 variant classification guidelines 2025"]' --max_results_per_query 5
-
-# Retrieve a specific paper by ID
-future tools call get_paper --paper_id "PMID:12345678"
+future tools call search_paper --queries '["BRCA1 variant classification guidelines"]' --information_to_extract "Methods, findings and limitations" --max_results_per_query 5 --raw
+future tools call get_paper --paper_id "PMID:12345678" --raw
 ```
 
-## Available tools
+`search_paper` accepts multiple queries and `--max_results_per_query`.
+`get_paper` accepts `--paper_id` and optional `--max_k`.
 
-### search_paper
-Search academic databases for papers matching one or more queries. Each query returns independent results. Returns **structured Paper objects** with: title, authors, journal, year, DOI, PMID, ArXiv ID, citation count, impact factor, and an AI-generated summary specific to your query.
+Without `--raw`, the CLI formats results for reading. With `--raw`, it emits the
+structured-content object directly when available, not a wrapper named
+`structured_content`. Typical paths are `results[].papers[]` and `paper.body_text`;
+inspect returned keys and handle text-only responses rather than inventing fields.
 
-Arguments: `--queries '["..."]' --information_to_extract "..." --max_results_per_query "..."`
+## Evidence workflow
 
-**Output** is in `structured_content.results[]` — each result is grouped by query and contains:
-- `query` — the search query
-- `papers[]` — array of Paper objects, each with:
-  - `paper_id`, `title`, `ai_summary`
-  - `authors`, `journal`, `volume`, `pages`, `publication_date`, `year`
-  - `doi`, `pubmed_id`, `pmc_id`, `arxiv_id`, `url`
-  - `citation_count`, `impact_factor`
-  - `source`
+1. Identify the question, date range, populations/methods and requested level of coverage.
+   A few search results do not establish an exhaustive systematic review.
+2. Search for relevant papers and record stable identifiers, titles, authors, venue/year
+   and source URLs. Deduplicate versions and avoid counting copies as independent evidence.
+3. Use generated `ai_summary` fields only to prioritize reading. Retrieve the original
+   passages needed to verify key findings, conditions, numerical values and limitations.
+4. Full-text availability varies. An abstract, empty body or partial excerpt is not the
+   complete paper. If permitted, use `future-web` for an open publisher/repository source
+   or `future-database-lookup` for a relevant structured record. Request a user copy when
+   needed; do not bypass access restrictions or declare an unseen result verified.
+5. Trace each central claim to the actual inspected passage, with DOI/PMID, version and
+   location. Check contrary evidence and distinguish association from causal conclusions.
+6. Return the requested synthesis with citations and retrieval limitations. Do not use
+   citation counts, journal metrics or the number of search hits as proof of correctness.
 
-### get_paper
-Retrieve the full content of a paper by its identifier. Supports PMID, DOI, and other standard identifiers. Returns the complete paper body text with bibliographic metadata.
+## Boundaries
 
-Arguments: `--paper_id "..." --max_k "..."`
-
-**Output** is in `structured_content.paper` — a single Paper object with full body text:
-- `paper_id`, `title`, `authors`, `journal`, `volume`, `pages`, `publication_date`, `year`
-- `doi`, `pubmed_id`, `pmc_id`, `arxiv_id`, `url`
-- `citation_count`, `impact_factor`, `ai_summary`, `source`
-- `body_text` — complete paper body text (may be long)
+Do not disclose confidential manuscript text or private research data in search queries.
+Reuse the existing retrieval budget; bound retries and report actual failures. No new
+worker/model dispatch or broader literature review is implied by a single lookup request.

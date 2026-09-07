@@ -5,7 +5,7 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "账户管理",
-    "description_zh": "查看 Future 账户信息和余额，通过 Future CLI 创建充值订单"
+    "description_zh": "通过 Future CLI 查看账户信息和积分余额；不创建充值订单"
   },
   "future-browser": {
     "category": "tools",
@@ -13,7 +13,7 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "浏览器控制",
-    "description_zh": "通过 Future CLI 控制本地 Chrome 或 Edge 浏览器，用于打开本地应用和网页操作"
+    "description_zh": "通过 Future CLI 控制本地 Chrome、Edge 或 Safari，按授权打开页面并执行网页操作"
   },
   "future-database-lookup": {
     "category": "databases",
@@ -37,7 +37,7 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "文档解析",
-    "description_zh": "将 PDF 和 Word 文档解析为结构化 Markdown，保留标题层级、表格和图片结构"
+    "description_zh": "按隐私与离线要求选择本地解析或授权的远程 PDF/Word 解析，输出结构化 Markdown 并说明提取限制"
   },
   "future-experimental-design": {
     "category": "methodology",
@@ -93,7 +93,7 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "科研写作",
-    "description_zh": "深度研究与写作核心工具，生成完整段落的科学论文"
+    "description_zh": "按证据提纲撰写和修订科学稿件，遵循用户与期刊的结构、引用及报告规范"
   },
   "future-skill-creator": {
     "category": "tools",

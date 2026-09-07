@@ -1,5 +1,5 @@
 ---
-version: 1.0.0
+version: 1.0.1
 name: future-software-install
 description: Install or update lightweight software, command-line tools, browser automation prerequisites, and document-processing libraries for FutureOS across Windows, macOS, and Linux. Use when the user asks to install a tool, configure Homebrew or a package manager, set up Chrome/headless browsing, add Python document libraries, or use mainland China download mirrors.
 category: tools
@@ -14,7 +14,7 @@ This reference helps match a FutureOS task with a small, suitable dependency. Ex
 - The operating system, distribution, CPU architecture, shell, package manager, and WSL/container status help determine compatible installation options.
 - Checking for an existing command or application often avoids redundant downloads.
 - Package source, approximate disk impact, permissions, and a version check are useful context before an installation.
-- Software installation, package-source changes, shell startup-file edits, administrator privileges, and Chrome installation are material local changes worth confirming with the user.
+- Reuse the user's explicit installation authorization. Ask about material changes to source, privileges, disk/cost impact or scope rather than repeating approval for an already requested install. Package-source and shell startup-file edits are separate changes, not automatically authorized by a request for one tool.
 - Official package managers are usually the clearest starting point; documented mainland mirrors can help when the official source is slow or unreachable.
 - Databases, Docker, IDEs, Office suites, Java, Go, Rust, and similar larger dependencies fit best when a task explicitly calls for them.
 - Public mirrors are most appropriate for public packages. Credentials, private package names, and private Git URLs are better kept on official or user-managed sources.
@@ -53,4 +53,5 @@ For DOCX, XLSX, PPTX, and PDF work, lightweight libraries cover many read/write 
 - Resolve the installed executable and print its version.
 - For Python packages, import the package with the target environment's Python.
 - For Chrome/Chromium, a no-network version check is a quick browser readiness check.
-- For changed package sources or shell configuration, recording the rollback action makes later adjustments easier.
+- For changed package sources or shell configuration, record the rollback action and what was actually changed.
+- Deliver the resolved tool/interpreter path, version/import check, installation scope/source and any verification limits. Do not call a download alone a successful installation.
