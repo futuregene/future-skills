@@ -63,12 +63,12 @@
     "name_zh": "长程目标循环",
     "description_zh": "FutureOS 循环控制平面——将对话转化为持久、可审查的长程目标：目标、todo、人工门禁、监控、证据与闭环验证都持久化在聊天之外"
   },
-  "future-research": {
+  "future-explore": {
     "category": "tools",
     "category_zh": "工具",
     "builtin": true,
     "enabled": true,
-    "name_zh": "研究探索与验证",
+    "name_zh": "探索求解与验证",
     "description_zh": "按风险和预算选择轻量、标准或重型研究流程，比较方法、记录增量证据、独立验证，并区分达标、受阻和预算耗尽"
   },
   "future-paper": {

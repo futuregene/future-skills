@@ -1,7 +1,7 @@
 [
   {
     "id": "inherited-authorization",
-    "context": "A future-research caller supplies GOAL v2, the user's explicit approval of unchanged questions, depth B, methods delivery, model and subtask budget. No new scope or permissions are needed; all fields are confirmed rather than proposals.",
+    "context": "A future-explore caller supplies GOAL v2, the user's explicit approval of unchanged questions, depth B, methods delivery, model and subtask budget. No new scope or permissions are needed; all fields are confirmed rather than proposals.",
     "questions": {"repeat_strategy_approval": "Must the delegated researcher ask the user to choose A/B/C again? Boolean."},
     "expected": {"repeat_strategy_approval": false}
   },

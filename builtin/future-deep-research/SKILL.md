@@ -1,12 +1,12 @@
 ---
 name: future-deep-research
-version: 3.0.0
+version: 3.0.1
 description: >
   Evidence-driven deep research using web, academic papers and user materials.
   Produce a full research report, a delegated methods brief, or an incremental update;
   trace claims to sources, verify key citations, and report gaps and resource use.
   Use for deep research, literature reviews, industry or technology analysis, research
-  reports, and methods research delegated by future-research. Not for editing this skill
+  reports, and methods research delegated by future-explore. Not for editing this skill
   itself or ordinary single-fact lookups.
 metadata:
   requires:
