@@ -1,5 +1,5 @@
 ---
-version: 1.0.2
+version: 1.0.3
 name: future-paper
 description: Search academic literature across multiple databases and retrieve full paper content by identifier (PMID, DOI). Returns structured Paper objects with bibliographic metadata (title, authors, journal, year, DOI, PMID, ArXiv, citation count) and AI-summarized findings. Use for literature reviews, finding papers on a topic, and extracting specific findings from the scientific literature. Also supports retrieving complete paper body text.
 allowed-tools: Bash(future:*)
@@ -34,7 +34,8 @@ future tools call search_paper --queries '["inheritance pattern of Marfan syndro
 future tools call search_paper --queries '["BRCA1 variant classification guidelines 2025"]' --max_results_per_query 5
 
 # Retrieve a specific paper by ID
-future tools call get_paper --paper_id "PMID:12345678" ```
+future tools call get_paper --paper_id "PMID:12345678"
+```
 
 ## Available tools
 
