@@ -1,292 +1,101 @@
 ---
-version: 1.0.3
+version: 1.1.0
 name: future-skill-creator
 description: >
-  Create or update app-local custom skills under ~/.future/agent/skills (macOS/Linux) or %USERPROFILE%\.future\agent\skills (Windows) using mature skill design patterns: concise SKILL.md instructions, clear triggering descriptions, optional scripts/references/assets, progressive disclosure, validation, and iteration. Use when the user asks to create, scaffold, port, review, improve, or install a custom skill, including requests like "add a skill", "make this a skill", "create my own skill", "update SKILL.md", or "创建技能".
+  Create, review or improve a custom Future skill with clear triggers, concise
+  instructions, optional scripts/references/assets and offline validation. Use for
+  requests to add a skill, update SKILL.md, port a workflow or create a custom skill.
+  Default installation scope is ~/.future/agent/skills (Windows USERPROFILE equivalent).
 allowed-tools: Bash(future:*)
 category: tools
 ---
 
-# Future Skill Creator
+# Custom Skill Creator
 
-Create or update app-local custom skills. This skill itself is installed as a built-in Future skill, but the skills it helps create are Future app skills by default.
+A skill is a folder with a `SKILL.md` entry and only the resources needed at runtime.
+Prefer a small, testable workflow over an inventory of general advice.
 
-Default target:
+## Scope and location
 
-- **macOS / Linux**: `~/.future/agent/skills/<skill-name>/SKILL.md`
-- **Windows**: `%USERPROFILE%\.future\agent\skills\<skill-name>\SKILL.md`
+The default **app scope** is `<home>/.future/agent/skills/<name>/SKILL.md` on macOS,
+Linux and Windows (use the actual home/USERPROFILE path). **Shared agent scope** is
+`<home>/.agents/skills`; use it only when requested. App scope takes discovery
+precedence for duplicate names. Do not silently install into both scopes.
 
-Use another target only when the user explicitly asks for it.
-
-## Core Model
-
-A skill is a self-contained folder that teaches the agent a specialized workflow.
-
-Required:
-
-```text
-skill-name/
-└── SKILL.md
-```
-
-Optional:
-
-```text
-skill-name/
-├── SKILL.md
-├── scripts/       # deterministic helpers for repeated or fragile operations
-├── references/    # longer docs loaded only when needed
-└── assets/        # templates, images, fonts, boilerplate, examples used as materials
-```
-
-Keep the skill focused. Do not add README files, changelogs, installation guides, or extra docs unless the skill itself must use them at runtime.
-
-## Design Principles
-
-- Assume the agent is already capable. Add only task-specific knowledge, workflow constraints, tool details, and pitfalls.
-- Keep `SKILL.md` concise. Move large optional details to `references/`.
-- Use scripts only for fragile, deterministic, or repeatedly rewritten operations.
-- Use assets only when the skill needs templates or materials to produce outputs.
-- Prefer clear examples over long explanation.
-- Protect the context window. Every paragraph must earn its place.
-
-## Naming
-
-Use lowercase letters, digits, and hyphens only.
-
-Good names:
-
-- `pdf-redliner`
-- `brand-slides`
-- `jira-release-notes`
-- `lab-report-analyzer`
-
-Rules:
-
-- Keep names under 64 characters.
-- Prefer short action or domain names.
-- Make the folder name match the frontmatter `name`.
-- Avoid spaces, underscores, uppercase letters, and punctuation.
-
-## Frontmatter
-
-Every `SKILL.md` starts with YAML frontmatter:
-
-```yaml
----
-version: 1.0.2
-name: example-skill
-description: Do a specific task with specific inputs, outputs, tools, and constraints. Use when the user asks for concrete trigger phrases or task families.
----
-```
-
-Rules:
-
-- `name` is required.
-- `description` is required.
-- `description` is the trigger surface, so include both what the skill does and when to use it.
-- Put trigger information in `description`, not only in the body.
-- Add `allowed-tools: Bash(future:*)` only if the custom skill should use Future CLI tools.
-- Avoid extra metadata unless the user needs it.
-
-## Creation Workflow
-
-Follow these steps:
-
-1. Understand the skill with concrete examples.
-2. Choose the skill name.
-3. Create the skill folder under `~/.future/agent/skills/<skill-name>/` (macOS/Linux) or `%USERPROFILE%\.future\agent\skills\<skill-name>\` (Windows).
-4. Decide whether the skill needs `scripts/`, `references/`, or `assets/`.
-5. Write `SKILL.md`.
-6. Add only necessary resources.
-7. Validate the structure and frontmatter.
-8. Iterate after real use.
-
-Ask at most one or two clarifying questions when the requested skill is ambiguous. If the user already gave enough detail, proceed with reasonable defaults.
-
-## Step 1: Understand Concrete Use
-
-Collect enough information to make the skill useful:
-
-- What user request should trigger the skill?
-- What input artifacts does it use?
-- What output should it produce?
-- What tools, APIs, formats, or constraints matter?
-- What mistakes should future agents avoid?
-
-Do not over-interview the user. If examples are missing, infer likely examples and move forward.
-
-## Step 2: Plan Resources
-
-Use no extra resources unless they clearly help.
-
-Create `scripts/` when:
-
-- A task needs reliable deterministic code.
-- The same code would otherwise be rewritten repeatedly.
-- A format conversion or validation step is fragile.
-
-Create `references/` when:
-
-- Details are too long for `SKILL.md`.
-- The skill has multiple variants, providers, schemas, or policies.
-- The agent should load details only for some requests.
-
-Create `assets/` when:
-
-- The skill needs templates, fonts, images, boilerplate projects, or other reusable materials.
-
-In `SKILL.md`, explicitly say when to read or use each resource.
-
-## Step 3: Create The Skill Folder
-
-Default command:
-
-```bash
-mkdir -p ~/.future/agent/skills/<skill-name>
-```
-
-On Windows (PowerShell):
-
-```powershell
-mkdir -p $env:USERPROFILE\.future\agent\skills\<skill-name>
-```
-
-Optional resource folders:
-
-```bash
-mkdir -p ~/.future/agent/skills/<skill-name>/scripts
-mkdir -p ~/.future/agent/skills/<skill-name>/references
-mkdir -p ~/.future/agent/skills/<skill-name>/assets
-```
-
-Then create:
-
-```text
-~/.future/agent/skills/<skill-name>/SKILL.md
-```
-
-## Step 4: Write SKILL.md
-
-Recommended shape:
-
-```markdown
----
-version: 1.0.3
-name: <skill-name>
-description: <what it does and when to use it>
----
-
-# <Human Title>
-
-One or two sentences describing the purpose.
+When asked to edit repository-maintained builtin skills, edit their source in the
+repository/worktree, not the user's installed copy. Reuse the requested destination
+and existing authorizations. Do not overwrite an unrelated or locally modified skill
+without confirming the intended replacement.
 
 ## Workflow
 
-1. Do the first required step.
-2. Use the preferred tool or file format.
-3. Validate the output.
+1. Identify concrete triggers, inputs, output, tools, failure modes and how success
+   will be checked. Infer routine details; ask only about unresolved material choices.
+2. Choose a lowercase letters/digits/hyphens name, under 64 characters, matching its
+   folder. Write a description that says what the skill does and when it should trigger.
+3. Write `SKILL.md` using the file write/edit tool, not shell redirection. Frontmatter
+   needs `name`, `version` and `description`; use folded/quoted YAML for text containing
+   colon-space. Keep examples syntactically valid.
+4. Add `references/` only for optional detail, `scripts/` for fragile/repeated deterministic
+   work, and `assets/` for actual reusable templates. Explain when to load each resource;
+   resolve its path relative to the skill directory. Do not invent helper/dependency paths.
+5. Validate structure and metadata using the included validator. Then test representative
+   positive and negative workflow cases at the appropriate risk level.
+6. Improve from actual usage failures. Tighten trigger descriptions for over-triggering;
+   add discriminating examples for under-triggering; remove duplicated generic instructions.
 
-## Resources
+## Minimal entry
 
-- Read `references/schema.md` when the request involves database fields.
-- Run `scripts/convert.py` for format conversion.
-
-## Validation
-
-- Check the required output exists.
-- Check common failure modes.
-
-## Pitfalls
-
-- Avoid ...
+```yaml
+---
+name: example-skill
+version: 1.0.0
+description: >
+  Do a specific task with specified inputs and outputs.
+  Use when the user asks for these concrete task families.
+---
 ```
 
-Guidelines:
+Follow with purpose, the shortest useful workflow, checks, failure handling and
+conditional resource pointers. Match the user's language and deliverable. Do not
+force repeated approval questions when the current request already settles them.
 
-- Use imperative instructions.
-- Keep examples short and runnable.
-- Include exact commands when the sequence is fragile.
-- Do not duplicate long reference content in `SKILL.md`.
-- Do not include secrets, tokens, private data, or real credentials.
+## Future CLI tools
 
-## Future CLI Tools In Custom Skills
-
-When a custom skill needs Future platform tools, document `future tools call` commands directly.
-
-Examples:
+Load the relevant builtin skill and consult `future tools describe <tool>` rather
+than copying a stale interface. Examples of current entry points:
 
 ```bash
 future tools call web_search --query "topic" --count 5
 future tools call fetch_url --url "https://example.com"
-future tools call image_gen --prompt "A diagram" --size "1024x1024" --output ./image.png
-future tools call read_image --input ./image.png --question "Describe this image"
+future tools call image_gen --prompt "A diagram" --output ./image.png --timeout 600
 future tools call parse_doc --input ./report.pdf
 ```
 
-For long JSON or prompts, prefer `--stdin`:
+Authentication is handled by the CLI. Never embed real credentials. Explain when
+files or queries leave the machine, respect offline/confidential constraints, and
+distinguish local timeouts from remote cancellation before retrying paid actions.
+Tool allow-lists in frontmatter are not substitutes for the harness's permission checks.
 
-```bash
-future tools call image_gen --stdin --output ./output.png <<'JSON'
-{
-  "prompt": "Long prompt with quotes and punctuation",
-  "size": "1024x1024",
-  "quality": "medium"
-}
-JSON
-```
-
-Authentication is automatic. The `future` CLI reads credentials from `~/.future/agent/auth.json`. Never hard-code API keys.
-
-> **Tip:** use `future tools describe <tool>` to see all available arguments for any tool.
 ## Validation
 
-At minimum, check:
+The included `scripts/validate_skill.py` uses PyYAML (see `requirements.txt`). Reuse
+an installed interpreter/dependency or an authorized task-local environment. Resolve
+the script's absolute path from this skill directory before running it:
 
 ```bash
-test -f ~/.future/agent/skills/<skill-name>/SKILL.md
+python /absolute/skill/path/scripts/validate_skill.py /absolute/custom-skill-directory
 ```
 
-Inspect the frontmatter:
+It validates folder/name/version/description, unique YAML keys and boolean invocation
+flags. Also inspect resource existence, CLI examples and the output checks; metadata
+validation alone does not prove correct model behavior. For paid/live behavior tests,
+use the user's authorized scope and budget and report exactly what was exercised.
 
-- `name` matches the folder.
-- `description` is clear and trigger-rich.
-- YAML delimiters are present.
-- No placeholder TODOs remain.
+## Updating an existing skill
 
-If a validator script is available in the environment, run it against the skill folder. If validation tooling is unavailable, do a manual structure and frontmatter review.
-
-## Update Workflow
-
-When improving an existing custom skill:
-
-1. Read the current `SKILL.md`.
-2. Identify the real usage failure or missing workflow.
-3. Make the smallest useful change.
-4. Move bulky details to `references/` if `SKILL.md` is becoming long.
-5. Add scripts only when they remove repeated or fragile work.
-6. Re-check frontmatter triggers after edits.
-
-## Review Checklist
-
-Before finishing, verify:
-
-- Folder path is under `~/.future/agent/skills/` (macOS/Linux) or `%USERPROFILE%\.future\agent\skills\` (Windows) unless the user requested another location.
-- Folder name and frontmatter `name` match.
-- `description` says both what the skill does and when to use it.
-- `SKILL.md` is concise and actionable.
-- Optional resources are referenced from `SKILL.md`.
-- No unnecessary README, changelog, or install guide was added.
-- No secrets or real credentials are present.
-- Tool examples are accurate and runnable.
-
-## Iteration Rules
-
-Improve the skill after real use:
-
-- If agents forget a step, add a checklist.
-- If agents choose the wrong tool, tighten the workflow.
-- If agents rewrite the same code, add a script.
-- If the skill triggers too often, narrow the `description`.
-- If the skill does not trigger, enrich the `description` with better trigger phrases.
-- If `SKILL.md` grows too large, split details into `references/`.
+Read the current entry and relevant resources first. Preserve useful task-specific
+knowledge, provenance and safety boundaries. Make the smallest change that addresses
+the observed failure; move low-frequency detail out of a growing entry. Bump its version,
+rerun validation and the affected tests, then report the actual save paths and test limits.
+No extra changelog/README or platform-wide rule is needed for a one-off skill update.
