@@ -1,5 +1,5 @@
 ---
-version: 3.0.0
+version: 3.3.0
 name: future-research
 description: Evidence-driven research, method comparison, optimization and feasibility assessment when the answer is not yet known. Use for scientific/engineering exploration or explicitly requested multi-worker reflection. Not for routine factual lookup, a code change with known implementation steps, or editing this skill itself.
 allowed-tools: Bash(future:*)
@@ -8,114 +8,160 @@ category: tools
 
 # Evidence-driven research
 
-Choose a method from evidence, test it, reflect on the result, and verify the
-final claim independently when risk warrants it. Do not confuse a completed
-workflow, a written report, or exhausted attempts with achieving the objective.
+Reduce decision-critical uncertainty within the authorized resources. Separate
+execution status, delivery acceptance and scientific conclusions; none is a
+substitute for the others. Use evidence rather than a larger collection of rules.
 
-## Scope and budget first
+## Scope, roles and budget
 
-Clarify the objective, available material, deliverable format, acceptance
-semantics, resource limits and irreversible actions. State assumptions and ask
-only about unknowns that would materially change the work. Treat explicit user
-constraints as authoritative.
+Clarify the objective, available material, deliverables, acceptance semantics,
+permissions, resource limits and irreversible actions. Reuse explicit existing
+authorization; ask once about missing or changed decisions, not unchanged fields.
 
 Choose the smallest sufficient mode:
 
 | Mode | Suitable work | Process |
 |---|---|---|
-| Light | Code mechanism review, bounded feasibility question, targeted comparison | Inspect primary evidence, compare plausible alternatives, run targeted checks; usually one agent |
-| Standard | Uncertain implementation or consequential technical decision | Method map, exploratory iteration, separate verification/review |
-| Heavy | Broad research frontier, expensive experiments, high-stakes scientific claim | Multiple genuinely different method families, independent synthesis, strict reproducibility audit |
+| Light | Bounded mechanism review or targeted comparison | Inspect primary evidence and run targeted checks; usually one agent, no mandatory workspace bureaucracy |
+| Standard | Uncertain implementation or consequential decision | Method map, exploratory iteration and an agreed verification plan |
+| Heavy | Broad frontier or expensive/high-stakes experiments | Distinct hypotheses in parallel, synthesis and independent validation |
 
-Do not require a fixed paper count, arbitrary academic percentage, or a multi-worker
-loop for every task. Repository source, specs and measurements are often the
-primary evidence for software questions. For literature-dependent work use
-future-paper/future-web/future-deep-research at a depth justified by the question;
-verify key citations rather than optimizing citation count. When external research
-is unavailable, identify the limitation instead of fabricating references.
+Before paid dispatch, agree on model/thinking settings and resource limits. Default
+to the current session model, not a hard-coded roster. A preauthorized model pool
+may specify roles, switch conditions and sub-budgets; record justified switches
+within that authority without repeating approval. User-pinned configurations remain
+binding. Request approval for changes outside the authorized pool/scope/budget.
 
-Before paid worker dispatch, confirm model/thinking settings unless the user
-already specified them. Default to the current session model, not a hard-coded
-model roster. User-pinned configuration cannot be silently changed. Agree on time,
-cost/attempt budget and review checkpoints; no universal high-thinking mandate.
+Assign by capability: routine workers handle explicit implementation and bounded
+experiments; the supervisor audits decisive evidence and selects methods; a strong
+solver handles demonstrated reasoning/modeling/visual bottlenecks when authorized.
+First distinguish missing inputs, infrastructure, implementation, measurement,
+method and capability failures. Do not upgrade solely after a fixed retry count.
+The supervisor may derive, implement and correct work, but must preserve its actual
+contribution and cannot claim to independently validate its own candidate.
 
-## Method map and anchor
+For concurrent work, maintain one resource ledger. For each additive budget unit,
+require `C + R + V + N <= B` before dispatch: authorized total B, consumed C,
+outstanding reservations R, undispatched verification/delivery reserve V, and new
+allocation N. Reserve before starting; settle consumption from R into C once.
+A worker's sub-budget is not the whole parent's budget. Stop requests, query
+timeouts or lost processes do not release reservations until termination and
+unreported costs are checked. Wall-clock deadlines are checked separately along
+dependency chains. State estimation uncertainty and actual enforcement limits;
+never promise a hard money cap from a prompt or a turn count.
 
-1. Inspect the task contract and existing evidence before selecting an approach.
-2. List meaningfully different candidate methods, their assumptions, expected
-   upside, implementation cost and falsification tests. Use fewer than three
-   when fewer are genuinely plausible; never invent alternatives for a quota.
-3. Define success in observable terms. Quantitative tasks need a baseline and
-   justified target/bound; qualitative tasks need an explicit decision rubric.
-   Label estimates as estimates. Revise an anchor only with documented evidence,
-   not because the current method misses it.
-4. Build only the necessary harness. Distinguish input/submitted/runtime files,
-   reset/isolation semantics and permissions. Mark each critical assumption as
-   specified, observed or unknown. For unknown semantics, test conservative
-   scenarios and report conditional conclusions; do not silently assume favorable
-   freedoms or present hypothetical restrictions as known facts.
+## Method map and anchors
 
-No worker may weaken the acceptance contract or inspect a prohibited reference
-solution to manufacture a passing result.
+1. Inspect task contracts, assets and existing evidence before choosing a route.
+   Distinguish user requirements from supervisor proposals and historical guesses.
+2. Identify plausible methods, assumptions, evidence, costs and discriminating
+   tests. Never invent method families or citations to reach an arbitrary count.
+3. Separate acceptance criteria, measured baselines, theoretical bounds and
+   exploration targets. Unknown bounds stay unknown. Revising an exploration
+   target does not make an unmet acceptance criterion pass.
+4. Build only the necessary evaluation harness. Record input/submitted/runtime
+   semantics, isolation, permissions, versions and unknown interpretations. Test
+   both expected-pass and expected-fail cases; report extra robustness conditions
+   separately from formal acceptance. Revalidate affected candidates after changes.
 
-## Explore and reflect
+For literature-dependent method research, delegate through `future-deep-research`:
+use `entry=delegated`, normally `deliverable=methods`, or `delta` for a specific gap
+in identified prior work. Preserve `report` when a full report is requested. Inherit
+approved depth and sub-allocation, verify key claims and reuse adequate evidence.
+These are handoff fields, not invented CLI flags. Check the installed dependency's
+actual contract. Repository code/specs may themselves suffice for a light software
+investigation; do not require ceremonial web research. Authorized asset checks,
+environment smoke tests and cheap baselines independent of unresolved methods can
+proceed in parallel; method-dependent heavy work still needs an evidential basis.
 
-For light work, perform the bounded investigation directly; no goal or workspace
-files are mandatory. For durable or multi-worker work, load future-loop, inspect
-existing goals, and keep artifacts in a task-specific directory. Use owner-scoped
-todos and dependency edges, and name artifact paths in downstream task text.
+## Evidence-driven supervision and correction
 
-Parallel workers should differ by method or hypothesis, not just arbitrary
-parameters. The supervisor may reason about tradeoffs and audit evidence; it
-must not substitute its intuition for missing experiments or certify its own
-unsupported claims. Use independent verification for consequential claims.
+Before declaring data inaccessible, an interface broken, a worker wrong, a route
+exhausted, or a task complete, inspect the decisive original evidence. Record in
+the existing report: observed fact, candidate explanation, counterevidence,
+cheapest discriminating check and resulting decision. Do this for consequential
+decisions, not every trivial action. Missing fields or a transient error do not
+establish a permanent failure; several simultaneous changes do not isolate one
+cause of improvement.
 
-Each iteration records:
+Bind key evidence to its task, run/session or external receipt ID, observation
+and retrieval time, input/candidate/validator versions and original record path.
+Read IDs from actual records, not latest file mtime. A report is an evidence index;
+execution logs prove execution, not scientific truth. Do not use another task's
+old log to explain the current outcome or silently rank incomparable measurements.
 
-- New evidence relative to the previous iteration (including negative results).
-- Reproduction commands, inputs/seeds/versions, outputs and measured metrics.
-- Assumptions tested or invalidated, failed approaches and counterexamples.
-- Remaining gap, uncertainty, next experiment and expected resource cost.
+Treat suggested worker routes as challengeable hypotheses, not axioms. When
+counterevidence invalidates a supervisor assumption, preserve the old record,
+mark dependent conclusions/rankings/stopping decisions/briefs for review, notify
+affected workers and selectively revalidate. Prevent further dependence on invalid
+inputs or evaluation without restarting unrelated work. Keep unaffected baselines.
+Conflicts stay unresolved until evidence discriminates; majority agreement among
+workers sharing one implementation is not independent corroboration. None of this
+authorizes changing user constraints or accessing prohibited answers/test data.
 
-At each checkpoint, answer:
+## Explore, hand off and resume
 
-1. Did we learn something relevant, or only generate activity?
-2. Does the evidence support the method and target, or should we revisit them?
-3. What observation would falsify the current explanation/strategy?
-4. Is another iteration worth its expected cost, and is it authorized?
+For durable/multi-worker work, load `future-loop`, inspect existing goals, use
+owner-scoped tasks and isolated output directories, and name relevant artifact
+paths and versions in downstream briefs. Do not feed every worker the entire
+cross-task ledger. At each checkpoint ask what new evidence changed the decision,
+which hypotheses were weakened, what remains uncertain, and which next action is
+worth its authorized cost. Read results, not just activity counters or summaries.
 
-Return to breadth when a method is falsified or its ceiling is below the target;
-not on an arbitrary schedule. Use a fresh reviewer when correlated assumptions
-would undermine confidence. File existence is an artifact check, not scientific
-validation. Avoid frequent supervisor polling and gratuitous mid-turn interrupts.
+Put a concise receipt FIRST in each REPORT and repeat its pointer at handoff:
 
-## Stop states and final verification
+- Actual task/run/session identity and input/candidate version (unknown stays unknown).
+- Result: what was supported, refuted or unresolved, and whether measured or inferred.
+- Exact artifact paths, reproduction entry and original evidence references.
+- Verification performed, validator version, failures and unverified conditions.
+- External receipt ID, retrieval time and pending/final status, when applicable.
+- Invalidated assumptions, affected dependencies, requested decisions and next action.
+- Consumed/estimated resources, outstanding jobs and recovery conditions.
 
-Stop deliberately at one of these states:
+Follow with the detailed method, reasoning, negative results and limitations.
+A truncated completion notification is a prompt to read the report, not permission
+to guess an outcome. Verify relevant artifacts/receipts BEFORE recording verified.
+One worker's completion or a `last todo` label never establishes global closure.
 
-- **Achieved:** acceptance met with reproducible evidence and appropriate review.
-- **Bounded infeasibility:** a justified result for a stated domain/method family;
-  do not generalize it to all possible methods.
-- **Budget-limited / low expected return:** target not reached; preserve the best
-  result and ask before extending authorized resources.
-- **Blocked / conditional:** required data, authorization or runtime semantics
-  are missing; specify what would unblock the conclusion.
+Each asynchronous experiment names a monitor owner, job/receipt ID, result endpoint,
+next check, timeout handling, supported wakeup mechanism and reserved monitoring
+budget. Read existing receipts; never resubmit an irreversible action just to find
+its ID. The loop watchdog handles loop liveness/outbox, not arbitrary external
+scores or resource allocation. If no persistent monitoring exists, disclose that
+rather than promising automatic follow-up. On new results or unblocking events,
+reassess within valid authorization; ask only for expired or changed permissions.
+Avoid paid sleep/poll loops and gratuitous interrupts. A live process, tool usage
+and changed files are activity signals, not evidence of scientific advancement.
 
-A proof that every conceivable method fails is NOT required to stop. None of the
-last three states may be reported as successful completion. Stop/release workers
-and preserve artifacts; keep acceptance gaps visible in the loop ledger. Mark a
-goal cancelled only when abandonment is authorized, not to make the dashboard green.
+## Verification and honest stopping
 
-For standard/heavy work, independently rerun the decisive checks. Reimplementation,
-adversarial cases or large randomized comparisons are selected by risk, not a
-universal million-case requirement. Audit both the harness and the interpretation
-of its outputs. Report achieved value, target/gap, uncertainty, limitations and
-reproduction steps; explain suspiciously large gains as carefully as failures.
+Agree on verification level, reviewer capability/independence and its allocation
+before relevant exploration. Low-risk work may explicitly use self-checks; if
+independent final review is promised, reserve and assign it before resources run
+out. A reviewer who helped implement/tune/improve the candidate is not its
+independent final reviewer merely because a new session/model is used. Disclose
+shared dependencies and protect held-out data. Do not silently downgrade review.
 
-## Integrity
+Test the exact delivery version and the interpretation of its results, not just a
+shared harness. Use alternative implementations, adversarial cases or randomized
+tests according to risk, not a universal million-case quota. Zero observed failures
+is not a proof. Do not overwrite a verified baseline with an unverified candidate.
 
-Never fabricate experiments, sources, elapsed work, or worker independence. Never
-claim a test was run when it was only proposed. Do not count rewriting progress
-files as progress, repeated notifications as new evidence, or a passed shell exit
-code as proof of an exploratory claim. Honor prohibited-source and confidentiality
-constraints throughout exploration and review.
+Report three independent dimensions:
+
+| Dimension | Report |
+|---|---|
+| Execution | Running/ended/paused, with the actual reason: completed work, budget, user stop, blocked input, no next idea or evidence-based low return |
+| Acceptance | Met/partial/unmet/pending, with requirement-level evidence and actual verification level |
+| Research conclusion | Result and scope: feasible, bounded infeasible, uncertain, conditional explanation or performance estimate |
+
+A valid negative feasibility assessment can meet the user's acceptance contract.
+Budget exhaustion or an empty idea queue is not a proof of global infeasibility.
+When recommending low-return stopping with budget left, identify plausible untried
+actions, what they could distinguish, cost/prerequisites and why not to pursue them.
+If there is no next idea, say so; do not invent a proof or busywork. Preserve useful
+partial artifacts, settle outstanding work and ask before extending resources.
+
+Never fabricate execution, citations, cost, provenance or reviewer independence.
+Record collaboration honestly and apply task-specific answer isolation. Changing
+labels, acceptance thresholds or a progress file cannot manufacture success.
