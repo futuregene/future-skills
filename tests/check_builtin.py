@@ -56,6 +56,31 @@ def validate_entry(name, text):
     return header
 
 
+def validate_resources(directory, text):
+    # Examples may intentionally contain placeholder paths. Validate normative
+    # pointers outside fenced examples, not arbitrary words in code snippets.
+    visible = []
+    opened = None
+    for line in text.splitlines():
+        match = re.match(r"^\s*(`{3,}|~{3,})(.*)$", line)
+        if match:
+            marker, suffix = match.groups()
+            if opened is None:
+                opened = (marker[0], len(marker))
+            elif marker[0] == opened[0] and len(marker) >= opened[1] and not suffix.strip():
+                opened = None
+            continue
+        if opened is None:
+            visible.append(line)
+    body = "\n".join(visible)
+    paths = re.findall(r"`((?:references|scripts|assets|tests)/[^`\s]+)`", body)
+    paths += re.findall(r"\]\(((?:references|scripts|assets|tests)/[^)\s]+)\)", body)
+    for resource in paths:
+        target = (directory / resource).resolve()
+        if not target.is_relative_to(directory.resolve()) or not target.exists():
+            raise ValueError(f"Missing or escaping resource: {resource}")
+
+
 def main():
     registry = json.loads((ROOT / "skills.json").read_text(encoding="utf-8"))
     paths = sorted((ROOT / "builtin").glob("*/SKILL.md"))
@@ -66,13 +91,15 @@ def main():
         errors.append(f"Registry/files mismatch: {expected ^ actual}")
     for path in paths:
         try:
-            validate_entry(path.parent.name, path.read_text(encoding="utf-8"))
+            text = path.read_text(encoding="utf-8")
+            validate_entry(path.parent.name, text)
+            validate_resources(path.parent, text)
         except (ValueError, yaml.YAMLError) as error:
             errors.append(f"{path.relative_to(ROOT)}: {error}")
     if errors:
         print("\n".join(errors), file=sys.stderr)
         return 1
-    print(f"PASS: {len(paths)} builtin entries, standard YAML, identity/version, registry and fences")
+    print(f"PASS: {len(paths)} builtin entries, standard YAML, identity/version, registry, fences and resources")
     return 0
 
 

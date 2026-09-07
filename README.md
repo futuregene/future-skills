@@ -12,8 +12,8 @@ A skill is a lightweight AI instruction package defined by a `SKILL.md` file tha
 
 ```
 future-skills/
-├── builtin/          # FutureOS built-in skills (14)
-├── third-party/      # Curated third-party skills (125)
+├── builtin/          # FutureOS built-in skills
+├── third-party/      # Curated third-party skills
 ├── skills.json       # Skill metadata configuration
 ├── README.md
 ├── README.zh-CN.md
@@ -61,6 +61,21 @@ New skills and improvements are welcome.
 3. Submit a PR
 
 `SKILL.md` must include `name`, `version`, and `description` fields in its YAML frontmatter.
+
+## Offline validation
+
+In a task-local virtual environment:
+
+```bash
+python -m pip install -r tests/requirements.txt
+python tests/run_offline.py
+```
+
+Run this entry locally or in CI on Linux, Windows and macOS. It checks every builtin's frontmatter,
+registry, fences and resource pointers, then runs scientific design, slide runner
+and validator regressions. Image generation is mocked; no credentials, paid model
+calls or live database/browser access are needed. Offline success is not evidence
+of end-to-end model behavior or external API availability.
 
 ## License
 

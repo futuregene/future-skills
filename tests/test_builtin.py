@@ -1,8 +1,10 @@
+from pathlib import Path
+import tempfile
 import unittest
 
 import yaml
 
-from check_builtin import check_fences, validate_entry
+from check_builtin import check_fences, validate_entry, validate_resources
 
 
 class BuiltinValidationTests(unittest.TestCase):
@@ -20,6 +22,17 @@ class BuiltinValidationTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 check_fences(text)
         check_fences('```python\nprint("```")\n```\n~~~text\nhello\n~~~\n')
+
+    def test_resource_paths_are_real_and_contained(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "references").mkdir()
+            (root / "references/real.md").write_text("example")
+            validate_resources(root, "Read `references/real.md`.")
+            for text in ["Read `references/missing.md`.", "[bad](references/../../escape.md)"]:
+                with self.assertRaises(ValueError):
+                    validate_resources(root, text)
+            validate_resources(root, "```text\nExample `references/placeholder.md`\n```\n")
 
     def test_missing_fields_and_mismatched_names_are_rejected(self):
         for header in ["name: wrong\nversion: 1.2.3\ndescription: x",

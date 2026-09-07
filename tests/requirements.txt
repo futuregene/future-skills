@@ -1,1 +1,3 @@
 PyYAML>=6,<7
+-r ../builtin/future-experimental-design/requirements.txt
+-r ../builtin/future-slides/requirements.txt
