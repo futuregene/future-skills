@@ -1,5 +1,5 @@
 ---
-version: 4.0.0
+version: 4.1.0
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todos, human gates, workers, monitors, and validated completion. Use for cross-session work, ongoing task status, "keep working", "run overnight", or /future-loop. Not needed for a one-shot review or ordinary code edit.
 allowed-tools: Bash(future:*)
@@ -64,8 +64,12 @@ intentional: complete its connection check or supersede it with a stated reason.
   Envelope snippets are bounded summaries, not full knowledge transfer. Every
   direct upstream gets an index entry, but full evidence/artifacts must be read;
   superseded work is not a verified result.
-- Freeze acceptance criteria before implementation. `--acceptance "a,b"` only
-  checks token presence, not factual correctness. A file-existence check validates
+- Freeze acceptance criteria before implementation. Both automatic and manual
+  advancement completion check nonempty evidence and every `--acceptance "a,b"`
+  token. A normal model return cannot bypass this floor; rejected handoffs stay
+  open with a diagnostic. This only checks token presence, not factual correctness.
+  Keep required evidence in the final handoff, not only early narration.
+  A file-existence check validates
   existence, not the quality of a report. Attach `--verify` for deterministic
   checks, and assign scientific/content correctness to a reviewer.
 - Validators have an independent 120-second default timeout, bounded output
@@ -94,14 +98,20 @@ retries undelivered batches. It does not choose a model, replan, or relaunch wor
   reconciliation. There is no promise of surviving power loss without a host service.
 - `FUTURE_LOOP_NO_DETACH=1` is for foreground embedding/tests; `--detach` is an
   internal child marker, not a user request to background the command.
-- Notifications are triggers, not authority. On wakeup, read current status and
-  the batch once. Old completion/death reports may refer to a superseded run.
-  Do not restart a worker merely because an old message says it died.
+- Notifications are triggers, not authority. Automatic completion produces a JSON
+  `task_delivery` receipt with goal/todo/agent/run/session IDs, validation, recent
+  evidence, full-text journal path and `pending_other_todos` across all owners.
+  It means `awaiting_review`, not a scientific pass or global completion. On
+  wakeup, read current status, the batch and decisive artifacts. Old completion/
+  death reports may refer to a superseded run; do not blindly restart them.
 - Do not spend LLM calls on repeated sleeps and status polling. Use the watchdog,
   an external event source, or a blocking deterministic monitor. Combine necessary
   observations into one read and return until a decision is needed.
-- A live log is PER TURN. `worker tail` resolves the current one. A frozen old
-  `.live.jsonl` or its final error line does not prove the worker process died.
+- A live log is PER TURN. `worker tail` resolves the current one. New journals
+  retain full reply `text_chunk.text`; bounded memory/ledger summaries keep recent
+  text, not just the opening plan. A frozen old `.live.jsonl` or its final error
+  line does not prove the worker process died. Read the receipt's exact run, not
+  whichever session file was most recently modified.
 - Each launch defaults to a fresh session. To resume, explicitly pin that
   worker's session with `--resume-session ID`; a missing session falls back to
   fresh. Never use another worker's goal-level retention value blindly.
@@ -109,6 +119,13 @@ retries undelivered batches. It does not choose a model, replan, or relaunch wor
   Infrastructure errors are not failed scientific hypotheses. Use evidence and
   failure classification to decide retry versus repair; nonzero exit is not
   necessarily a budget stop.
+
+External scoring, remote experiment results or GPU readiness need an explicitly
+owned monitor/adapter with the existing request ID, result endpoint, next check,
+actual wakeup mechanism, timeout and resource allowance. The watchdog does not
+query these services; `report` remains pull-only. Persist a receipt once and query
+it rather than repeating a side-effecting submission. If no persistent monitor is
+running, disclose that. Completed delivery plus queued scoring is still unverified.
 
 ## 4. Observe three different things
 
@@ -160,9 +177,10 @@ writers; `--force-workspace` is only justified with proven disjoint write sets.
 
 ## 6. Review and close honestly
 
-Handoff schema (in the artifact, not just a notification):
+Handoff schema (put results first in the artifact, not just a notification):
 
-- Deliverable paths and reproduction commands.
+- Actual task/run identity, input/candidate/validator versions and result status.
+- Deliverable paths, original evidence references and reproduction commands.
 - New evidence/metrics versus the previous attempt.
 - Rejected approaches and why, including counterexamples.
 - Assumptions, uncertainties and acceptance gaps.
@@ -180,6 +198,9 @@ record `delivery record --outcome verified|failed|rework`. The watcher also flag
 pending verification after five minutes even when no more turns occur. A successful
 review must name its evidence; receipt presence alone does not prove correctness.
 
+Closing one slice does not invent successor edges to other runnable work.
+Explicit follow-up tasks belong in the task graph; inspect all owner-scoped,
+blocked/deferred and verification work before global closeout.
 Use `frontier show` to verify terminal closure. If the budget expires or further
 attempts have low expected value, stop workers, preserve the best artifacts, and
 report **not achieved / partial / blocked / awaiting decision** with the gap. Do
