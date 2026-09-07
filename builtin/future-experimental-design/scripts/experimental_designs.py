@@ -148,7 +148,7 @@ def latin_square_design(treatment_labels, n_levels=None, seed=0):
 
 
 def repeated_measures_design(between_subject_factors, within_subject_factors,
-                              n_subjects, seed=0):
+                              n_subjects, seed=0, randomize_within=False):
     """Repeated measures / split-plot design with within-subject factors.
 
     Classic scenario: you have a between-subject factor (e.g., treatment group:
@@ -169,8 +169,11 @@ def repeated_measures_design(between_subject_factors, within_subject_factors,
             e.g. {"group": ["drug", "placebo"]}
         within_subject_factors: dict mapping factor name → list of levels
             e.g. {"time": ["pre", "post", "followup"]}
-        n_subjects: total subjects (will be divided equally across between-subject groups)
+        n_subjects: positive integer; group counts differ by at most one.
+            Remainder subjects and subject-to-group assignments are randomized.
         seed: random seed
+        randomize_within: opt in only for exchangeable within-subject treatments.
+            False preserves supplied order, including pre/post/follow-up times.
     
     Returns:
         DataFrame with columns: subject_id, [between factors...], [within factors...]
@@ -180,35 +183,30 @@ def repeated_measures_design(between_subject_factors, within_subject_factors,
         Do NOT analyze this as if observations are independent (pseudoreplication!).
         The subject_id column identifies the clustering unit for the random effect.
     """
-    rng = np.random.default_rng(seed)
-    
-    # Between-subject factor combinations
+    if isinstance(n_subjects, (bool, np.bool_)) or not isinstance(n_subjects, (int, np.integer)) or n_subjects <= 0:
+        raise ValueError("n_subjects must be a positive integer")
     b_names = list(between_subject_factors)
-    b_levels = [between_subject_factors[n] for n in b_names]
-    b_combos = _product(b_levels)
-    n_groups = len(b_combos)
-    subjects_per_group = max(1, n_subjects // n_groups)
-    
-    # Within-subject factor combinations
     w_names = list(within_subject_factors)
-    w_levels = [within_subject_factors[n] for n in w_names]
-    w_combos = _product(w_levels)
-    
+    if set(b_names) & set(w_names) or "subject_id" in b_names + w_names:
+        raise ValueError("factor names must be distinct and cannot be subject_id")
+    b_combos = _product([between_subject_factors[n] for n in b_names])
+    w_combos = _product([within_subject_factors[n] for n in w_names])
+    if not b_combos or not w_combos:
+        raise ValueError("every factor needs at least one level")
+    rng = np.random.default_rng(seed)
+    # Randomize which groups receive remainders, then which subjects receive
+    # each assignment. Never round away subjects or invent extra subjects.
+    group_order = rng.permutation(len(b_combos))
+    assignments = group_order[np.arange(n_subjects) % len(b_combos)]
+    rng.shuffle(assignments)
     rows = []
-    subj_id = 0
-    for b_combo in b_combos:
-        for _ in range(subjects_per_group):
-            subj_id += 1
-            # Randomize within-subject order
-            w_order = rng.permutation(len(w_combos))
-            for w_idx in w_order:
-                row = {"subject_id": subj_id}
-                for j, name in enumerate(b_names):
-                    row[name] = b_combo[j]
-                for j, name in enumerate(w_names):
-                    row[name] = w_combos[w_idx][j]
-                rows.append(row)
-    
+    for subject_id, group in enumerate(assignments, 1):
+        within_order = rng.permutation(len(w_combos)) if randomize_within else range(len(w_combos))
+        for index in within_order:
+            row = {"subject_id": subject_id}
+            row.update(zip(b_names, b_combos[group]))
+            row.update(zip(w_names, w_combos[index]))
+            rows.append(row)
     return pd.DataFrame(rows)
 
 

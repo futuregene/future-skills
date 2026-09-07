@@ -1,6 +1,6 @@
 ---
 name: future-experimental-design
-version: 0.0.2
+version: 0.0.3
 description: >
   Design experiments and research protocols before data collection — select design type, randomization, blocking, treatment combination layout,
   and ensure experimental results are interpretable. For planning studies, assigning subjects/samples to groups, randomization, blocking, stratification,
@@ -99,7 +99,7 @@ Detailed guides for each branch:
 
 ## Generating Designs
 
-Two scripts generate ready-to-use, reproducible layouts. Run from this skill's `scripts/` directory or add to `sys.path`.
+Three scripts generate allocation and design layouts. Validate their invariants before use in a real study. Run from this skill's `scripts/` directory or add to `sys.path`.
 All output uses fixed seeds so exact allocation schemes can be archived and regenerated — a requirement for trial registration and good laboratory practice.
 
 ### Randomization/Allocation Schemes — `scripts/randomization.py`
@@ -186,7 +186,9 @@ cross = crossover_design(["DrugA", "DrugB", "Placebo"], n_subjects=12, seed=42)
 # Latin square design: simultaneously controls two blocking factors (rows and columns)
 square = latin_square_design(["A", "B", "C", "D"], seed=42)
 
-# Repeated measures: between-subject + within-subject factors
+# Repeated measures: exact subject count; randomized between-subject assignment.
+# Time order stays pre -> 1mo -> 3mo. Use randomize_within=True only for
+# exchangeable treatments, never for chronological measurement times.
 rm = repeated_measures_design(
     between_subject_factors={"group": ["drug", "placebo"]},
     within_subject_factors={"time": ["pre", "1mo", "3mo"]},
