@@ -1,0 +1,3 @@
+# Use a task-local environment; generation itself is provided by the Future CLI.
+Pillow>=10,<13
+img2pdf>=0.5,<1
