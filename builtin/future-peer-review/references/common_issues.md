@@ -70,7 +70,7 @@ This document catalogs frequent issues encountered during peer review, organized
 
 **What to Recommend:**
 - Conduct a priori power analysis based on expected effect size
-- Report achieved power or precision (confidence interval width)
+- Report precision (confidence interval width); do not use observed post-hoc power computed from the estimated effect as evidence
 - Acknowledge when studies are underpowered
 - Consider effect sizes and confidence intervals for interpretation
 - Pre-register sample size and stopping rules
