@@ -12,8 +12,8 @@ Skill 是一个轻量级的 AI 指令包，由一个 `SKILL.md` 文件定义，�
 
 ```
 future-skills/
-├── builtin/          # FutureOS 内置 skills（14个）
-├── third-party/      # 精选的第三方 skills（125个）
+├── builtin/          # FutureOS 内置 skills
+├── third-party/      # 精选的第三方 skills
 ├── skills.json       # Skill 元数据配置
 ├── README.md
 ├── README.zh-CN.md
@@ -61,6 +61,20 @@ description: Search, download, and analyze scientific papers.
 3. 提交 PR
 
 `SKILL.md` 必须包含 YAML frontmatter 中的 `name`、`version`、`description` 字段。
+
+## 离线验证
+
+在任务专用虚拟环境中执行：
+
+```bash
+python -m pip install -r tests/requirements.txt
+python tests/run_offline.py
+```
+
+该入口可用于 Linux、Windows、macOS 的本地或 CI 环境，校验全部 builtin 的 frontmatter、
+注册表、代码围栏与资源引用，并运行实验设计、slides runner 和校验器回归测试。
+图像生成使用 mock，不需要账户凭证、付费模型调用或真实数据库/浏览器访问。
+离线通过不代表端到端模型行为或外部 API 可用性已验证。
 
 ## 许可
 
