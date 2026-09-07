@@ -1,5 +1,5 @@
 ---
-version: 1.2.2
+version: 1.2.3
 name: future-browser
 description: Control a local visible Chrome, Edge, or Safari browser through Future CLI tools. Use for opening local apps, inspecting pages, clicking, typing, screenshots, and reading console output without modifying the Rust agent.
 allowed-tools: Bash(future:*)
@@ -40,24 +40,28 @@ Safari requires a one-time system permission. If Safari automation is not enable
 Start a Future-managed visible local browser when you need explicit startup control:
 
 ```bash
-future tools call browser --command "start" ```
+future tools call browser --command "start"
+```
 
 Check the saved browser endpoint:
 
 ```bash
-future tools call browser --command "status" ```
+future tools call browser --command "status"
+```
 
 Open a URL:
 
 ```bash
-future tools call browser --command "open" --url "http://localhost:3000" ```
+future tools call browser --command "open" --url "http://localhost:3000"
+```
 
 For a normal first action, call `browser` with `command: "open"` directly; it will auto-start the browser if no endpoint is reachable.
 
 If the user already started Chrome/Edge with a remote debugging port, pass the endpoint:
 
 ```bash
-future tools call browser --command "status" --endpoint "http://127.0.0.1:9222" ```
+future tools call browser --command "status" --endpoint "http://127.0.0.1:9222"
+```
 
 **Auto-start behavior**: When any command requiring a browser runs and no endpoint is reachable, the CLI spawns a new Chrome/Edge instance with `--remote-debugging-port`. The port defaults to 9222; if that port is occupied (by a non-CDP process), the next available port is chosen. The chosen endpoint is saved to `~/.future/agent/browser/config.json` and reused for subsequent commands. Calling `start` when a browser is already reachable does NOT start a new instance — it records the existing endpoint.
 
@@ -66,7 +70,8 @@ future tools call browser --command "status" --endpoint "http://127.0.0.1:9222" 
 Always observe before acting:
 
 ```bash
-future tools call browser --command "snapshot" ```
+future tools call browser --command "snapshot"
+```
 
 The snapshot returns interactive elements with refs and text containers:
 
