@@ -653,7 +653,7 @@ Before finalizing your report, verify:
 ### Related Skills
 
 - `venue-templates` - For journal manuscripts and conference papers
-- `scientific-schematics` - For generating diagrams and figures
+- `future-image` - For authorized illustrative diagrams and figures; load its current tool contract
 - `generate-image` - For creating illustrations and graphics
 
 ### External Resources
