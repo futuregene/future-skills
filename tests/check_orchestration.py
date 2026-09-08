@@ -11,7 +11,10 @@ import re
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-DOCS = [ROOT / "builtin" / name / "SKILL.md" for name in ("future-loop", "future-explore")]
+DOCS = [
+    ROOT / "builtin" / "future-loop" / "SKILL.md",
+    ROOT / "third-party" / "future-explore" / "SKILL.md",
+]
 CASES = [
     ("wrong-task-log", "Task B has a pending receipt. A search returned task A's old timeout log.",
      "Is B's current failure established?", False),
@@ -55,8 +58,9 @@ def main():
     registry = json.loads((ROOT / "skills.json").read_text(encoding="utf-8"))
     assert "future-research" not in registry
     assert not (ROOT / "builtin" / "future-research").exists()
+    assert not (ROOT / "builtin" / "future-explore").exists()
     for path in DOCS:
-        assert registry[path.parent.name]["builtin"] is True
+        assert registry[path.parent.name].get("builtin", False) is (path.parent.parent.name == "builtin")
         assert registry[path.parent.name]["enabled"] is True
         text = path.read_text(encoding="utf-8")
         header = re.match(r"\A---\n(.*?)\n---\n", text, re.S)
