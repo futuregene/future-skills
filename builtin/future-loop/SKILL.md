@@ -1,5 +1,5 @@
 ---
-version: 4.1.0
+version: 4.2.0
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todos, human gates, workers, monitors, and validated completion. Use for cross-session work, ongoing task status, "keep working", "run overnight", or /future-loop. Not needed for a one-shot review or ordinary code edit.
 allowed-tools: Bash(future:*)
@@ -53,9 +53,18 @@ Copy YOUR session ID from the environment, not an old worker's session. Re-regis
 when continuing in another session. The bootstrap todo from `goal init` is
 intentional: complete its connection check or supersede it with a stated reason.
 
+- `todo add` succeeds with `todo <id> added to <goal> ✔`, not `created`.
+  Check the exit status, then extract with `todo\s+(todo_[0-9a-f]+)\s+added`.
+  Require exactly one match; on failure STOP instead of passing output/empty
+  variables into `--blocks`.
 - `--blocks` on an advancement task names prerequisites. On a gate/blocker it
-  names dependents. Inspect `task-graph` to confirm wiring. Final verification
-  must depend on ALL producing tasks.
+  names dependents. Create referenced todos first. Add/update reject unknown
+  references, self-links and cycles before writing; do not rely on this with
+  older executables. Final verification must depend on ALL producing tasks.
+  `todo update --goal G --todo-id T --blocks A,B` REPLACES the set;
+  `--blocks ""` clears it; omitting the flag preserves it. Repair legacy dangling
+  references one todo at a time with update, then run `task-graph --goal G` before
+  dispatch. A graph error is not proof that an older worker will refuse to run.
 - `--owner A` is durable assignment, independent of lease expiration. Leave it
   unset only for intentionally shared work. Use a unique agent ID per concurrent
   run. `coordination` tasks are supervisor bookkeeping, never worker frontier
@@ -79,6 +88,31 @@ intentional: complete its connection check or supersede it with a stated reason.
   a portable validation program.
 
 ## 3. Dispatch without becoming a polling agent
+
+Declare each task's complete write set with `todo add --required-write-scope`:
+comma-separated file/directory paths, relative to the goal's recorded cwd (NOT
+where the worker or inspecting CLI happens to run). Task scopes override the
+agent's fallback `--workspace` for that task. If omitted, the agent declaration
+applies; auto-registration defaults it to the entire process cwd. The guard
+checks live task scopes atomically with lease acquisition, so disjoint tasks can
+share a checkout without forcing. These declarations are not a filesystem sandbox.
+
+```bash
+future loop todo add --goal G --text "Write papers/a.md" --owner worker-a --required-write-scope papers/a.md
+future loop todo add --goal G --text "Write papers/b.md" --owner worker-b --required-write-scope papers/b.md
+```
+
+Do not give every worker the shared parent `papers/` when they only write distinct
+files: directory/descendant scopes overlap. Shared read-only resources are not
+write scopes. Include ALL actual writes (logs, indexes, caches too); serialize or
+separate real shared writes rather than hiding them from the declaration.
+
+Version check: `todo add --help` must describe scopes as relative to goal cwd.
+Older binaries only record `required_write_scope` and ignore it in the guard;
+upgrade, or explicitly onboard each agent with its complete disjoint fallback:
+`agent onboard --goal G --agent-id worker-a --workspace papers/a.md` (`--workspace`
+is relative to the onboarding CLI cwd). Absolute task paths alone do not fix an
+older guard. Check startup errors in worker logs, not just the `ended` status.
 
 ```bash
 future loop run --goal G --agent-id worker-a --model M --thinking-level L --max-turns 1
@@ -174,6 +208,11 @@ with `gate resolve`, not `todo complete`. Use user-actions for nonblocking reque
 `goal cancel`, `goal delete`, `todo supersede` and `worker stop` own lifecycle
 cleanup; do not kill unrelated agents. Workspace guards prevent conflicting
 writers; `--force-workspace` is only justified with proven disjoint write sets.
+Record the exact paths and override rationale in a durable note before forcing;
+the ledger records effective paths and a `forced` marker, not your rationale.
+Prefer correcting declarations over bypassing the guard. Completed tasks release
+leases; known-dead holders are ignored where PID probing is supported. Manual
+claims without a host PID remain protected until release/expiry.
 
 ## 6. Review and close honestly
 
