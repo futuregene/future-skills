@@ -1,3 +1,5 @@
-# Use a task-local environment; generation itself is provided by the Future CLI.
+# Native PPTX authoring is local. Use an existing or authorized task-local environment.
+python-pptx>=1.0.2,<2
 Pillow>=10,<13
+# Used only by the opt-in image-only PDF assembly workflow.
 img2pdf>=0.5,<1
