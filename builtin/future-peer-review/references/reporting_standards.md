@@ -1,6 +1,11 @@
 # Scientific Reporting Standards and Guidelines
 
-This document catalogs major reporting standards and guidelines across scientific disciplines. When reviewing manuscripts, verify that authors have followed the appropriate guidelines for their study type and discipline.
+This document summarizes reporting topics, not complete official checklists. Verify
+which edition and extensions the venue requires; missing reporting is distinct from
+an established methodological defect. As checked on 2026-09-14, the official
+https://www.consort-spirit.org/ site provides CONSORT 2025 (30 items) and SPIRIT 2025
+(34 items), replacing the 2010/2013 statements. Use the current checklist rather than
+assuming the abbreviated lists below are sufficient.
 
 ## Clinical Trials and Medical Research
 
@@ -17,7 +22,7 @@ This document catalogs major reporting standards and guidelines across scientifi
 - Adverse events
 - Trial registration number and protocol access
 
-**Reference:** http://www.consort-statement.org/
+**Reference:** https://www.consort-spirit.org/
 
 ### STROBE (Strengthening the Reporting of Observational Studies in Epidemiology)
 **Purpose:** Observational studies (cohort, case-control, cross-sectional)
@@ -61,7 +66,7 @@ This document catalogs major reporting standards and guidelines across scientifi
 - Ethics and dissemination
 - Trial schedule and assessments
 
-**Reference:** https://www.spirit-statement.org/
+**Reference:** https://www.consort-spirit.org/
 
 ### CARE (CAse REport guidelines)
 **Purpose:** Case reports

@@ -1,6 +1,6 @@
 ---
 name: future-scientific-writing
-version: 0.1.0
+version: 0.1.1
 description: >
   Draft and revise scientific manuscripts, abstracts and journal submissions.
   Build an evidence-linked outline, then write clear prose using venue-specific
@@ -82,8 +82,10 @@ Read only what the task needs:
 | Clarity, terminology and prose revision | `references/writing_principles.md` |
 | Optional non-journal LaTeX report styling | `references/professional_report_formatting.md` |
 
-Verify the current guideline/venue requirements when freshness matters. A reporting
-checklist establishes reporting completeness, not methodological validity.
+Verify the current guideline/venue requirements when freshness matters. Reference
+summaries are topic guides, not official checklist numbering or complete submission
+forms; use the actual current checklist (e.g. CONSORT/SPIRIT 2025 and TRIPOD+AI).
+A reporting checklist establishes reporting completeness, not methodological validity.
 
 For an explicitly requested professional LaTeX report, the optional assets are
 `assets/scientific_report.sty`, `assets/scientific_report_template.tex` and

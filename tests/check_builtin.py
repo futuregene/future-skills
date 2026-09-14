@@ -44,14 +44,17 @@ def validate_entry(name, text):
     header = yaml.load(match[1], Loader=UniqueKeyLoader)
     if not isinstance(header, dict):
         raise ValueError("Frontmatter must be a mapping")
-    if header.get("name") != name or not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,63}", name):
+    if header.get("name") != name or not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,62}", name):
         raise ValueError("Skill name must match its slug directory")
     description = header.get("description")
     if not isinstance(description, str) or not description.strip():
         raise ValueError("A nonempty description is required")
     version = header.get("version")
-    if not isinstance(version, str) or not re.fullmatch(r"\d+\.\d+\.\d+(?:[-+][A-Za-z0-9.-]+)?", version):
+    if not isinstance(version, str) or not re.fullmatch(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?", version):
         raise ValueError("A string semantic version is required")
+    flags = [key for key in ("disable-model-invocation", "disable_model_invocation", "disableModelInvocation") if key in header]
+    if len(flags) > 1 or any(type(header[key]) is not bool for key in flags):
+        raise ValueError("Use one invocation-policy alias with a boolean value")
     check_fences(text[match.end():])
     return header
 

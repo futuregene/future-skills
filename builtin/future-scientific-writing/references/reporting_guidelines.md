@@ -42,13 +42,18 @@ The EQUATOR Network (Enhancing the QUAlity and Transparency Of health Research) 
 
 **When to use:** Any randomized controlled trial (RCT), including pilot and feasibility trials
 
-**Latest version:** CONSORT 2010 (updated statement)
+**Reference edition:** CONSORT 2025 (supersedes CONSORT 2010). Verified against the
+[official SPIRIT–CONSORT site](https://www.consort-spirit.org/) on 2026-09-14;
+[publication records](https://www.consort-spirit.org/published-statements).
+Use the official expanded checklist and applicable extensions for submission.
 
 **Key components:**
-- **Checklist**: 25 items covering title, abstract, introduction, methods, results, discussion
+- **Checklist**: 30 items, including a dedicated open-science section
 - **Flow diagram**: Participant flow through enrollment, allocation, follow-up, and analysis
 
-**Main checklist items:**
+**Selected reporting topics (not official checklist numbering or a complete checklist):**
+Include open-science disclosures (registration, protocol/statistical analysis plan,
+data/code sharing), patient/public involvement and the following core topics.
 1. Title identifies study as randomized trial
 2. Structured abstract
 3. Scientific background and rationale
@@ -83,7 +88,7 @@ The EQUATOR Network (Enhancing the QUAlity and Transparency Of health Research) 
 - CONSORT for N-of-1 trials
 - CONSORT for stepped wedge designs
 
-**Where to access:** http://www.consort-statement.org/
+**Where to access:** https://www.consort-spirit.org/
 
 ### STROBE - Observational Studies
 
@@ -186,11 +191,16 @@ The EQUATOR Network (Enhancing the QUAlity and Transparency Of health Research) 
 
 **When to use:** Protocols for randomized trials and other planned intervention studies
 
-**Latest version:** SPIRIT 2013
+**Reference edition:** SPIRIT 2025 (supersedes SPIRIT 2013). The official site lists
+34 items; version and count verified on 2026-09-14. See the
+[statement](https://doi.org/10.1136/bmj-2024-081477) and
+[official checklist downloads](https://www.consort-spirit.org/).
 
 **Purpose:** Ensure trial protocols contain complete descriptions before trial begins
 
-**Main checklist items (33 items):**
+**Selected reporting topics (use the official 34-item checklist for exact wording):**
+Include open-science information, data/code sharing, patient/public involvement,
+and the applicable topics below.
 - Administrative information (title, trial registration, funding)
 - Introduction (background, rationale, objectives)
 - Methods: Trial design
@@ -215,7 +225,7 @@ The EQUATOR Network (Enhancing the QUAlity and Transparency Of health Research) 
   - Confidentiality
   - Dissemination plans
 
-**Where to access:** https://www.spirit-statement.org/
+**Where to access:** https://www.consort-spirit.org/
 
 ### STARD - Diagnostic Accuracy Studies
 
@@ -252,7 +262,10 @@ The EQUATOR Network (Enhancing the QUAlity and Transparency Of health Research) 
 
 **When to use:** Studies developing, validating, or updating prediction models
 
-**Latest version:** TRIPOD 2015
+**Reference edition:** TRIPOD+AI (2024), replacing TRIPOD 2015 for prediction models
+using regression or machine learning, not only AI models. The official site describes
+a 27-item checklist; replacement and count verified on 2026-09-14:
+https://www.tripod-statement.org/tripod-ai/ . Check additional extensions for the task.
 
 **Types of studies:**
 - Model development only
@@ -260,7 +273,7 @@ The EQUATOR Network (Enhancing the QUAlity and Transparency Of health Research) 
 - External validation of existing model
 - Model update
 
-**Main checklist items (22 items):**
+**Selected reporting topics (not the full 27-item TRIPOD+AI checklist):**
 1. Title identifies study as prediction model study
 2. Abstract summarizes key elements
 3. Background and objectives

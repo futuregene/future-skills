@@ -1,6 +1,6 @@
 ---
 name: future-experimental-design
-version: 0.0.4
+version: 0.0.5
 description: >
   Design experiments and research protocols before data collection — select design type, randomization, blocking, treatment combination layout,
   and ensure experimental results are interpretable. For planning studies, assigning subjects/samples to groups, randomization, blocking, stratification,
@@ -43,17 +43,13 @@ This skill helps you choose a design type, generate reproducible randomization o
 - Sequential, group sequential, or adaptive designs with interim analyses
 - Well-plate/batch layouts and randomized run orders to avoid drift
 
-## Installation
+## Dependencies
 
-```bash
-uv pip install "numpy>=1.26" "pandas>=2.0" pyDOE3
-```
-
-Or using pip:
-
-```bash
-pip install "numpy>=1.26" "pandas>=2.0" pyDOE3
-```
+No installation is needed for a conceptual design discussion. For script execution,
+first check the available interpreter and dependencies. If installation is needed,
+load `future-software-install`, reuse the user's authorization and use a task-local
+virtual environment with this skill's `requirements.txt` (resolve its absolute path).
+Do not install unpinned packages into the user's global Python environment.
 
 `pyDOE3` is the maintained fork of pyDOE/pyDOE2, providing full factorial, fractional factorial, Plackett-Burman,
 central composite, Box-Behnken, and Latin Hypercube generators. Accompanying scripts wrap these capabilities,
@@ -72,9 +68,9 @@ What do you want to learn?
 │   ├─ Units are independent, with possible known noise factors (date, batch, site)?
 │   │     → Completely randomized (no noise) or randomized block design.
 │   ├─ Each unit can receive each condition in sequence (with washout)?
-│   │     → Crossover/repeated measures design (more statistical power, watch for carryover effects).
+│   │     → Crossover/repeated measures design (potential precision gain; assess carryover).
 │   └─ Only groups can be randomized, not individuals (schools, clinics)?
-│         → Cluster-randomized design (analyze at the cluster level; see pseudoreplication).
+│         → Cluster-randomized design (account for clustering; see pseudoreplication).
 │
 ├─ Screen many factors (5+), finding the vital few?
 │     → Fractional factorial or Plackett-Burman screening design.
@@ -100,7 +96,7 @@ Detailed guides for each branch:
 ## Generating Designs
 
 Three scripts generate allocation and design layouts. Validate their invariants before use in a real study. Run from this skill's `scripts/` directory or add to `sys.path`.
-Use the compatible versions in `requirements.txt` in a task-local virtual environment. Record dependency versions, inputs and seed with the allocation schedule. Before changing these scripts, run `python -m unittest discover -s tests -v` from this skill directory. Tests cover seed reproducibility, sample counts, unit identity, matrix rank and invalid inputs.
+Use the compatible versions in `requirements.txt` in a task-local virtual environment. Record script/skill and dependency versions, inputs and seed with the allocation schedule. A seed alone does not preserve output across code changes; never rerandomize an enrolled study merely because the helper was upgraded. Before changing these scripts, run `python -m unittest discover -s tests -v` from this skill directory. Tests cover seed reproducibility, sample counts, unit identity, matrix rank and invalid inputs.
 
 ### Randomization/Allocation Schemes — `scripts/randomization.py`
 
@@ -181,7 +177,8 @@ from experimental_designs import (
     repeated_measures_design, randomize_run_order,
 )
 
-# Crossover design: each subject receives all treatments in sequence (requires adequate washout)
+# Cyclic Latin crossover: period-balanced for complete sets of k subjects.
+# NOT a carryover-balanced Williams design; assess washout and period effects.
 cross = crossover_design(["DrugA", "DrugB", "Placebo"], n_subjects=12, seed=42)
 
 # Latin square design: simultaneously controls two blocking factors (rows and columns)
@@ -197,7 +194,10 @@ rm = repeated_measures_design(
 )
 ```
 
-⚠️ Crossover designs require a washout period and no carryover effects; repeated measures must be analyzed with mixed-effects models.
+⚠️ Assess carryover, washout feasibility and period effects before choosing crossover.
+The cyclic Latin helper does not balance ordered treatment pairs; incomplete sets may
+also lose period balance. For repeated measures use a dependence-aware analysis
+(e.g. mixed models, GEE or an appropriate paired analysis), not independent-observation tests.
 
 ---
 
@@ -233,7 +233,7 @@ These are structural — they cannot be fixed at the analysis stage, only avoide
 4. **Determine the number of replicates at the correct level** (use standard power analysis methods to calculate required sample size n for the chosen design).
 5. **Generate the layout using `randomization.py` / `doe_designs.py`**, with a fixed seed.
 6. **Randomize the run/treatment order** and well-plate/batch positions.
-7. **Document** the design, seed, and protocol (pre-register when possible) so the analysis is confirmatory and the layout is auditable.
+7. **Document** the design, seed, and protocol (pre-register when possible) so the analysis is confirmatory and the layout is auditable. In human trials, restrict access to the seed and future allocation schedule to preserve allocation concealment; a reproducible public seed must not reveal assignments to recruiters.
 8. **Match analysis to design** — blocks, strata, clusters, and nesting must be reflected in the model (reflect blocking, stratification, clustering, and nesting structure in the analysis model).
 
 ---

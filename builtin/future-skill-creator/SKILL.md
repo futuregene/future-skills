@@ -1,5 +1,5 @@
 ---
-version: 1.1.0
+version: 1.1.1
 name: future-skill-creator
 description: >
   Create, review or improve a custom Future skill with clear triggers, concise
@@ -87,8 +87,8 @@ the script's absolute path from this skill directory before running it:
 python /absolute/skill/path/scripts/validate_skill.py /absolute/custom-skill-directory
 ```
 
-It validates folder/name/version/description, unique YAML keys and boolean invocation
-flags. Also inspect resource existence, CLI examples and the output checks; metadata
+It validates folder/name/version/description, semantic versions (including prerelease
+plus build metadata), unique YAML keys and boolean invocation flags. Also inspect resource existence, CLI examples and the output checks; metadata
 validation alone does not prove correct model behavior. For paid/live behavior tests,
 use the user's authorized scope and budget and report exactly what was exercised.
 

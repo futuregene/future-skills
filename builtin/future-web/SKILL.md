@@ -1,9 +1,10 @@
 ---
-version: 1.1.0
+version: 1.1.1
 name: future-web
 description: >
   Search the public web, retrieve pages and verify current facts, news or documentation.
-  Use for web searches and user-supplied URLs. Try fetch_url first, then an authorized
+  Use for web searches and public user-supplied URLs. Prefer a matching service skill
+  for authenticated resource links. Try fetch_url first for public pages, then an authorized
   browser fallback for incomplete or JavaScript-rendered pages; report access limitations honestly.
 allowed-tools: Bash(future:*)
 category: tools
@@ -25,11 +26,20 @@ future tools call fetch_url --url "https://en.wikipedia.org/wiki/BRCA1" --timeou
 future tools call fetch_url --url "https://example.com" --raw --timeout 60
 ```
 
-Search supports `--count` and `--offset`. The default CLI output is formatted text;
+Search accepts `--count` and `--offset`, but provider responses may exceed the requested
+count or differ in pagination support. Inspect actual results, deduplicate, and locally
+bound subsequent retrievals; do not treat these hints as enforced cost/coverage limits.
+The default CLI output is formatted text;
 `--raw` emits the structured-content object itself when available, otherwise text.
 Inspect the actual response rather than assuming all providers return the same schema.
 
 ## Workflow
+
+`web_search` and `fetch_url` use remote services. Do not send local, intranet, signed
+or private URLs to them by default. Use `future-browser` for authorized local-page
+inspection, or an installed service-specific skill for authenticated document/resource
+links (such as Feishu Docx/Wiki). A URL in the prompt is not permission to disclose
+embedded tokens to an unrelated retrieval service.
 
 1. Preserve the user's question, freshness requirement, source constraints and budget.
    Search queries should not disclose confidential text, private URLs or credentials.

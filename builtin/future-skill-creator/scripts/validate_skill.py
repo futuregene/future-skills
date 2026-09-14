@@ -28,7 +28,7 @@ def validate(directory):
         raise ValueError("Name must use lowercase letters, digits and hyphens, under 64 characters")
     if not isinstance(data.get("description"), str) or not data["description"].strip():
         raise ValueError("Nonempty description required")
-    if not isinstance(data.get("version"), str) or not re.fullmatch(r"\d+\.\d+\.\d+(?:[-+][A-Za-z0-9.-]+)?", data["version"]):
+    if not isinstance(data.get("version"), str) or not re.fullmatch(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?", data["version"]):
         raise ValueError("A semantic version string is required")
     flags = [key for key in ("disable-model-invocation", "disable_model_invocation", "disableModelInvocation") if key in data]
     if len(flags) > 1 or any(type(data[key]) is not bool for key in flags):
