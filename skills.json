@@ -116,7 +116,7 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "幻灯片与演示生成",
-    "description_zh": "从 Markdown 报告生成演示幻灯片，支持 8 种预设视觉风格（极简、深色科技、手绘、现代商务、活力多彩、科研海报、分子美学、数据驱动）及自定义风格"
+    "description_zh": "默认生成原生可编辑 PPTX，适用于跨学科科研汇报、组会、答辩、教学和严肃演示；保留证据、引用与原图，分别检查内容、可编辑性和实际渲染，图片式幻灯片需明确选择"
   },
   "future-web": {
     "category": "tools",

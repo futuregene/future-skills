@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "title": "Synthetic research presentation — authoring example",
+  "language": "en-US",
+  "width": 13.333333,
+  "height": 7.5,
+  "theme": {
+    "font": "Arial",
+    "cjk_font": "Noto Sans CJK SC",
+    "background": "FFFFFF",
+    "foreground": "182B3A",
+    "accent": "176B87"
+  },
+  "sources": [
+    {"id": "demo", "citation": "Synthetic fixture, not an experimental result", "locator": "This manifest; explicitly invented demonstration data"}
+  ],
+  "slides": [
+    {
+      "id": "design",
+      "title": "A transparent workflow from question to interpretation",
+      "elements": [
+        {"id": "title", "kind": "text", "x": 0.55, "y": 0.45, "w": 12.1, "h": 0.9, "text": "From question to interpretation", "size": 34, "bold": true},
+        {"id": "context", "kind": "text", "x": 0.55, "y": 1.65, "w": 11.8, "h": 0.8, "text": "A synthetic workflow example. Replace with the study's actual design and assumptions.", "size": 24},
+        {"id": "question", "kind": "shape", "x": 0.7, "y": 3.1, "w": 3.4, "h": 1.4, "shape": "rect", "text": "Question\nDefine the estimand", "size": 22},
+        {"id": "measure", "kind": "shape", "x": 4.95, "y": 3.1, "w": 3.4, "h": 1.4, "shape": "rect", "text": "Measurement\nRecord uncertainty", "size": 22},
+        {"id": "interpret", "kind": "shape", "x": 9.2, "y": 3.1, "w": 3.4, "h": 1.4, "shape": "rect", "text": "Interpretation\nState limitations", "size": 22},
+        {"id": "link-a", "kind": "connector", "source": {"id": "question", "port": "right"}, "target": {"id": "measure", "port": "left"}},
+        {"id": "link-b", "kind": "connector", "source": {"id": "measure", "port": "right"}, "target": {"id": "interpret", "port": "left"}},
+        {"id": "caveat", "kind": "text", "x": 0.55, "y": 5.45, "w": 11.9, "h": 0.8, "text": "Editable nodes and attached arrows; not evidence that any study was conducted.", "size": 22},
+        {"id": "citation", "kind": "text", "x": 0.55, "y": 6.85, "w": 12.1, "h": 0.35, "text": "Synthetic authoring example — no empirical claims", "size": 14, "source_ids": ["demo"]}
+      ]
+    },
+    {
+      "id": "observations",
+      "title": "Preserve numeric spacing and avoid unsupported inference",
+      "elements": [
+        {"id": "title", "kind": "text", "x": 0.55, "y": 0.45, "w": 12.1, "h": 0.9, "text": "Show observations before interpreting them", "size": 32, "bold": true},
+        {"id": "plot", "kind": "chart", "x": 0.6, "y": 1.8, "w": 7.2, "h": 4.6, "chart_type": "scatter", "series": [{"name": "Synthetic observations", "points": [[0, 1.0], [2, 1.2], [10, 1.1]]}], "x_title": "Time (h)", "y_title": "Response (arbitrary units)", "source_ids": ["demo"]},
+        {"id": "interpretation", "kind": "text", "x": 8.3, "y": 2.0, "w": 4.2, "h": 3.0, "text": "Synthetic data only\n\nThe x-axis preserves unequal time intervals. These three values establish no treatment effect or statistical significance.", "size": 23},
+        {"id": "citation", "kind": "text", "x": 0.55, "y": 6.85, "w": 12.1, "h": 0.35, "text": "Source: invented fixture in this manifest; replace with verified data and uncertainty", "size": 14, "source_ids": ["demo"]}
+      ]
+    }
+  ]
+}
