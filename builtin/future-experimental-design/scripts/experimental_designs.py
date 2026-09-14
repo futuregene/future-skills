@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from itertools import permutations
 
 
 def crossover_design(treatments, n_subjects, n_periods=None, 
@@ -26,15 +25,16 @@ def crossover_design(treatments, n_subjects, n_periods=None,
 
     In a crossover study, every subject serves as their own control by receiving
     all treatments across different periods (with a washout period between).
-    This dramatically increases statistical power compared to parallel-group
-    designs — you're comparing within-subject, not between-subject.
+    Within-subject comparisons can improve precision when within-subject
+    correlation, period effects and carryover assumptions support the design.
 
     Parameters:
         treatments: list of treatment labels, e.g. ["DrugA", "DrugB", "Placebo"]
         n_subjects: total number of subjects
         n_periods: number of periods (default: len(treatments))
         seed: random seed for reproducibility
-        balance: "latin" (balanced Latin square) or "random" (random sequence per subject)
+        balance: "latin" (cyclic Latin square, period-balanced for complete
+            sets of k subjects, NOT carryover-balanced) or "random".
 
     Returns:
         DataFrame with columns: subject_id, period, treatment
@@ -45,13 +45,22 @@ def crossover_design(treatments, n_subjects, n_periods=None,
         3. Stable disease/trait over the study duration
         4. Subjects complete all periods (handle dropouts in analysis)
     """
+    treatments = list(treatments)
+    if not treatments or len(set(treatments)) != len(treatments):
+        raise ValueError("treatments must contain distinct labels")
+    if isinstance(n_subjects, (bool, np.bool_)) or not isinstance(n_subjects, (int, np.integer)) or n_subjects <= 0:
+        raise ValueError("n_subjects must be a positive integer")
     rng = np.random.default_rng(seed)
     k = len(treatments)
     if n_periods is None:
         n_periods = k
+    if isinstance(n_periods, (bool, np.bool_)) or not isinstance(n_periods, (int, np.integer)) or not 1 <= n_periods <= k:
+        raise ValueError("n_periods must be an integer from 1 to the number of treatments")
+    if balance not in ("latin", "random"):
+        raise ValueError("balance must be latin or random")
     
     if balance == "latin":
-        # Build a balanced Latin square: each treatment appears exactly once
+        # Build a cyclic Latin square: each treatment appears exactly once
         # in each period position (column) and each subject (row).
         # For k treatments, need k subjects in the base square.
         # We repeat the square to cover n_subjects.
@@ -60,6 +69,8 @@ def crossover_design(treatments, n_subjects, n_periods=None,
         n_repeats = (rows_needed + k - 1) // k
         full_square = np.tile(base_square, (n_repeats, 1))
         full_square = full_square[:n_subjects, :n_periods]
+        # Randomize sequence-to-subject assignment, not just the first k rows.
+        rng.shuffle(full_square, axis=0)
     else:
         # Random sequence per subject
         full_square = np.array([
@@ -80,7 +91,7 @@ def crossover_design(treatments, n_subjects, n_periods=None,
 
 
 def _build_latin_square(treatments, seed=0):
-    """Build a balanced Latin square for crossover designs."""
+    """Build a period-balanced cyclic square, not a Williams carryover design."""
     rng = np.random.default_rng(seed)
     k = len(treatments)
     # Start with a cyclic Latin square and optionally randomize
@@ -106,23 +117,23 @@ def latin_square_design(treatment_labels, n_levels=None, seed=0):
     
     Parameters:
         treatment_labels: list of k treatment labels, e.g. ["A", "B", "C"]
-        n_levels: number of levels (default: len(treatment_labels))
+        n_levels: if supplied, must equal len(treatment_labels); no invented labels
         seed: random seed
     
     Returns:
         DataFrame with columns: row_block, col_block, treatment
     
-    ⚠️  The Latin square assumes NO interaction between blocking factors.
-        If row×col interaction exists, you need a factorial or Graeco-Latin square.
+    ⚠️  A single unreplicated Latin square relies on an additive model;
+        interactions are not separately estimable. Do not assume a Graeco-Latin
+        square alone resolves treatment/block interactions.
     """
+    labels = list(treatment_labels)
+    if not labels or len(set(labels)) != len(labels):
+        raise ValueError("treatment_labels must contain distinct labels")
+    k = len(labels)
+    if n_levels is not None and (isinstance(n_levels, (bool, np.bool_)) or not isinstance(n_levels, (int, np.integer)) or n_levels != k):
+        raise ValueError("n_levels must equal the number of supplied treatment labels")
     rng = np.random.default_rng(seed)
-    k = n_levels or len(treatment_labels)
-    labels = treatment_labels
-    
-    if len(labels) < k:
-        # Extend labels if needed
-        labels = list(labels) + [f"T{i}" for i in range(len(labels) + 1, k + 1)]
-    labels = labels[:k]
     
     # Build standard Latin square and randomize
     square = np.array([
@@ -178,8 +189,8 @@ def repeated_measures_design(between_subject_factors, within_subject_factors,
     Returns:
         DataFrame with columns: subject_id, [between factors...], [within factors...]
     
-    ⚠️  ANALYSIS NOTE: You MUST use a mixed-effects model (e.g., lmer, lme4) that
-        accounts for the correlation among repeated measures on the same subject.
+    ⚠️  ANALYSIS NOTE: Use a method accounting for within-subject correlation,
+        such as a mixed-effects model, GEE, or a suitable paired analysis.
         Do NOT analyze this as if observations are independent (pseudoreplication!).
         The subject_id column identifies the clustering unit for the random effect.
     """

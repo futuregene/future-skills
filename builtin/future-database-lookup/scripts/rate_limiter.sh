@@ -1,5 +1,7 @@
 #!/bin/bash
-# Rate-limited API caller for NCBI E-utilities (and other rate-limited services)
+# Sequential request pacer, NOT a cross-process/global rate limiter.
+# Use only in one sequential caller; parallel callers need a shared limiter.
+# Requires a POSIX shell, Python 3 and curl (not native PowerShell).
 # Usage: bash rate_limiter.sh <service> <curl_args...>
 #
 # Services:
@@ -15,9 +17,9 @@
 set -eu
 
 SERVICE="${1:-}"
-shift || true
+if [ "$#" -gt 0 ]; then shift; fi
 
-if [ -z "$SERVICE" ]; then
+if [ -z "$SERVICE" ] || [ "$#" -eq 0 ]; then
     echo "Usage: rate_limiter.sh <service> <curl_args...>"
     echo "Services: ncbi, ncbi-key, ensembl, noaa, sec-edgar"
     exit 1
@@ -37,9 +39,10 @@ case "$SERVICE" in
         ;;
 esac
 
-# Add a small random jitter (±20%) to avoid thundering herd
-JITTER=$(python3 -c "import random; print(random.uniform(-0.2, 0.2) * $DELAY)")
-SLEEP_TIME=$(python3 -c "print(max(0.05, $DELAY + $JITTER))")
+# Positive-only jitter: never shorten the minimum service interval.
+SLEEP_TIME=$(python3 -c "import random; print($DELAY * random.uniform(1.0, 1.2))")
 
 sleep "$SLEEP_TIME"
-curl -s "$@"
+# Preserve HTTP/transport failure status and bound a stalled request.
+# No automatic retries: the caller owns retry and aggregate request budgets.
+curl --silent --show-error --fail --connect-timeout 10 --max-time 30 "$@"

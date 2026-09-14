@@ -27,7 +27,7 @@ Prefer one primary source for the fact being requested:
 - Gene identity and genomic coordinates: NCBI Gene or Ensembl, with organism explicit.
 - Protein sequence and annotation: UniProt for curated protein records; NCBI Protein for INSDC/RefSeq records.
 - Variants: ClinVar for clinical assertions, dbSNP for identifiers, gnomAD for population frequency.
-- Viral sequence datasets: prefer the `gget` skill's `gget virus` deterministic layer for NCBI Virus-style filters.
+- Viral sequence datasets: use documented NCBI/ENA APIs and explicit metadata filters. The third-party `gget` skill is optional only when installed and useful; builtin-only installations must not assume it exists.
 - Clinical trials: ClinicalTrials.gov for trial registry data.
 - Economic series: FRED/BEA/BLS/Treasury depending on source-of-record.
 

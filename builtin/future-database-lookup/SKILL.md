@@ -1,6 +1,6 @@
 ---
 name: future-database-lookup
-version: 0.1.0
+version: 0.1.1
 description: >
   Query 78 scientific and public-data databases through documented APIs for
   reproducible facts about compounds, genes, variants, structures, clinical trials,
@@ -82,6 +82,25 @@ parameters, access time, versions/builds, conversions and evidence references. I
 expected/retrieved/deduplicated counts, pages/batches and local filtering when completeness
 matters. Label gaps, uncertainty and no-result queries explicitly. Save a small reproducible
 query or manifest when useful; never put secrets in it. Raw JSON is optional, not the default.
+
+## Optional bounded ID helper
+
+`scripts/id_resolver.py` uses Python 3's standard library and emits JSON with
+candidate IDs, limits and request provenance. It is not an exhaustive database client.
+Resolve its absolute path; read the selected reference and authorize public queries first.
+
+```text
+python /absolute/skill/scripts/id_resolver.py gene-symbol TP53 --taxon 9606
+python /absolute/skill/scripts/id_resolver.py compound-name aspirin
+python /absolute/skill/scripts/id_resolver.py variant-rsid rs334
+python /absolute/skill/scripts/id_resolver.py disease-name "cystic fibrosis"
+```
+
+Gene lookup requires an explicit taxon and returns NCBI/UniProt candidates, not an
+assumed one-to-one Ensembl mapping. The legacy `scripts/id_resolver.sh` forwards to
+Python; native Windows callers should use Python directly. HTTP/schema failures are
+nonzero exits, not successful `N/A` results. `scripts/rate_limiter.sh` only paces one
+sequential POSIX caller; it does not coordinate concurrent clients or retry requests.
 
 ## Validation after edits
 

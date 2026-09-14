@@ -141,9 +141,15 @@ def cluster_randomization(clusters, arms=("treatment", "control"), ratio=None,
     clustering (mixed model / GEE); treating members as independent is
     pseudoreplication. Uses blocking across clusters for arm balance.
     """
-    if isinstance(clusters, int):
+    if isinstance(clusters, (bool, np.bool_)):
+        raise ValueError("clusters must be distinct IDs or a nonnegative integer")
+    if isinstance(clusters, (int, np.integer)):
+        if clusters < 0:
+            raise ValueError("cluster count must be nonnegative")
         clusters = [f"cluster_{i+1}" for i in range(clusters)]
     clusters = list(clusters)
+    if len(set(clusters)) != len(clusters) or any(pd.isna(c) for c in clusters):
+        raise ValueError("cluster IDs must be distinct and nonmissing")
     df = block_randomization(len(clusters), arms=arms, ratio=ratio,
                              block_size=block_size, seed=seed)
     df = df.drop(columns=["unit_id"])

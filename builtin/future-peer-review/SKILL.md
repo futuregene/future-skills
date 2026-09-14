@@ -1,6 +1,6 @@
 ---
 name: future-peer-review
-version: 0.1.0
+version: 0.1.1
 description: >
   Review scientific manuscripts, grant proposals and research presentations with
   evidence-linked, constructive assessment of methods, statistics, reproducibility,
@@ -74,6 +74,12 @@ and `future-web`, reading those skills before calling their tools.
   completeness and stage of review. Do not penalize a preprint simply for being a preprint.
 
 ## Presentations and visual review
+
+Peer review does not require generating replacement figures. The legacy
+`scripts/generate_schematic.py` and `scripts/generate_schematic_ai.py` entries are
+retired and exit without remote calls. For a separately authorized illustration,
+use `future-image`; review failure must remain unverified, not become a passing
+score or trigger automatic paid regeneration.
 
 Read accessible text for scientific content and render pages when evaluating layout.
 There is no universal rule that directly parsing a presentation PDF causes an overflow.
