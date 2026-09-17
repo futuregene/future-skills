@@ -15,6 +15,14 @@
     "name_zh": "浏览器控制",
     "description_zh": "通过 Future CLI 控制本地 Chrome、Edge 或 Safari，按授权打开页面并执行网页操作"
   },
+  "future-code": {
+    "category": "tools",
+    "category_zh": "工具",
+    "builtin": true,
+    "enabled": true,
+    "name_zh": "轻量代码开发",
+    "description_zh": "帮助理解、编写、修改和调试代码，并按项目规范完成审查、测试与验证"
+  },
   "future-database-lookup": {
     "category": "databases",
     "category_zh": "数据库",
