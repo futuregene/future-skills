@@ -1,5 +1,5 @@
 ---
-version: 4.2.0
+version: 4.3.0
 name: future-loop
 description: FutureOS loop control plane — manage long-running goals, todos, human gates, workers, monitors, and validated completion. Use for cross-session work, ongoing task status, "keep working", "run overnight", or /future-loop. Not needed for a one-shot review or ordinary code edit.
 allowed-tools: Bash(future:*)
@@ -123,8 +123,17 @@ future loop worker tail --goal G --agent-id worker-a --lines 30
 `run` detaches by default and prints its PID/log path. Verify the worker started;
 then let event notifications wake you. The CLI also launches an independent,
 non-LLM watchdog. It notices dead holders even if the LAST worker dies, persists
-notifications before connecting to the agent, coalesces them into batches, and
-retries undelivered batches. It does not choose a model, replan, or relaunch work.
+notifications before connecting to the agent, coalesces them into batches (up to
+32 notes each), and retries undelivered batches. It does not choose a model,
+replan, or relaunch work.
+
+While you are busy, the batches that arrive queue behind your run and fold into
+ONE next turn: a single prompt can carry several `[future-loop] goal G: …`
+sections, one per batch. Reconcile it as one reading of the current board, not as
+one question per section — act once on the state you observe, and do not restart a
+worker merely because an old report is in the bundle. Batches arriving while you
+are idle still get their own turn, and a folded batch is acknowledged as `merged`
+(never silently dropped), so `supervisor events` stays complete.
 
 - `supervisor register` also ensures this watcher exists. After a host reboot or
   a watcher failure, resume supervision with `supervisor watch --goal G` (foreground;
@@ -137,7 +146,10 @@ retries undelivered batches. It does not choose a model, replan, or relaunch wor
   evidence, full-text journal path and `pending_other_todos` across all owners.
   It means `awaiting_review`, not a scientific pass or global completion. On
   wakeup, read current status, the batch and decisive artifacts. Old completion/
-  death reports may refer to a superseded run; do not blindly restart them.
+  death reports may refer to a superseded run; do not blindly restart them. A
+  bundled prompt is several batches of accumulated event history, so reconcile
+  against `status` and `delivery status` rather than treating each section as
+  fresh news.
 - Do not spend LLM calls on repeated sleeps and status polling. Use the watchdog,
   an external event source, or a blocking deterministic monitor. Combine necessary
   observations into one read and return until a decision is needed.
