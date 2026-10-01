@@ -1,5 +1,5 @@
 ---
-version: 1.3.0
+version: 1.3.1
 name: future-self
 description: Inspect and adjust this FutureOS installation — global agent settings, sessions, skills, tools and models, the account and credit balance, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", "what did we do before", "how is my account" or "show me my balance", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, reading or changing global agent settings, understanding the code behind a behaviour, or account profile and credit balance. Never for reading credentials, and not for ordinary task work on the user's project.
 allowed-tools: Bash(future:*)
@@ -57,10 +57,25 @@ Read state before acting; ask before changing anything that outlives this turn.
 | `future models --json` | Which models are available to this agent |
 | `future auth status` | Whether the user is signed in (and to which platform) |
 | `future skills list` | Installed vs. catalogue skills — i.e. what this agent can already do |
-| `future tools list` / `describe <name>` | The tool surface, with arguments and examples |
+| `future tools list` / `describe <name>` | Platform & browser tools the **CLI** can call (note: not the model's own tools — see below) |
 | `future session list --json` | Every session, newest first (id, title, model, usage) |
 | `future session info <id>` | One session in detail: model, cwd, message/tool counts, tokens, cost |
 | `future loop status` | Long-running goals, if any are open in this directory |
+
+Two things that look like "my tools" and are not:
+
+- **`future tools` is the CLI's tool surface, not the model's.** It lists the
+  platform and browser tools the *CLI* can invoke (`browser`, `parse_doc`,
+  `image_edit`, …), and the remote ones need a login like §3. The tools the model
+  is given are `read`, `write`, `edit`, `shell` — they are set per session
+  (`future session set <id> --tools read,shell` / `--no-tools`) or per run
+  (`future run --tools read,shell`), and `read` silently disables skill loading
+  when it is off. So `future tools describe shell` failing is expected, not a
+  broken install; read `agent/src/tools/mod.rs` (§4) for that set.
+- **`future skills list` is a catalogue, not a loader.** The `INSTALLED` column
+  says what is on this machine; the `description` column is the same text the
+  system prompt shows, so it is a fair way to see what the agent can be told to
+  do. Reading it does not install or load anything.
 
 `future doctor` is the right first call when something looks wrong: it is one
 pass over all of the above and reports what is missing rather than failing.
@@ -86,8 +101,11 @@ future auth status            # whether a login is configured at all
 ```
 
 - **Authentication is automatic.** The CLI reads the API key from `auth.json`
-  itself — never load, print or pass a key. If a call reports no API key, the
-  fix is `future auth login` (the user's decision), not hunting for the file.
+  itself — never load, print or pass a key. If a call reports no API key, the fix
+  is `future auth login` (the user's decision), not hunting for the file. The one
+  legitimate alternative the CLI itself suggests is the `FUTURE_API_KEY`
+  environment variable, which takes precedence — mention it, do not set it on the
+  user's behalf.
 - **It needs the network and a login.** Unlike every other read in this skill,
   these fail offline and fail before `future auth login`. Report that as a
   configuration state, not as a broken account.
