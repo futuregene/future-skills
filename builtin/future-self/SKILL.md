@@ -1,7 +1,7 @@
 ---
-version: 1.0.0
+version: 1.1.0
 name: future-self
-description: Inspect and adjust this FutureOS installation's own state — global agent settings, sessions, skills, tools and models, and the user's recorded conversations — to answer "how am I configured", "what do I know about you", or "what did we do before", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, reading or changing global agent settings, or building a picture of the user's preferences. Not for reading credentials, and not for ordinary task work on the user's project.
+description: Inspect and adjust this FutureOS installation's own state — global agent settings, sessions, skills, tools and models, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", or "what did we do before", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, reading or changing global agent settings, or understanding the code behind a behaviour. Not for reading credentials, and not for ordinary task work on the user's project.
 allowed-tools: Bash(future:*)
 category: tools
 ---
@@ -10,9 +10,10 @@ category: tools
 
 Everything this installation knows is local and readable through the `future`
 CLI: how the agent is configured, which skills and tools are installed, every
-conversation that was recorded, and what it cost. This skill is the entry point
-for using that, so the agent can adapt instead of asking for something that is
-already on disk.
+conversation that was recorded, what it cost — and, where a source checkout is
+present, the code that produces all of it. This skill is the entry point for
+using that, so the agent can adapt instead of asking for something that is
+already on disk, and explain a behaviour instead of guessing at it.
 
 Read state before acting; ask before changing anything that outlives this turn.
 
@@ -23,13 +24,19 @@ Read state before acting; ask before changing anything that outlives this turn.
   `future auth credential` exists for shell scripts, not for browsing — do not
   run it to "see what is configured".
 - **Never report a negative you cannot prove.** History search covers a bounded
-  window of sessions and is literal matching (see §6). "We never discussed
+  window of sessions and is literal matching (see §7). "We never discussed
   that" is only defensible when the response says `truncated: false` and
   `hasMore: false`.
 - **Changes to settings are the user's decision.** They persist past this
   session and change how every future session behaves. Propose the change and
   the old value; make it only when the user agrees (or when they asked for it).
   Report what you changed and when it takes effect.
+- **Reading code is for understanding, not for patching.** Never edit the
+  FutureOS source to change your own behaviour: that forks the installation from
+  the release the user actually has, and the change disappears at the next
+  update. Behaviour that has a knob goes through `future config set` / `future
+  session set` / skills (§5); anything else is a bug to report, not to fix
+  behind the user's back.
 - **Reading history is reading the user's own record, and it is appropriate —
   but stay purposeful.** Search for what answers the question; do not page
   through conversations to satisfy curiosity.
@@ -56,7 +63,57 @@ Read state before acting; ask before changing anything that outlives this turn.
 `future doctor` is the right first call when something looks wrong: it is one
 pass over all of the above and reports what is missing rather than failing.
 
-## 3. Reading what happened with the user
+## 3. Reading the code that implements you
+
+The CLI tells you *what* is configured; the source tells you *why* it behaves
+that way, which is what turns "the agent seems to ignore X" into an answer. Use
+it when a behaviour is surprising, when a setting's effect is unclear, when the
+user asks how something works, or when you are about to claim a limit.
+
+**Find a checkout first.** The source lives in a git checkout, not in
+`~/.future/`; the installed binary only carries the version string
+(`future --version`). A checkout is present when you are working inside one (the
+repo root has `Cargo.toml` + `docs/`), or when the user points you at one. If
+there is none, say so and answer from `future config get` / `future --help`
+instead of reconstructing the implementation from memory.
+
+**Start from the maps, not from `rg` over the whole tree.** A fresh clone
+carries its own orientation:
+
+| Where | What it gives you |
+|---|---|
+| `CLAUDE.md` | Workspace layout: which crate owns what, and which slice of `~/.future/` |
+| `docs/README.md` | The docs index — guides, architecture, internals |
+| `docs/guide/` | User-facing behaviour: CLI, settings, sessions, channels, screenshots |
+| `docs/architecture/` | The design behind a subsystem (loop control plane, storage, RPC) |
+| `FUTURE.md` + `.future/memory/` | Institutional gotchas recorded by earlier sessions — read the matching entry before working in that area |
+| `packages/rpc/proto/future.proto` | The RPC wire contract: the single source of truth for every command and event |
+
+**Then trace one question to one file.** The mapping below covers the questions
+that come up most:
+
+| Question | Read |
+|---|---|
+| Which command does what, and what arguments does it take? | `cli/src/commands/<group>.rs`, help text in `cli/src/help.rs` |
+| How is a command routed and answered? | `agent/src/rpc/commands/mod.rs` (the dispatcher), then the handler module |
+| What does a setting actually change? | `agent/src/config/mod.rs` (fields, defaults, accessors), then `rg <field>` for its consumers |
+| What is in my system prompt, and where does it come from? | `agent/src/prompt/mod.rs` (`build_prompt`), `agent/src/prompt/project_context.rs` |
+| How are skills discovered, installed and tracked? | `agent/src/skills/` |
+| How are sessions, entries and history recorded and read? | `agent/src/session/` (history recall: `history_query.rs`) |
+| Which tools exist and what do they do? | `agent/src/tools/mod.rs` |
+| What does a sandbox tier actually enforce? | `agent/src/sandbox/` |
+
+The docs describe released behaviour; the code describes *this* checkout. When
+they disagree, prefer the code, and say which one you read.
+
+**Two things that are easy to get wrong.** First, the running Agent is a built
+binary: the checkout can be ahead of it, behind it, or mid-edit, so a source
+claim is about the source, not about the process answering you — check `future
+--version` before attributing behaviour to the code you just read. Second, a
+checkout may hold another session's uncommitted work (`git status`, `git log`);
+read it, but never commit, stash or reset anything in someone else's tree.
+
+## 4. Reading what happened with the user
 
 ```bash
 future session list --json                                   # find the session
@@ -84,7 +141,7 @@ search match's `byteOffset` straight through as `--offset` to land on the match.
 Cross-session search needs a current CLI. If `--all` is rejected as an unknown
 option, fall back to `future session list --json` plus per-session `search`.
 
-## 4. Changing this installation
+## 5. Changing this installation
 
 Global settings (persist across sessions and restarts):
 
@@ -107,6 +164,9 @@ When a change takes effect:
 | `defaultModel`, `defaultPermissionLevel` | The next new session |
 | `compaction.*`, `retry.*`, `maxTurns` | The next Agent start |
 
+A setting that exists but is not in that list is not settable from the CLI — the
+effect it would need is in §3, which is where to look before promising it.
+
 Session-scoped changes (this conversation only):
 
 ```bash
@@ -128,7 +188,7 @@ future skills update                   # upgrade installed skills
 Installing a skill adds instructions, not permissions, but it does change what
 the agent will reach for — say which one you are installing and why.
 
-## 5. Building a picture of the user
+## 6. Building a picture of the user
 
 The point of the above is a personal agent that needs less re-explaining.
 
@@ -149,7 +209,7 @@ The point of the above is a personal agent that needs less re-explaining.
   session before asking "what were we working on?" is the win. Interrupting with
   advice nobody asked for is not.
 
-## 6. Limits — state them, do not paper over them
+## 7. Limits — state them, do not paper over them
 
 - **Literal, not semantic.** No embeddings, no synonyms, no stemming. Two words
   are one substring. Refine the query instead of concluding there is nothing.
@@ -163,13 +223,15 @@ The point of the above is a personal agent that needs less re-explaining.
   bodies and provider metadata are omitted, and compacted summaries are not
   exposed — so a session read here is not identical to what the model saw.
 - **Local and single-machine.** Sessions on another machine or another
-  `FUTURE_HOME` are not visible. Compiled-in facts (this version's defaults)
-  come from the running binary; if behaviour contradicts `future config get`,
-  the running Agent may predate the file.
+  `FUTURE_HOME` are not visible, and there is no checkout to read unless one is
+  actually on this machine.
+- **Source is not behaviour.** A file in the checkout is not proof of what the
+  running binary does (see §3); `future --version` is the version, not the
+  commit.
 - **No credentials, ever.** Not in reads, not in summaries, not in files you
   write for the user.
 
-## 7. Worked examples
+## 8. Worked examples
 
 Resuming after a break, without asking:
 
@@ -184,6 +246,16 @@ Answering "have we ever dealt with this?":
 ```bash
 future session history search --all --query "<identifier>" --limit 20 --json
 # truncated:true → say the search covered only the N most recent sessions
+```
+
+"Why did you ignore my setting?" — read the value, then the code that consumes
+it, before blaming either:
+
+```bash
+future config get <key>              # what the Agent would apply
+rg -n "<field_name>" agent/src       # who reads it, and when
+# A value that is right but not yet in effect is the usual answer: §5 lists
+# which keys wait for the next session or the next Agent start.
 ```
 
 "Make your answers shorter from now on": a preference to write down, not a
