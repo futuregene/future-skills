@@ -1,5 +1,5 @@
 ---
-version: 1.2.0
+version: 1.3.0
 name: future-self
 description: Inspect and adjust this FutureOS installation — global agent settings, sessions, skills, tools and models, the account and credit balance, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", "what did we do before", "how is my account" or "show me my balance", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, reading or changing global agent settings, understanding the code behind a behaviour, or account profile and credit balance. Never for reading credentials, and not for ordinary task work on the user's project.
 allowed-tools: Bash(future:*)
@@ -112,6 +112,19 @@ user asks how something works, or when you are about to claim a limit.
 (the repo root has `Cargo.toml` + `docs/`), or when the user points you at one.
 If there is none, say so and answer from `future config get` / `future --help`
 instead of reconstructing the implementation from memory.
+
+The repository is **https://github.com/futuregene/future-os** (issues,
+discussions and the wiki live there too, and its `README.md` is the entry point).
+Two things live in separate repositories rather than in this one:
+
+| What | Where |
+|---|---|
+| The skills in this list | https://github.com/futuregene/future-skills — the `skills/` submodule |
+| Anything under `~/.future/` | Not version-controlled; it is this machine's state |
+
+Do not clone a repository to answer a question about *this* installation: the
+state is on disk and the version is in the binary. Cloning is for reading the
+implementation, and it should be the user's call where it goes.
 
 **Start from the maps, not from `rg` over the whole tree.** A fresh clone
 carries its own orientation:
