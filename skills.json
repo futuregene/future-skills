@@ -1,12 +1,4 @@
 {
-  "future-account": {
-    "category": "tools",
-    "category_zh": "工具",
-    "builtin": true,
-    "enabled": true,
-    "name_zh": "账户管理",
-    "description_zh": "通过 Future CLI 查看账户信息和积分余额；不创建充值订单"
-  },
   "future-browser": {
     "category": "tools",
     "category_zh": "工具",

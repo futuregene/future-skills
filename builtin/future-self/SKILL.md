@@ -1,7 +1,7 @@
 ---
-version: 1.1.0
+version: 1.2.0
 name: future-self
-description: Inspect and adjust this FutureOS installation's own state — global agent settings, sessions, skills, tools and models, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", or "what did we do before", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, reading or changing global agent settings, or understanding the code behind a behaviour. Not for reading credentials, and not for ordinary task work on the user's project.
+description: Inspect and adjust this FutureOS installation — global agent settings, sessions, skills, tools and models, the account and credit balance, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", "what did we do before", "how is my account" or "show me my balance", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, reading or changing global agent settings, understanding the code behind a behaviour, or account profile and credit balance. Never for reading credentials, and not for ordinary task work on the user's project.
 allowed-tools: Bash(future:*)
 category: tools
 ---
@@ -11,20 +11,22 @@ category: tools
 Everything this installation knows is local and readable through the `future`
 CLI: how the agent is configured, which skills and tools are installed, every
 conversation that was recorded, what it cost — and, where a source checkout is
-present, the code that produces all of it. This skill is the entry point for
-using that, so the agent can adapt instead of asking for something that is
-already on disk, and explain a behaviour instead of guessing at it.
+present, the code that produces all of it. The account and credit balance are the
+one part that comes from the Future platform instead of this disk. This skill is
+the entry point for using all of it, so the agent can adapt instead of asking for
+something that is already available, and explain a behaviour instead of guessing
+at it.
 
 Read state before acting; ask before changing anything that outlives this turn.
 
 ## 1. Ground rules
 
-- **Never read or print `~/.future/agent/auth.json`.** It holds API keys.
-  `future config get` deliberately returns no credential material, and
-  `future auth credential` exists for shell scripts, not for browsing — do not
-  run it to "see what is configured".
+- **Never read or print `~/.future/agent/auth.json`.** It holds API keys. The
+  CLI reads it for you (§3), `future config get` deliberately returns no
+  credential material, and `future auth credential` exists for shell scripts,
+  not for browsing — do not run it to "see what is configured".
 - **Never report a negative you cannot prove.** History search covers a bounded
-  window of sessions and is literal matching (see §7). "We never discussed
+  window of sessions and is literal matching (see §8). "We never discussed
   that" is only defensible when the response says `truncated: false` and
   `hasMore: false`.
 - **Changes to settings are the user's decision.** They persist past this
@@ -35,7 +37,7 @@ Read state before acting; ask before changing anything that outlives this turn.
   FutureOS source to change your own behaviour: that forks the installation from
   the release the user actually has, and the change disappears at the next
   update. Behaviour that has a knob goes through `future config set` / `future
-  session set` / skills (§5); anything else is a bug to report, not to fix
+  session set` / skills (§6); anything else is a bug to report, not to fix
   behind the user's back.
 - **Reading history is reading the user's own record, and it is appropriate —
   but stay purposeful.** Search for what answers the question; do not page
@@ -50,10 +52,10 @@ Read state before acting; ask before changing anything that outlives this turn.
 |---|---|
 | `future config get [<key>] [--json]` | The effective global settings, defaults included |
 | `future config get --help` | Every settable key, its values and its default |
+| `future version --json` | Which build this is: version, **commit**, target, dirty |
 | `future doctor` | Whether login, agent, sandbox, providers, sessions and skills are healthy |
 | `future models --json` | Which models are available to this agent |
 | `future auth status` | Whether the user is signed in (and to which platform) |
-| `future account profile` / `balance` | Who the user is, and what the account has left |
 | `future skills list` | Installed vs. catalogue skills — i.e. what this agent can already do |
 | `future tools list` / `describe <name>` | The tool surface, with arguments and examples |
 | `future session list --json` | Every session, newest first (id, title, model, usage) |
@@ -63,7 +65,41 @@ Read state before acting; ask before changing anything that outlives this turn.
 `future doctor` is the right first call when something looks wrong: it is one
 pass over all of the above and reports what is missing rather than failing.
 
-## 3. Reading the code that implements you
+`future version --json` is the one to reach for when the *version string* is not
+enough. It reports the full `gitCommit` this binary was built from — which a
+release tag (`1.2.3`) or a coordinated test/nightly build (`0.0.2-<run>+test`)
+does not carry in the version at all — plus `gitDirty`, `buildTarget` and
+`buildProfile`. Use it before attributing a behaviour to source you just read;
+`@§4` explains why that check matters. The running Agent reports the same facts
+through `get_agent_info` (`gitCommit`, `gitDirty`, `buildTarget`,
+`buildProfile`), which is how you compare the process answering you against
+either the CLI or a checkout.
+
+## 3. The account and the credit balance
+
+This is the only part of this skill that talks to a **remote** service.
+
+```bash
+future account profile        # user ID, email, verification status, registered on
+future account balance        # credit balance; --json for machine-readable output
+future auth status            # whether a login is configured at all
+```
+
+- **Authentication is automatic.** The CLI reads the API key from `auth.json`
+  itself — never load, print or pass a key. If a call reports no API key, the
+  fix is `future auth login` (the user's decision), not hunting for the file.
+- **It needs the network and a login.** Unlike every other read in this skill,
+  these fail offline and fail before `future auth login`. Report that as a
+  configuration state, not as a broken account.
+- **Account data is per-user and identified by the API key**, so it belongs to
+  the signed-in user — relevant when several people share a machine.
+- **Both commands are free** (zero credits). Reading the balance never spends
+  it, so there is no cost to answering the question.
+- **Do not create recharge or purchase orders**, and do not present a balance as
+  a reason to act. If the balance is low, say so and stop; buying credits is the
+  user's action on the platform, not a tool call you make.
+
+## 4. Reading the code that implements you
 
 The CLI tells you *what* is configured; the source tells you *why* it behaves
 that way, which is what turns "the agent seems to ignore X" into an answer. Use
@@ -71,10 +107,10 @@ it when a behaviour is surprising, when a setting's effect is unclear, when the
 user asks how something works, or when you are about to claim a limit.
 
 **Find a checkout first.** The source lives in a git checkout, not in
-`~/.future/`; the installed binary only carries the version string
-(`future --version`). A checkout is present when you are working inside one (the
-repo root has `Cargo.toml` + `docs/`), or when the user points you at one. If
-there is none, say so and answer from `future config get` / `future --help`
+`~/.future/`; the installed binary only carries its version and commit
+(`future version --json`). A checkout is present when you are working inside one
+(the repo root has `Cargo.toml` + `docs/`), or when the user points you at one.
+If there is none, say so and answer from `future config get` / `future --help`
 instead of reconstructing the implementation from memory.
 
 **Start from the maps, not from `rg` over the whole tree.** A fresh clone
@@ -102,18 +138,21 @@ that come up most:
 | How are sessions, entries and history recorded and read? | `agent/src/session/` (history recall: `history_query.rs`) |
 | Which tools exist and what do they do? | `agent/src/tools/mod.rs` |
 | What does a sandbox tier actually enforce? | `agent/src/sandbox/` |
+| How is the version and commit stamped into a build? | `cli/build.rs`, `agent/build.rs`, and the version script they both mirror |
 
 The docs describe released behaviour; the code describes *this* checkout. When
 they disagree, prefer the code, and say which one you read.
 
 **Two things that are easy to get wrong.** First, the running Agent is a built
 binary: the checkout can be ahead of it, behind it, or mid-edit, so a source
-claim is about the source, not about the process answering you — check `future
---version` before attributing behaviour to the code you just read. Second, a
-checkout may hold another session's uncommitted work (`git status`, `git log`);
-read it, but never commit, stash or reset anything in someone else's tree.
+claim is about the source, not about the process answering you — compare
+`future version --json` (or the Agent's `get_agent_info`) against
+`git rev-parse HEAD` before attributing behaviour to the code you just read.
+Second, a checkout may hold another session's uncommitted work (`git status`,
+`git log`); read it, but never commit, stash or reset anything in someone else's
+tree.
 
-## 4. Reading what happened with the user
+## 5. Reading what happened with the user
 
 ```bash
 future session list --json                                   # find the session
@@ -141,7 +180,7 @@ search match's `byteOffset` straight through as `--offset` to land on the match.
 Cross-session search needs a current CLI. If `--all` is rejected as an unknown
 option, fall back to `future session list --json` plus per-session `search`.
 
-## 5. Changing this installation
+## 6. Changing this installation
 
 Global settings (persist across sessions and restarts):
 
@@ -165,7 +204,7 @@ When a change takes effect:
 | `compaction.*`, `retry.*`, `maxTurns` | The next Agent start |
 
 A setting that exists but is not in that list is not settable from the CLI — the
-effect it would need is in §3, which is where to look before promising it.
+effect it would need is in §4, which is where to look before promising it.
 
 Session-scoped changes (this conversation only):
 
@@ -188,7 +227,7 @@ future skills update                   # upgrade installed skills
 Installing a skill adds instructions, not permissions, but it does change what
 the agent will reach for — say which one you are installing and why.
 
-## 6. Building a picture of the user
+## 7. Building a picture of the user
 
 The point of the above is a personal agent that needs less re-explaining.
 
@@ -209,7 +248,7 @@ The point of the above is a personal agent that needs less re-explaining.
   session before asking "what were we working on?" is the win. Interrupting with
   advice nobody asked for is not.
 
-## 7. Limits — state them, do not paper over them
+## 8. Limits — state them, do not paper over them
 
 - **Literal, not semantic.** No embeddings, no synonyms, no stemming. Two words
   are one substring. Refine the query instead of concluding there is nothing.
@@ -222,16 +261,19 @@ The point of the above is a personal agent that needs less re-explaining.
 - **Original records only.** Reasoning/thinking is excluded by design, media
   bodies and provider metadata are omitted, and compacted summaries are not
   exposed — so a session read here is not identical to what the model saw.
-- **Local and single-machine.** Sessions on another machine or another
-  `FUTURE_HOME` are not visible, and there is no checkout to read unless one is
-  actually on this machine.
+- **Local state is local; the account is not.** Agent settings, skills and all
+  sessions live on this machine — sessions under another `FUTURE_HOME`, or on
+  another device, are invisible, and there is no checkout to read unless one is
+  actually here. The account commands (§3) are the exception: they reach the
+  Future platform over the network and need a login, so they can fail for
+  reasons no local state would explain.
 - **Source is not behaviour.** A file in the checkout is not proof of what the
-  running binary does (see §3); `future --version` is the version, not the
-  commit.
+  running binary does (see §4); `future version --json` gives the version,
+  commit and dirty state of the binary you are actually running.
 - **No credentials, ever.** Not in reads, not in summaries, not in files you
   write for the user.
 
-## 8. Worked examples
+## 9. Worked examples
 
 Resuming after a break, without asking:
 
@@ -248,14 +290,29 @@ future session history search --all --query "<identifier>" --limit 20 --json
 # truncated:true → say the search covered only the N most recent sessions
 ```
 
-"Why did you ignore my setting?" — read the value, then the code that consumes
+"why did you ignore my setting?" — read the value, then the code that consumes
 it, before blaming either:
 
 ```bash
 future config get <key>              # what the Agent would apply
 rg -n "<field_name>" agent/src       # who reads it, and when
-# A value that is right but not yet in effect is the usual answer: §5 lists
+# A value that is right but not yet in effect is the usual answer: §6 lists
 # which keys wait for the next session or the next Agent start.
+```
+
+"which version am I actually running?" — the string is often not enough:
+
+```bash
+future version --json | jq '{version, gitCommit, gitDirty, buildTarget}'
+git -C <checkout> rev-parse HEAD     # equal? then you are reading this code
+```
+
+"how is my account" / "what is my balance":
+
+```bash
+future account profile
+future account balance --json
+# Low balance: report it and stop. Do not create a recharge order.
 ```
 
 "Make your answers shorter from now on": a preference to write down, not a
