@@ -102,6 +102,14 @@
     "name_zh": "科研写作",
     "description_zh": "按证据提纲撰写和修订科学稿件，遵循用户与期刊的结构、引用及报告规范"
   },
+  "future-self": {
+    "category": "tools",
+    "category_zh": "工具",
+    "builtin": true,
+    "enabled": true,
+    "name_zh": "自我认知与用户画像",
+    "description_zh": "读取和调整本机 Agent 自身的状态——全局设置、会话、技能、工具与模型，以及用户与 Agent 的历史对话——用于回答「我现在的配置是什么」「我对你了解什么」「我们之前做过什么」，并据此做个性化与主动协助"
+  },
   "future-skill-creator": {
     "category": "tools",
     "category_zh": "工具",
