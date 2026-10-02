@@ -1,5 +1,5 @@
 ---
-version: 1.3.1
+version: 1.4.0
 name: future-self
 description: Inspect and adjust this FutureOS installation — global agent settings, sessions, skills, tools and models, the account and credit balance, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", "what did we do before", "how is my account" or "show me my balance", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, reading or changing global agent settings, understanding the code behind a behaviour, or account profile and credit balance. Never for reading credentials, and not for ordinary task work on the user's project.
 allowed-tools: Bash(future:*)
@@ -58,7 +58,7 @@ Read state before acting; ask before changing anything that outlives this turn.
 | `future auth status` | Whether the user is signed in (and to which platform) |
 | `future skills list` | Installed vs. catalogue skills — i.e. what this agent can already do |
 | `future tools list` / `describe <name>` | Platform & browser tools the **CLI** can call (note: not the model's own tools — see below) |
-| `future session list --json` | Every session, newest first (id, title, model, usage) |
+| `future session list --json` | Every session, newest first: `id`, `sessionName`, `model`, `cwd`, `queryCount`, `updatedAtMs`, `firstMessage`, `parentSessionId`, `isStreaming` |
 | `future session info <id>` | One session in detail: model, cwd, message/tool counts, tokens, cost |
 | `future loop status` | Long-running goals, if any are open in this directory |
 
@@ -67,11 +67,16 @@ Two things that look like "my tools" and are not:
 - **`future tools` is the CLI's tool surface, not the model's.** It lists the
   platform and browser tools the *CLI* can invoke (`browser`, `parse_doc`,
   `image_edit`, …), and the remote ones need a login like §3. The tools the model
-  is given are `read`, `write`, `edit`, `shell` — they are set per session
-  (`future session set <id> --tools read,shell` / `--no-tools`) or per run
-  (`future run --tools read,shell`), and `read` silently disables skill loading
-  when it is off. So `future tools describe shell` failing is expected, not a
-  broken install; read `agent/src/tools/mod.rs` (§4) for that set.
+  is given are `read`, `write`, `edit`, `shell`. So `future tools describe shell`
+  failing is expected, not a broken install; read `agent/src/tools/mod.rs` (§4)
+  for that set.
+- **There is no CLI switch for a *session's* tool set.** `--tools` / `--no-tools`
+  / `--no-builtin-tools` exist on `future run` (one run only); the persistent
+  per-session selection is an RPC the TUI and Desktop call, and
+  `future session set` accepts only `--parent/--title/--cwd/--model/--thinking`.
+  Do not promise to "turn off a session's tools" from the CLI — it cannot. Note
+  also that `read` being off silently disables skill loading, since skills are
+  read from disk.
 - **`future skills list` is a catalogue, not a loader.** The `INSTALLED` column
   says what is on this machine; the `description` column is the same text the
   system prompt shows, so it is a fair way to see what the agent can be told to
@@ -79,6 +84,29 @@ Two things that look like "my tools" and are not:
 
 `future doctor` is the right first call when something looks wrong: it is one
 pass over all of the above and reports what is missing rather than failing.
+
+Note the split between the two session views, because the summary deliberately
+carries **no** usage: `session list` gives identity and shape (who, what model,
+how many turns, when), while tokens and cost live in `session info <id>`. A
+question about spend needs the second command, not the first.
+
+### Which session am I?
+
+§5 and §6 need a session id, and the obvious question is how you get **your
+own**:
+
+```bash
+future session list --json    # the session whose isStreaming is true is you
+```
+
+A session with an active run reports `isStreaming: true`, so while a turn is in
+flight exactly one row is `true` — this conversation. `session list` already
+returns rows newest-first by `updatedAtMs`, which is the ordering to fall back on
+when nothing is streaming. Do not guess from the title alone: several sessions
+can share a title, and a fresh session has none.
+
+The Agent's `shell` tool does **not** export the session id to the environment,
+so there is no `$FUTURE_SESSION_ID` to read — the list above is the supported way.
 
 `future version --json` is the one to reach for when the *version string* is not
 enough. It reports the full `gitCommit` this binary was built from — which a
@@ -241,10 +269,28 @@ Session-scoped changes (this conversation only):
 
 ```bash
 future session set <id> --model <id> --thinking <level> --cwd <dir> --title <name>
+future session rename <id> <name>       # the shorter form of --title
+future session compact --session <id>   # compact that session's context now
 ```
 
 `--thinking` accepts `off`, `minimal`, `low`, `medium`, `high`, `xhigh`. The
-model and thinking level reach the running session immediately.
+model and thinking level reach the running session immediately; the title and cwd
+are written straight away for a session that already has a record (§8 covers the
+never-run case).
+`future session compact` is the on-demand counterpart of the `compaction.*`
+settings, and it is **asynchronous**: it returns an acknowledgement, not a
+completed summary, and the Agent reports completion or failure through its
+compaction events. Active runs are rejected, and it requires an explicit
+`--session <id>` — there is no "the current one" default.
+
+Two things not to do unasked: **`future session delete`** is destructive and not
+recoverable from the CLI, and **`future session set --model`** silently overrides
+a model the user pinned. Both need an explicit request, not an inference.
+
+Session-scoped **tool** selection is not reachable from the CLI: `--tools`,
+`--no-tools` and `--no-builtin-tools` belong to `future run` (one run), while the
+persistent per-session set is an RPC the TUI and Desktop use. Do not promise a
+tool change you cannot make — `future session set` would reject the flag.
 
 Capabilities:
 
@@ -292,6 +338,11 @@ The point of the above is a personal agent that needs less re-explaining.
 - **Original records only.** Reasoning/thinking is excluded by design, media
   bodies and provider metadata are omitted, and compacted summaries are not
   exposed — so a session read here is not identical to what the model saw.
+- **A never-run session records a change only when it first runs.** A title or
+  cwd set on a session that already has a record is written straight away, but a
+  session that has never produced an entry stores it with its first run — so a
+  `session set` on a brand-new session can look like it did nothing when read
+  back from `session list`.
 - **Local state is local; the account is not.** Agent settings, skills and all
   sessions live on this machine — sessions under another `FUTURE_HOME`, or on
   another device, are invisible, and there is no checkout to read unless one is
