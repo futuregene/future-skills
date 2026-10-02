@@ -1,5 +1,5 @@
 ---
-version: 1.4.0
+version: 1.4.1
 name: future-self
 description: Inspect and adjust this FutureOS installation — global agent settings, sessions, skills, tools and models, the account and credit balance, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", "what did we do before", "how is my account" or "show me my balance", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, reading or changing global agent settings, understanding the code behind a behaviour, or account profile and credit balance. Never for reading credentials, and not for ordinary task work on the user's project.
 allowed-tools: Bash(future:*)
@@ -92,21 +92,33 @@ question about spend needs the second command, not the first.
 
 ### Which session am I?
 
-§5 and §6 need a session id, and the obvious question is how you get **your
-own**:
+**You already have it: your own system prompt carries it.** The environment
+section of the prompt you are running under contains
 
-```bash
-future session list --json    # the session whose isStreaming is true is you
+```
+Current session ID: <your id>
+You can reference this session ID when you need to identify or report which
+conversation you are part of. This is your own session — you are self-aware of
+this identifier.
 ```
 
-A session with an active run reports `isStreaming: true`, so while a turn is in
-flight exactly one row is `true` — this conversation. `session list` already
-returns rows newest-first by `updatedAtMs`, which is the ordering to fall back on
-when nothing is streaming. Do not guess from the title alone: several sessions
-can share a title, and a fresh session has none.
+Read it from there and use it directly — no lookup, no guessing. (Verified
+against a live run: the id in the outgoing system message is byte-identical to
+the session's row in `agent.db`.)
 
-The Agent's `shell` tool does **not** export the session id to the environment,
-so there is no `$FUTURE_SESSION_ID` to read — the list above is the supported way.
+`future session list --json` is for the *other* sessions, and for two cases where
+the prompt is not in front of you:
+
+- **Confirming which row is you** when you want to cross-check, or when several
+  sessions look alike. The session executing an active run reports
+  `isStreaming: true`, so during a turn exactly one row is `true`.
+- **Finding a session you are not in** (a previous conversation to resume), where
+  `updatedAtMs` ordering (newest first) and `queryCount` are the signals.
+
+What does **not** work: the Agent's `shell` tool does not export the session id
+to the environment, so there is no `$FUTURE_SESSION_ID` to read. Do not infer
+identity from the title either — several sessions can share one, and a fresh
+session has none.
 
 `future version --json` is the one to reach for when the *version string* is not
 enough. It reports the full `gitCommit` this binary was built from — which a
