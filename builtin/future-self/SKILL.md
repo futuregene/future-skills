@@ -1,5 +1,5 @@
 ---
-version: 1.7.0
+version: 1.7.1
 name: future-self
 description: Inspect and adjust this FutureOS installation — global agent settings, the desktop app's own settings, sessions, skills, tools and models, the account and credit balance, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", "what did we do before", "how is my account" or "show me my balance", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, slicing one session's own records (including thinking and tool inputs/outputs), reading or changing global agent or desktop-app settings, understanding the code behind a behaviour, or account profile and credit balance. Never for reading credentials, and not for ordinary task work on the user's project.
 allowed-tools: Bash(future:*)
@@ -59,9 +59,9 @@ Read state before acting; ask before changing anything that outlives this turn.
 | `future doctor` | Whether login, agent, sandbox, providers, sessions and skills are healthy |
 | `future models --json` | Which models are available to this agent |
 | `future auth status` | Whether the user is signed in (and to which platform) |
-| `future skills list` | Installed vs. catalogue skills — i.e. what this agent can already do |
+| `future skills list` | Catalogue skills with their install status — **not** a full list of what is installed (see the caveat below) |
 | `future tools list` / `describe <name>` | Platform & browser tools the **CLI** can call (note: not the model's own tools — see below) |
-| `future session list --json` | Every session, newest first: `id`, `sessionName`, `model`, `cwd`, `queryCount`, `updatedAtMs`, `firstMessage`, `parentSessionId`, `isStreaming` |
+| `future session list --json` | Every session, newest first, in a `{"sessions":[…]}` envelope: `id`, `sessionName`, `model`, `cwd`, `queryCount`, `updatedAtMs`, `firstMessage`, `parentSessionId`, `isStreaming` |
 | `future session info <id> [--json]` | One session's **journal**: model, **cwd**, message/tool counts, lifetime tokens, cost |
 | `future session status <id> [--json] [--metrics]` | One session's **live state**: effective permission, sandbox tier, context occupancy, context files, loaded skills, runs, pending approvals |
 | `future session transcript --session <id>` | One session's records sliced and paged: every user message, thinking, a tool's inputs/outputs/paths, per-run outcomes (§5) |
@@ -90,10 +90,22 @@ Two things that look like "my tools" and are not:
   while `set`'s applies to the live session — and `set` is the one
   `future session status` does not currently report back. Note that `read` being
   off silently disables skill loading, since skills are read from disk.
-- **`future skills list` is a catalogue, not a loader.** The `INSTALLED` column
-  says what is on this machine; the `description` column is the same text the
-  system prompt shows, so it is a fair way to see what the agent can be told to
-  do. Reading it does not install or load anything.
+- **`future skills list` is a catalogue, not a full inventory — and not a
+  loader.** It fetches the platform catalogue and marks which of *those* skills
+  are installed, so a skill that is on this machine but absent from the
+  catalogue does not appear at all (on a dev checkout `future-self`, `future-code`
+  and `future-blog-post` are exactly that case). **`future doctor` is the command
+  that lists every installed skill**, catalogue or not. The `description` column
+  is the same text the system prompt shows, so it is a fair way to see what the
+  agent can be told to do (`--json` is `{"skills":[…],"count":N}`). Reading it
+  does not install or load anything.
+
+**Most session and model commands need a running Agent.** `future session
+list/info/status/transcript/history/forks/approvals` and `future models` ask the
+Agent over local IPC; with none reachable they fail with `unable to connect to
+Future Agent` (exit 1) rather than returning an empty result. The reads that work
+with nothing running are `future config get`, `future desktop settings`,
+`future version`, `future auth status`, `future skills list` and `future doctor`.
 
 `future doctor` is the right first call when something looks wrong: it is one
 pass over all of the above and reports what is missing rather than failing.
@@ -123,8 +135,10 @@ the session's row in `agent.db`.)
 the prompt is not in front of you:
 
 - **Confirming which row is you** when you want to cross-check, or when several
-  sessions look alike. The session executing an active run reports
-  `isStreaming: true`, so during a turn exactly one row is `true`.
+  sessions look alike. Every session with an active run reports
+  `isStreaming: true`, so concurrent sessions can put several rows at `true` at
+  once — the row that is *you* is the one whose `id` matches your system prompt,
+  not merely the only row streaming.
 - **Finding a session you are not in** (a previous conversation to resume), where
   `updatedAtMs` ordering (newest first) and `queryCount` are the signals.
 
@@ -370,8 +384,9 @@ Session-scoped changes (this conversation only):
 ```bash
 # recorded with the session
 future session set <id> --model <id> --thinking <level> --cwd <dir> --title <name>
+future session set <id> --parent <session-id>   # lineage only; "" detaches
 
-# applied to the live session, and readable back with `session status`
+# applied to the live session; `--json` reports what landed under `updated`
 future session set <id> --tools read,shell --permission workspace --sandbox manual
 future session set <id> --context-files off --auto-compact off --auto-retry on
 future session set <id> --system-prompt "…" --append-system-prompt "…"
@@ -393,7 +408,10 @@ compaction events. Active runs are rejected, and it requires an explicit
 `--permission` is the approval gate (`all|workspace|none`) and `--sandbox` the
 OS wrapping (`off|manual|sandbox`) — independent settings, and `sandbox` is
 refused when the platform cannot provide one. `future session status <id>` reads
-these back, so check it rather than assuming a change landed.
+back the permission level, the sandbox tier (`sandboxTier`), auto-compact and the
+context files — but **not** `--auto-retry`, the tool set or the system prompt, so
+confirm those from `session set --json`, whose `updated` map names what it
+applied. Check the read-back rather than assuming a change landed.
 
 Stopping work and answering approvals — the CLI counterpart of the TUI's
 `/stop`, `/cancel`, `/approve` and `/reject`:
@@ -408,19 +426,22 @@ future session reject <id> <request-id> [--note <text>]
 
 Creating and branching: `future session new [--cwd <dir>] [--name <text>]`,
 `forks <id>` → `fork <id> --entry <entry-id>`, `clone <id>`,
-`title <id> [--apply]` and `export <id> [--out <path>]`. `new` creates a session
-that stays out of `session list` until its first run; `title` is a **model call**
-(it spends credits, and only renames with `--apply`).
+`title <id> [--lang en|zh] [--apply]` and `export <id> [--out <path>]`. `new`
+creates a session that stays out of `session list` until its first run; `title`
+is a **model call** (it spends credits, and only renames with `--apply`).
+`set --parent` records lineage only, unlike `fork`, which copies history.
 
 Two things not to do unasked: **`future session delete`** is destructive and not
-recoverable from the CLI, and **`future session set --model`** silently overrides
-a model the user pinned. Both need an explicit request, not an inference.
+recoverable from the CLI — it is also idempotent, so it prints `Deleted session
+<id>` and exits 0 even for an id that never existed, which makes it useless as an
+existence check — and **`future session set --model`** silently overrides a model
+the user pinned. Both need an explicit request, not an inference.
 
 Capabilities:
 
 ```bash
 future skills list                     # what exists
-future skills install <name>           # add one
+future skills install [<name>]         # add one; with no name, all built-ins
 future skills uninstall <name>         # remove one (it stays removed)
 future skills update                   # upgrade installed skills
 ```
@@ -472,10 +493,11 @@ The point of the above is a personal agent that needs less re-explaining.
   exception in one direction: they cover the whole session by default and only
   bound themselves when you pass `--max-bytes` yourself.
 - **`status` is live; `info` is recorded.** `future session status` describes
-  the running agent, so it is empty of settings a session never chose (an unset
-  sandbox tier reads as `(default)`, not `off`) and it forgets everything when
-  the agent restarts. `future session info` describes the journal and survives.
-  Neither substitutes for the other.
+  the running agent, so it is empty of settings a session never chose — an unset
+  sandbox tier reads as `(default)` in the text and is *absent* from `--json`,
+  not `off` — and it forgets everything when the agent restarts. It also does not
+  report the session's `--auto-retry`, tool set or system prompt. `future session
+  info` describes the journal and survives. Neither substitutes for the other.
 - **A never-run session records a change only when it first runs.** A title or
   cwd set on a session that already has a record is written straight away, but a
   session that has never produced an entry stores it with its first run — so a
@@ -487,6 +509,10 @@ The point of the above is a personal agent that needs less re-explaining.
   actually here. The account commands (§3) are the exception: they reach the
   Future platform over the network and need a login, so they can fail for
   reasons no local state would explain.
+- **The live views need a running Agent.** `session list/info/status/transcript/
+  history/forks/approvals` and `future models` fail with `unable to connect to
+  Future Agent` when nothing is running; only `config get`, `desktop settings`,
+  `version`, `auth status`, `skills list` and `doctor` answer offline.
 - **`future desktop settings` ignores `FUTURE_HOME`.** It reads and writes
   `~/.future/app/app.db` under the real home, exactly as the desktop app does,
   so a session running under another `FUTURE_HOME` still targets the real app
