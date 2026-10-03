@@ -1,7 +1,7 @@
 ---
-version: 1.4.1
+version: 1.5.0
 name: future-self
-description: Inspect and adjust this FutureOS installation — global agent settings, sessions, skills, tools and models, the account and credit balance, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", "what did we do before", "how is my account" or "show me my balance", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, reading or changing global agent settings, understanding the code behind a behaviour, or account profile and credit balance. Never for reading credentials, and not for ordinary task work on the user's project.
+description: Inspect and adjust this FutureOS installation — global agent settings, the desktop app's own settings, sessions, skills, tools and models, the account and credit balance, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", "what did we do before", "how is my account" or "show me my balance", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, reading or changing global agent or desktop-app settings, understanding the code behind a behaviour, or account profile and credit balance. Never for reading credentials, and not for ordinary task work on the user's project.
 allowed-tools: Bash(future:*)
 category: tools
 ---
@@ -37,7 +37,8 @@ Read state before acting; ask before changing anything that outlives this turn.
   FutureOS source to change your own behaviour: that forks the installation from
   the release the user actually has, and the change disappears at the next
   update. Behaviour that has a knob goes through `future config set` / `future
-  session set` / skills (§6); anything else is a bug to report, not to fix
+  desktop settings set` / `future session set` / skills (§6); anything else is a
+  bug to report, not to fix
   behind the user's back.
 - **Reading history is reading the user's own record, and it is appropriate —
   but stay purposeful.** Search for what answers the question; do not page
@@ -52,6 +53,8 @@ Read state before acting; ask before changing anything that outlives this turn.
 |---|---|
 | `future config get [<key>] [--json]` | The effective global settings, defaults included |
 | `future config get --help` | Every settable key, its values and its default |
+| `future desktop settings [<key>] [--json]` | The desktop app's own settings (approval tier, hidden models, …), defaults included |
+| `future desktop settings --help` | Every desktop setting, its values and its default |
 | `future version --json` | Which build this is: version, **commit**, target, dirty |
 | `future doctor` | Whether login, agent, sandbox, providers, sessions and skills are healthy |
 | `future models --json` | Which models are available to this agent |
@@ -204,6 +207,7 @@ that come up most:
 | Which command does what, and what arguments does it take? | `cli/src/commands/<group>.rs`, help text in `cli/src/help.rs` |
 | How is a command routed and answered? | `agent/src/rpc/commands/mod.rs` (the dispatcher), then the handler module |
 | What does a setting actually change? | `agent/src/config/mod.rs` (fields, defaults, accessors), then `rg <field>` for its consumers |
+| What are the desktop app's own settings, and where do they live? | `packages/app-settings/src/lib.rs` (the schema and the database location, shared with the CLI), then `desktop/src-tauri/src/store/app_settings.rs` (the app's connection pool and change events) |
 | What is in my system prompt, and where does it come from? | `agent/src/prompt/mod.rs` (`build_prompt`), `agent/src/prompt/project_context.rs` |
 | How are skills discovered, installed and tracked? | `agent/src/skills/` |
 | How are sessions, entries and history recorded and read? | `agent/src/session/` (history recall: `history_query.rs`) |
@@ -276,6 +280,29 @@ When a change takes effect:
 
 A setting that exists but is not in that list is not settable from the CLI — the
 effect it would need is in §4, which is where to look before promising it.
+
+The desktop app keeps its own preferences in `~/.future/app/app.db`
+(`app_settings`): approval tier, hidden models, the completion bell, the
+generated-title language, and so on. They are neither the agent settings
+document above nor the models/providers/auth files that the app and the agent
+share.
+
+```bash
+future desktop settings                       # everything, defaults included
+future desktop settings get approvalTier      # one value, bare
+future desktop settings set approvalTier manual
+future desktop settings set hiddenModels "future/glm-5.3, future/kimi-k3"
+```
+
+Keys use the camelCase spelling of the desktop API, and `future desktop --help`
+lists every key with its accepted values. **Every preference the app's own
+Settings screen can change is settable here**, so the CLI and this skill cover
+what the GUI covers. A list value is a JSON array or a comma-separated list;
+values are validated before the database is touched; and a database the app has
+never written reports the defaults rather than being created. Reads and writes
+need no running desktop app — a running one picks the change up the next time it
+reads the settings (a change made in its own Settings screen applies
+immediately).
 
 Session-scoped changes (this conversation only):
 
@@ -361,6 +388,11 @@ The point of the above is a personal agent that needs less re-explaining.
   actually here. The account commands (§3) are the exception: they reach the
   Future platform over the network and need a login, so they can fail for
   reasons no local state would explain.
+- **`future desktop settings` ignores `FUTURE_HOME`.** It reads and writes
+  `~/.future/app/app.db` under the real home, exactly as the desktop app does,
+  so a session running under another `FUTURE_HOME` still targets the real app
+  database. That is the right file for a question about the app, but it is not
+  the isolated installation the rest of this list scopes to.
 - **Source is not behaviour.** A file in the checkout is not proof of what the
   running binary does (see §4); `future version --json` gives the version,
   commit and dirty state of the binary you are actually running.
@@ -393,6 +425,10 @@ rg -n "<field_name>" agent/src       # who reads it, and when
 # A value that is right but not yet in effect is the usual answer: §6 lists
 # which keys wait for the next session or the next Agent start.
 ```
+
+A desktop-app preference works the same way, with a different store: read it
+with `future desktop settings get <key>`, then check the shared schema in
+`packages/app-settings/src/lib.rs` before blaming the value.
 
 "which version am I actually running?" — the string is often not enough:
 
