@@ -1,5 +1,5 @@
 ---
-version: 1.6.0
+version: 1.7.0
 name: future-self
 description: Inspect and adjust this FutureOS installation — global agent settings, the desktop app's own settings, sessions, skills, tools and models, the account and credit balance, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", "what did we do before", "how is my account" or "show me my balance", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, slicing one session's own records (including thinking and tool inputs/outputs), reading or changing global agent or desktop-app settings, understanding the code behind a behaviour, or account profile and credit balance. Never for reading credentials, and not for ordinary task work on the user's project.
 allowed-tools: Bash(future:*)
@@ -62,9 +62,20 @@ Read state before acting; ask before changing anything that outlives this turn.
 | `future skills list` | Installed vs. catalogue skills — i.e. what this agent can already do |
 | `future tools list` / `describe <name>` | Platform & browser tools the **CLI** can call (note: not the model's own tools — see below) |
 | `future session list --json` | Every session, newest first: `id`, `sessionName`, `model`, `cwd`, `queryCount`, `updatedAtMs`, `firstMessage`, `parentSessionId`, `isStreaming` |
-| `future session info <id> [--json]` | One session in detail: model, **cwd**, message/tool counts, tokens, cost |
-| `future session transcript --session <id>` | One session's records sliced and paged: every user message, thinking, a tool's inputs/outputs/paths (§5) |
+| `future session info <id> [--json]` | One session's **journal**: model, **cwd**, message/tool counts, lifetime tokens, cost |
+| `future session status <id> [--json] [--metrics]` | One session's **live state**: effective permission, sandbox tier, context occupancy, context files, loaded skills, runs, pending approvals |
+| `future session transcript --session <id>` | One session's records sliced and paged: every user message, thinking, a tool's inputs/outputs/paths, per-run outcomes (§5) |
+| `future session forks <id>` | The user turns a session can be branched at |
+| `future session approvals <id>` | Approval requests the session is waiting on |
 | `future loop status` | Long-running goals, if any are open in this directory |
+
+**`info` and `status` answer different questions and are easy to confuse.**
+`info` reads what was recorded; `status` reads what the agent is doing and how
+the session is configured *right now*. A session can run at `workspace`
+permission while `future config get defaultPermissionLevel` says `all`, and be
+using 40% of its context window while `info` reports 40M lifetime tokens —
+only `status` is correct in either case. When a question is about the session's
+current settings, its context, or what it is doing, reach for `status`.
 
 Two things that look like "my tools" and are not:
 
@@ -74,13 +85,11 @@ Two things that look like "my tools" and are not:
   is given are `read`, `write`, `edit`, `shell`. So `future tools describe shell`
   failing is expected, not a broken install; read `agent/src/tools/mod.rs` (§4)
   for that set.
-- **There is no CLI switch for a *session's* tool set.** `--tools` / `--no-tools`
-  / `--no-builtin-tools` exist on `future run` (one run only); the persistent
-  per-session selection is an RPC the TUI and Desktop call, and
-  `future session set` accepts only `--parent/--title/--cwd/--model/--thinking`.
-  Do not promise to "turn off a session's tools" from the CLI — it cannot. Note
-  also that `read` being off silently disables skill loading, since skills are
-  read from disk.
+- **A session's tool set is `future session set`, not `future run`.** Both take
+  `--tools` / `--no-tools` / `--no-builtin-tools`, but `run`'s lasts one run
+  while `set`'s applies to the live session — and `set` is the one
+  `future session status` does not currently report back. Note that `read` being
+  off silently disables skill loading, since skills are read from disk.
 - **`future skills list` is a catalogue, not a loader.** The `INSTALLED` column
   says what is on this machine; the `description` column is the same text the
   system prompt shows, so it is a fair way to see what the agent can be told to
@@ -267,6 +276,7 @@ future session transcript --session <id> --tool shell --paths --json # a tool's 
 future session transcript --session <id> --tool shell --input --truncate 500 --json
 future session transcript --session <id> --tool shell --output --json
 future session transcript --session <id> --grep "<text>" --all --json  # literal filter
+future session transcript --session <id> --runs --json               # which runs failed, and why
 ```
 
 - `--select` takes `user`, `assistant`, `thinking`, `tool-call`, `tool-result`,
@@ -281,12 +291,19 @@ future session transcript --session <id> --grep "<text>" --all --json  # literal
   entries (default 50, max 500), `--all` removes the cap, `--max-bytes` bounds
   the output (default 256 KiB).
 - `--counts` ignores the content filters and reports the window's distribution
-  (entries, block kinds, tools, error results, bytes) — the cheap first look at
-  a session you know nothing about.
+  (entries, block kinds, tools, **run outcomes**, tokens, error results, bytes) —
+  the cheap first look at a session you know nothing about.
+- Every emitted entry also carries its run's outcome (`run`, `runId`) and, where
+  recorded, its token `usage`; `--runs` is the same data as one row per run
+  (status, duration, tokens, error). That is how "which run failed" is answered
+  — no second command.
 - `--truncate N` bounds every emitted string; `--json` is the machine form.
   `--select session` is the session's own metadata (cwd, model, thinking level,
   usage), and `future session info <id> --json` is the same identity at the top
   level with the computed stats.
+- `--counts` and `--runs` are summaries: they ignore `--select`/`--tool`/`--grep`,
+  refuse `--cursor`, and cover the whole session unless you bound them. Read a
+  tool's results with `--tool` by starting at `--cursor 0`.
 
 Two limits to state rather than hide: `--paths` is a heuristic (structured
 path-ish argument keys, plus path-shaped tokens in result text), and `--tool`
@@ -351,7 +368,14 @@ immediately).
 Session-scoped changes (this conversation only):
 
 ```bash
+# recorded with the session
 future session set <id> --model <id> --thinking <level> --cwd <dir> --title <name>
+
+# applied to the live session, and readable back with `session status`
+future session set <id> --tools read,shell --permission workspace --sandbox manual
+future session set <id> --context-files off --auto-compact off --auto-retry on
+future session set <id> --system-prompt "…" --append-system-prompt "…"
+
 future session rename <id> <name>       # the shorter form of --title
 future session compact --session <id>   # compact that session's context now
 ```
@@ -366,14 +390,31 @@ completed summary, and the Agent reports completion or failure through its
 compaction events. Active runs are rejected, and it requires an explicit
 `--session <id>` — there is no "the current one" default.
 
+`--permission` is the approval gate (`all|workspace|none`) and `--sandbox` the
+OS wrapping (`off|manual|sandbox`) — independent settings, and `sandbox` is
+refused when the platform cannot provide one. `future session status <id>` reads
+these back, so check it rather than assuming a change landed.
+
+Stopping work and answering approvals — the CLI counterpart of the TUI's
+`/stop`, `/cancel`, `/approve` and `/reject`:
+
+```bash
+future session abort <id>                              # active run + queue
+future session cancel <id> --run <run-id>              # one queued run
+future session approvals <id>                          # what it is waiting on
+future session approve <id> <request-id> [--allow <glob> --access read|write]
+future session reject <id> <request-id> [--note <text>]
+```
+
+Creating and branching: `future session new [--cwd <dir>] [--name <text>]`,
+`forks <id>` → `fork <id> --entry <entry-id>`, `clone <id>`,
+`title <id> [--apply]` and `export <id> [--out <path>]`. `new` creates a session
+that stays out of `session list` until its first run; `title` is a **model call**
+(it spends credits, and only renames with `--apply`).
+
 Two things not to do unasked: **`future session delete`** is destructive and not
 recoverable from the CLI, and **`future session set --model`** silently overrides
 a model the user pinned. Both need an explicit request, not an inference.
-
-Session-scoped **tool** selection is not reachable from the CLI: `--tools`,
-`--no-tools` and `--no-builtin-tools` belong to `future run` (one run), while the
-persistent per-session set is an RPC the TUI and Desktop use. Do not promise a
-tool change you cannot make — `future session set` would reject the flag.
 
 Capabilities:
 
@@ -427,7 +468,14 @@ The point of the above is a personal agent that needs less re-explaining.
   entries, `--max-bytes` defaults to 256 KiB, and `--all` stops at that byte
   cap. A truncated run reports `hasMore: true` and a `nextCursor`; a caller that
   ignores them has read a prefix, not the session. `--grep` and `--tool` are
-  also literal/heuristic, not semantic.
+  also literal/heuristic, not semantic. `--counts` and `--runs` are the
+  exception in one direction: they cover the whole session by default and only
+  bound themselves when you pass `--max-bytes` yourself.
+- **`status` is live; `info` is recorded.** `future session status` describes
+  the running agent, so it is empty of settings a session never chose (an unset
+  sandbox tier reads as `(default)`, not `off`) and it forgets everything when
+  the agent restarts. `future session info` describes the journal and survives.
+  Neither substitutes for the other.
 - **A never-run session records a change only when it first runs.** A title or
   cwd set on a session that already has a record is written straight away, but a
   session that has never produced an entry stores it with its first run — so a
@@ -466,8 +514,29 @@ only the slice you need:
 ```bash
 future session info <id> --json                                  # cwd, model, counts, cost
 future session transcript --session <id> --counts --json         # what kinds of records, which tools
+future session transcript --session <id> --runs --json           # run by run: status, tokens, errors
 future session transcript --session <id> --select user --all --json
 future session transcript --session <id> --grep "<text>" --all --json
+```
+
+"how is this session configured right now, and what is it doing?" — the live
+view, which is the only place these answers exist:
+
+```bash
+future session status <id>                 # permission, sandbox, context, runs
+future session status <id> --json          # the agent's own state object
+future session status <id> --metrics       # + journal health, broadcast lag
+# A session at `workspace` while `config get defaultPermissionLevel` says `all`
+# is normal — the session's own level is what it runs at.
+```
+
+"stop it" / "it is waiting on something":
+
+```bash
+future session abort <id>                  # the active run and everything queued
+future session cancel <id> --run <run-id>  # one run that has not started
+future session approvals <id>              # what it wants, with the request id
+future session approve <id> <request-id>   # or reject; add --allow <glob> to stop asking
 ```
 
 Answering "have we ever dealt with this?":
