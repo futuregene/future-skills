@@ -1,7 +1,7 @@
 ---
-version: 1.5.0
+version: 1.6.0
 name: future-self
-description: Inspect and adjust this FutureOS installation — global agent settings, the desktop app's own settings, sessions, skills, tools and models, the account and credit balance, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", "what did we do before", "how is my account" or "show me my balance", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, reading or changing global agent or desktop-app settings, understanding the code behind a behaviour, or account profile and credit balance. Never for reading credentials, and not for ordinary task work on the user's project.
+description: Inspect and adjust this FutureOS installation — global agent settings, the desktop app's own settings, sessions, skills, tools and models, the account and credit balance, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", "what did we do before", "how is my account" or "show me my balance", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, slicing one session's own records (including thinking and tool inputs/outputs), reading or changing global agent or desktop-app settings, understanding the code behind a behaviour, or account profile and credit balance. Never for reading credentials, and not for ordinary task work on the user's project.
 allowed-tools: Bash(future:*)
 category: tools
 ---
@@ -62,7 +62,8 @@ Read state before acting; ask before changing anything that outlives this turn.
 | `future skills list` | Installed vs. catalogue skills — i.e. what this agent can already do |
 | `future tools list` / `describe <name>` | Platform & browser tools the **CLI** can call (note: not the model's own tools — see below) |
 | `future session list --json` | Every session, newest first: `id`, `sessionName`, `model`, `cwd`, `queryCount`, `updatedAtMs`, `firstMessage`, `parentSessionId`, `isStreaming` |
-| `future session info <id>` | One session in detail: model, cwd, message/tool counts, tokens, cost |
+| `future session info <id> [--json]` | One session in detail: model, **cwd**, message/tool counts, tokens, cost |
+| `future session transcript --session <id>` | One session's records sliced and paged: every user message, thinking, a tool's inputs/outputs/paths (§5) |
 | `future loop status` | Long-running goals, if any are open in this directory |
 
 Two things that look like "my tools" and are not:
@@ -252,8 +253,51 @@ session. The response reports `scannedSessions` and `truncated`; when
 not lines: follow the returned `nextOffset` rather than guessing, and pass a
 search match's `byteOffset` straight through as `--offset` to land on the match.
 
+### Slicing one session instead of searching it
+
+Search answers "where does this text appear". `future session transcript` is the
+surface for **processing** a conversation — enumerate it, choose fields, split a
+tool's input from its output, page through it:
+
+```bash
+future session transcript --session <id> --counts --json            # what is in here
+future session transcript --session <id> --select user --all --json # every user message
+future session transcript --session <id> --select thinking --json   # reasoning
+future session transcript --session <id> --tool shell --paths --json # a tool's file paths
+future session transcript --session <id> --tool shell --input --truncate 500 --json
+future session transcript --session <id> --tool shell --output --json
+future session transcript --session <id> --grep "<text>" --all --json  # literal filter
+```
+
+- `--select` takes `user`, `assistant`, `thinking`, `tool-call`, `tool-result`,
+  `session`, `compaction`, `all`. The default is `user,assistant,tool-call,
+  tool-result` — **thinking is opt-in** here, and it is the opposite of
+  `history search`, which cannot see reasoning at all.
+- `--input` / `--output` keep only a tool call's arguments / a tool result's
+  text. `--paths` keeps only the file paths a call's arguments or a result's text
+  mention. `--tool` (comma-separated) restricts both halves to those tools.
+- It pages in display-entry order: read `nextCursor` and continue with
+  `--cursor nextCursor` until `hasMore` is false. `--limit` counts **matching**
+  entries (default 50, max 500), `--all` removes the cap, `--max-bytes` bounds
+  the output (default 256 KiB).
+- `--counts` ignores the content filters and reports the window's distribution
+  (entries, block kinds, tools, error results, bytes) — the cheap first look at
+  a session you know nothing about.
+- `--truncate N` bounds every emitted string; `--json` is the machine form.
+  `--select session` is the session's own metadata (cwd, model, thinking level,
+  usage), and `future session info <id> --json` is the same identity at the top
+  level with the computed stats.
+
+Two limits to state rather than hide: `--paths` is a heuristic (structured
+path-ish argument keys, plus path-shaped tokens in result text), and `--tool`
+attributes a tool *result* through the name of the call it pairs with — a result
+whose call is outside the scanned window cannot be attributed, so it is skipped
+and counted in `skippedUnattributedToolResults`. Start at `--cursor 0` when
+filtering results by tool.
+
 Cross-session search needs a current CLI. If `--all` is rejected as an unknown
-option, fall back to `future session list --json` plus per-session `search`.
+option, fall back to `future session list --json` plus per-session `search`;
+`transcript` is newer still, so treat an unknown-subcommand error the same way.
 
 ## 6. Changing this installation
 
@@ -374,9 +418,16 @@ The point of the above is a personal agent that needs less re-explaining.
   means more exist.
 - **Byte-addressed reads.** `get` offset/limit are UTF-8 bytes (4..32768 per
   read). Large entries need several reads; follow `nextOffset`.
-- **Original records only.** Reasoning/thinking is excluded by design, media
-  bodies and provider metadata are omitted, and compacted summaries are not
-  exposed — so a session read here is not identical to what the model saw.
+- **Original records only.** `history search`/`get` exclude reasoning by
+  design; `transcript --select thinking` does expose it. Media bodies and
+  provider metadata are omitted (in `transcript` too), and compacted summaries
+  are not exposed — so a session read here is not identical to what the model
+  saw.
+- **`transcript` is bounded by its window.** `--limit` is 1..500 matching
+  entries, `--max-bytes` defaults to 256 KiB, and `--all` stops at that byte
+  cap. A truncated run reports `hasMore: true` and a `nextCursor`; a caller that
+  ignores them has read a prefix, not the session. `--grep` and `--tool` are
+  also literal/heuristic, not semantic.
 - **A never-run session records a change only when it first runs.** A title or
   cwd set on a session that already has a record is written straight away, but a
   session that has never produced an entry stores it with its first run — so a
@@ -407,6 +458,16 @@ Resuming after a break, without asking:
 future session list --json | head -40
 future session history search --session <most-recent-id> --query "<topic>" --limit 5
 future session history get --session <id> --entry <entry-id>
+```
+
+"What happened in this session, and where did it run?" — the shape first, then
+only the slice you need:
+
+```bash
+future session info <id> --json                                  # cwd, model, counts, cost
+future session transcript --session <id> --counts --json         # what kinds of records, which tools
+future session transcript --session <id> --select user --all --json
+future session transcript --session <id> --grep "<text>" --all --json
 ```
 
 Answering "have we ever dealt with this?":
@@ -444,6 +505,9 @@ future account profile
 future account balance --json
 # Low balance: report it and stop. Do not create a recharge order.
 ```
+
+"Compress this conversation" — `future session compact --session <id>` (§6):
+report it as an asynchronous request, not a finished summary.
 
 "Make your answers shorter from now on": a preference to write down, not a
 setting. Ask where the user wants it recorded, record it there, quote it back.
