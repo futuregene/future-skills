@@ -1,5 +1,5 @@
 ---
-version: 1.1.1
+version: 1.1.2
 name: future-skill-creator
 description: >
   Create, review or improve a custom Future skill with clear triggers, concise
@@ -40,7 +40,10 @@ without confirming the intended replacement.
    work, and `assets/` for actual reusable templates. Explain when to load each resource;
    resolve its path relative to the skill directory. Do not invent helper/dependency paths.
 5. Validate structure and metadata using the included validator. Then test representative
-   positive and negative workflow cases at the appropriate risk level.
+   positive and negative workflow cases at the appropriate risk level. Metadata alone does not
+   prove the skill is reachable: a skill the agent can load but the clients never list looks
+   identical to "no skill" — silently, with no error anywhere. Confirm the client's skill list
+   shows it before calling the work done.
 6. Improve from actual usage failures. Tighten trigger descriptions for over-triggering;
    add discriminating examples for under-triggering; remove duplicated generic instructions.
 
