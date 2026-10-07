@@ -1,5 +1,5 @@
 ---
-version: 0.1.0
+version: 0.1.1
 name: future-task
 description: >
   Create, edit, run and iterate FutureOS tasks — a reusable prompt plus a trigger
@@ -35,6 +35,12 @@ something multi-step that needs judgment between steps, that is a loop, not a ta
      is wrong for the job.
 3. State the plan back before writing it, unless the user's message already carries all
    of it.
+
+**Runs need the desktop.** The CLI writes to the task store; the desktop (or the headless
+desktop) is what actually executes a run, on its next tick. So `future task run` *queues*
+and returns, and a run row — the thing `feedback` attaches to — exists only after the
+desktop has picked the request up. Say this when the user expects an immediate result,
+and use `--wait` when you want to read the outcome.
 
 ## 2. How to write the prompt
 
@@ -114,6 +120,7 @@ future task runs <id> --limit 20 --json     # run ledger: status, times, version
 future task show <id> --json                # definition + latest run
 future task show <id> --prompt              # the effective prompt
 future task upstream <id> --json            # dependency edges and which are satisfied
+future task prompt log <id>                 # every prompt version and who wrote it
 ```
 
 ## 7. Run it, then improve the prompt
@@ -125,21 +132,32 @@ a task you have not seen run.
 future task run <id> --wait --json          # run now and read the outcome
 future task feedback <run-id> good|bad --note "..."
 future task edit <id> --prompt-file draft.md
-future task prompt log <id>                 # versions, with who wrote each (user/reflection/rollback)
+future task prompt log <id>                 # versions, with who wrote each
+future task prompt revert <id>              # back to the previous version
 ```
+
+`run --wait --json` answers with `status`, `runId`, `threadId` and `resultSummary` — read
+`resultSummary` (not `summary`) for the run's outcome, and `threadId` to open the
+conversation.
 
 1. Write the prompt to a draft file, run it with `--wait`, and read the conversation.
 2. Judge the actual output against the acceptance criteria in the prompt — not against
    whether the run "succeeded".
-3. Record the verdict with `feedback good|bad` and a note: the note is what makes the
-   next automatic suggestion useful.
+3. Record the verdict with `feedback good|bad` and a note. The note is the record a
+   future automatic suggestion would be written from; nothing reads it yet, so it is for
+   the user and for you on the next pass.
 4. Edit and re-run until the output is right, and only then leave the task enabled.
-5. Leave prompt suggestions on (`--reflection ask`, the default). After each run the
-   system proposes a revised prompt from that run's own evidence and presents it for
-   approval; apply or reject it with `future task prompt apply <id> <revision-id>`.
-   Move to `--reflection auto` only once the proposals have been good for several runs —
-   automatic application is bounded (one per day, high confidence, prompt-only) but it is
-   still an unreviewed change to a prompt nobody is watching.
+   `future task prompt log` shows every version; `prompt revert` goes back one, and
+   `prompt apply <revision-id>` picks any version by id. The version the task started
+   with is kept, so you can always get back to it.
+5. **Automatic prompt suggestions do not exist yet.** `--reflection` (`off`/`ask`/`auto`,
+   default `ask`) is stored and shown in both UIs, but no run appends a proposal — the
+   versions you will see come from your own edits and from applied revisions. Do not tell
+   the user that the system will propose rewrites after each run. The iteration loop
+   above is the whole loop today.
+6. `future task enable|disable <id>` pauses a task without deleting it (a paused schedule
+   keeps its next slot, so re-enabling resumes rather than never firing again), and
+   `future task remove <id> --yes` deletes it, keeping its runs and conversations.
 
 ## 8. Being triggered by, and triggering, other work
 
@@ -148,7 +166,7 @@ agent ask another to do something:
 
 ```bash
 future task list --json
-future task run <name> --wait --json        # returns status, threadId, summary
+future task run <name> --wait --json        # returns status, threadId, resultSummary
 ```
 
 Get the user's agreement before another agent triggers a task with external side effects
