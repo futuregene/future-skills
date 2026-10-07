@@ -126,6 +126,14 @@
     "name_zh": "幻灯片与演示生成",
     "description_zh": "默认生成原生可编辑 PPTX，适用于跨学科科研汇报、组会、答辩、教学和严肃演示；保留证据、引用与原图，分别检查内容、可编辑性和实际渲染，图片式幻灯片需明确选择"
   },
+  "future-task": {
+    "category": "tools",
+    "category_zh": "工具",
+    "builtin": true,
+    "enabled": true,
+    "name_zh": "定时任务",
+    "description_zh": "创建、运行并迭代 FutureOS 任务：可复用提示词 + 手动/定时/依赖触发，全权限运行并生成会话"
+  },
   "future-web": {
     "category": "tools",
     "category_zh": "工具",
