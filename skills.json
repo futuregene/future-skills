@@ -131,8 +131,8 @@
     "category_zh": "工具",
     "builtin": true,
     "enabled": true,
-    "name_zh": "定时任务",
-    "description_zh": "创建、运行并迭代 FutureOS 任务：可复用提示词 + 手动/定时/依赖触发，全权限运行并生成会话"
+    "name_zh": "任务",
+    "description_zh": "创建、编辑、运行并迭代 FutureOS 任务：可复用提示词 + 手动/定时/依赖触发，全权限运行并生成会话"
   },
   "future-web": {
     "category": "tools",
