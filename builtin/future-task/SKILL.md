@@ -141,7 +141,7 @@ future task output <run-id>                 # the full answer behind a summary (
 future task show <id> --json                # definition + latest run
 future task show <id> --prompt              # the effective prompt
 future task upstream <id> --json            # dependency edges and which are satisfied
-future task prompt log <id>                 # prompt versions and pending suggestions
+future task prompt log <id>                 # prompt versions, oldest first
 ```
 
 A run's ledger entry holds a *truncated* summary (the head and tail, 2000 characters).
@@ -170,39 +170,15 @@ conversation.
 1. Write the prompt to a draft file, run it with `--wait`, and read the conversation.
 2. Judge the actual output against the acceptance criteria in the prompt — not against
    whether the run "succeeded".
-3. Record the verdict with `feedback good|bad` and a note. This is not write-only: the
-   automatic suggestion pass (§7a) reads the verdict and the note, so record why.
+3. Record the verdict with `feedback good|bad` and a note — that is where the reason
+   you changed the prompt belongs, next to the run that showed it was needed.
 4. Edit and re-run until the output is right, and only then leave the task enabled.
-   `future task prompt log` shows every version; `prompt revert` goes back one, and
-   `prompt apply <revision-id>` picks any version by id. The version the task started
-   with is kept, so you can always get back to it.
+   `future task prompt log` shows every version and marks the one in force; `prompt
+   revert` goes back one, and `prompt apply <revision-id>` puts any version back in force.
+   The version the task started with is kept, so you can always get back to it.
 5. `future task enable|disable <id>` pauses a task without deleting it (a paused schedule
    keeps its next slot, so re-enabling resumes rather than never firing again), and
    `future task remove <id> --yes` deletes it, keeping its runs and conversations.
-
-## 7a. Automatic prompt suggestions (`--reflection`)
-
-`--reflection off|ask|auto` (default `ask`) controls a pass that runs *after* each run,
-in a conversation of its own (archived, linked from the run's ledger row). It sees only
-that run's window — the prompt that ran, what the run reported, whether it failed, and
-the `feedback` verdict if there is one — and answers with a decision: keep the prompt, or
-return a whole revised one with a reason and a confidence.
-
-- **`ask`** records it as a *suggestion*: it is listed by `future task prompt log`, shown
-  in both clients **directly under the run it read** (with its reason, its confidence and
-  the whole prompt it proposes), and applied with `future task prompt apply <id> <revision-id>`.
-  The prompt is untouched until then. The reason is written in the language the user's UI
-  is in, so quote it as it stands instead of translating it back.
-- **`auto`** applies it without asking when the run completed, the confidence is at least
-  0.7, and nothing was applied in the last day; otherwise it falls back to a suggestion.
-- Both refuse a suggestion that changes nothing, repeats the same wording within a day,
-  or goes back to the version the current prompt replaced.
-
-When you write the prompt for a task that someone will iterate on, a prompt that states
-its own acceptance criteria is what makes a suggestion judgeable; say what a run should
-have produced, not just what it should do. And when the model suggests something the user
-disagrees with, `prompt revert` (or clicking apply on an older version) is the way back —
-tell them that rather than leaving the suggestion looking irreversible.
 
 ## 8. Being triggered by, and triggering, other work
 
