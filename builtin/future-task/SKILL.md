@@ -105,6 +105,14 @@ what you use, and an `edit` replaces the whole edge set rather than adding to it
   and a compaction would drop it. Use it for work that builds on previous runs, and tell
   the user the conversation grows (and that they can compact it themselves when they
   want it shorter).
+- `--session-retention delete` (with `--session new` only): delete the run's conversation
+  once it settles, success or failure. For a task that runs often and whose conversations
+  are just noise in the sidebar. Nothing about *what happened* is lost — the status, the
+  summary and the whole answer are stored on the run, `future task runs` still lists it,
+  `future task output <run-id>` still reads it, and a dependent task still receives the
+  summary. Only the conversation's reasoning goes. Offered as a per-task setting in the
+  desktop panel and the phone editor too, where it only appears for a per-run
+  conversation (a reused one is what the next run continues).
 
 ## 5. What the task sees at run time
 
@@ -144,11 +152,13 @@ future task upstream <id> --json            # dependency edges and which are sat
 future task prompt log <id>                 # prompt versions, oldest first
 ```
 
-A run's ledger entry holds a *truncated* summary (the head and tail, 2000 characters).
-When the summary is not enough — an upstream result you are about to build on, a failure
-whose evidence matters — read the run's own answer with `future task output <run-id>`:
-it prints the run's identity first (a conversation reused across runs holds every run's
-answer, so the latest text is not necessarily the run you asked for) and then the text.
+A run's ledger entry holds a *truncated* summary (the head and tail, 2000 characters),
+which is also what a dependent task receives. When the summary is not enough — an upstream
+result you are about to build on, a failure whose evidence matters — read the run's own
+answer with `future task output <run-id>`: it prints the run's identity first and then the
+text, and it works whether or not the conversation is still there (`--json` reports
+`source: "run"` for the answer saved on the run, `"conversation"` for the fallback path a
+run from an older build takes).
 
 ## 7. Run it, then improve the prompt
 
