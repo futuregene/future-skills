@@ -1,7 +1,7 @@
 ---
-version: 1.7.1
+version: 1.7.2
 name: future-self
-description: Inspect and adjust this FutureOS installation — global agent settings, the desktop app's own settings, sessions, skills, tools and models, the account and credit balance, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", "what did we do before", "how is my account" or "show me my balance", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, slicing one session's own records (including thinking and tool inputs/outputs), reading or changing global agent or desktop-app settings, understanding the code behind a behaviour, or account profile and credit balance. Never for reading credentials, and not for ordinary task work on the user's project.
+description: Inspect and adjust this FutureOS installation — global agent settings, the desktop app's own settings, sessions, skills, tools and models, the account and credit balance, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", "what did we do before", "how is my account" or "show me my balance", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, slicing one session's own records (including thinking and tool inputs/outputs), reading or changing global agent or desktop-app settings, reloading the model registry after a hand-edited models.json (重载/刷新模型), understanding the code behind a behaviour, or account profile and credit balance. Never for reading credentials, and not for ordinary task work on the user's project.
 allowed-tools: Bash(future:*)
 category: tools
 ---
@@ -448,6 +448,35 @@ future skills update                   # upgrade installed skills
 
 Installing a skill adds instructions, not permissions, but it does change what
 the agent will reach for — say which one you are installing and why.
+
+### Hand-edited provider or model files need a registry refresh
+
+The Agent builds its model registry at startup and does not watch the provider
+files, so a hand edit to `~/.future/agent/models.json` — or a change to what a
+local provider serves, such as a model added to or removed from
+`~/.omlx/models` — is invisible while the Agent runs: `future models list`
+keeps reporting the old set, because it reads the Agent's in-memory registry,
+not the file. Two cases need nothing: with no Agent running the next start
+reads the file as it is now, and an edit made through a client — the desktop
+app's provider UI, or the interactive `future config` flow — refreshes the
+registry itself.
+
+To refresh a hand edit without restarting the Agent, send `reload_auth` over
+the local RPC socket — the same refresh the TUI's `r` key and the desktop app's
+local-write fallback trigger (no CLI subcommand exposes it):
+
+```bash
+grpcurl -plaintext \
+  -import-path ~/future-os/packages/rpc/proto -proto future.proto \
+  -d '{"id":"reload-auth-1","type":"reload_auth"}' \
+  "unix://$HOME/.future/run/agent.sock" proto.FutureAgent/ExecuteCommand
+```
+
+A `"success": true` response rebuilds the registry, and `future models list`
+shows the change immediately. Needs `grpcurl` and a future-os checkout for
+`future.proto`. Two grpcurl 1.9.x traps: its `-unix` flag silently dials TCP
+instead, so pass the socket as `unix://<path>`; and every flag must come before
+the address.
 
 ## 7. Building a picture of the user
 
