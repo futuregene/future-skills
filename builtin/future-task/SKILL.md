@@ -189,8 +189,10 @@ the `feedback` verdict if there is one — and answers with a decision: keep the
 return a whole revised one with a reason and a confidence.
 
 - **`ask`** records it as a *suggestion*: it is listed by `future task prompt log`, shown
-  in both clients, and applied with `future task prompt apply <id> <revision-id>`. The
-  prompt is untouched until then.
+  in both clients **directly under the run it read** (with its reason, its confidence and
+  the whole prompt it proposes), and applied with `future task prompt apply <id> <revision-id>`.
+  The prompt is untouched until then. The reason is written in the language the user's UI
+  is in, so quote it as it stands instead of translating it back.
 - **`auto`** applies it without asking when the run completed, the confidence is at least
   0.7, and nothing was applied in the last day; otherwise it falls back to a suggestion.
 - Both refuse a suggestion that changes nothing, repeats the same wording within a day,
