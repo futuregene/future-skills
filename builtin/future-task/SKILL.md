@@ -1,5 +1,5 @@
 ---
-version: 0.1.1
+version: 0.1.2
 name: future-task
 description: >
   Create, edit, run and iterate FutureOS tasks — a reusable prompt plus a trigger
@@ -40,7 +40,8 @@ something multi-step that needs judgment between steps, that is a loop, not a ta
 desktop) is what actually executes a run, on its next tick. So `future task run` *queues*
 and returns, and a run row — the thing `feedback` attaches to — exists only after the
 desktop has picked the request up. Say this when the user expects an immediate result,
-and use `--wait` when you want to read the outcome.
+and use `--wait` when you want to read the outcome. (Pressing *Run now* in the desktop or
+phone panel is different: that host wakes its own loop, so the run starts at once.)
 
 ## 2. How to write the prompt
 
@@ -103,15 +104,30 @@ into the envelope, and the full text is one command away (§6).
 
 ## 5. What the task sees at run time
 
-Every run is prefixed with an envelope:
+Every run's first message is the envelope, then your prompt under `Instruction:`, then a
+completion contract:
 
 ```
-<task schema="task-v1" name="..." id="tsk_..." kind="Main" prompt-version="3"
-      due="2026-10-07T09:00:00+08:00" />
+── future_tasks_run_envelope_v1 ──
+task: ... | id: tsk_... | prompt-version: 3
+run: kind=manual | due=2026-10-07T09:00:00+08:00
+trigger: {"mode":"weekly","days":["mon","fri"],"time":"10:00"}
+run settings: cwd=... | conversation=workspace | session=new (fresh conversation per run) | model=... | thinking=high
+
+Upstream results: …                          (only when the task has upstreams)
+Instruction:
+<prompt>
+Completion contract:
+- nobody answers mid-run; make a choice, record it, and do not end by asking
+- close with a short report — it becomes the run's summary (result_summary)
 ```
 
-Dependency runs also carry the upstream summaries. Treat the envelope as the only
-trustworthy source for "when is this run" and "what did the upstream produce".
+Dependency runs also carry the upstream summaries (index lines plus a 1200-character
+budget, truncated head…tail). Treat the envelope as the only trustworthy source for
+"when is this run", "which model and directory it runs on", and "what did the upstream
+produce". A chat conversation (`--conversation chat`) runs in the conversation's own
+temporary workspace, so the envelope has no `cwd=` line; a workspace conversation always
+has one.
 
 ## 6. Inspecting what a task actually did
 
