@@ -1,5 +1,5 @@
 ---
-version: 0.1.3
+version: 0.1.4
 name: future-task
 description: >
   Create, edit, run and iterate FutureOS tasks — a reusable prompt plus a trigger
@@ -91,7 +91,10 @@ above 28, because the schedule they wrote is not the schedule they will get in F
 run when its upstream tasks finish. With several upstreams the default join is "all of
 them must have finished since my last run" (`--join-any` for "any one is enough"). Use a
 dependency when the work needs the upstream's result: the upstream's summary is injected
-into the envelope, and the full text is one command away (§6).
+into the envelope, and the full text is one command away (§6). The same edges can be set
+in the desktop panel's "dependency triggers" block and in the phone's task editor, so a
+user who prefers clicking does not need the CLI — but `--depends-on` / `--join-any` are
+what you use, and an `edit` replaces the whole edge set rather than adding to it.
 
 ## 4. Session policy
 
