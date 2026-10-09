@@ -1,5 +1,5 @@
 ---
-version: 1.3.0
+version: 1.4.0
 name: future-browser
 description: Control a local visible Chrome, Edge, or Safari browser through Future CLI tools. Use for opening local apps, inspecting pages, clicking, typing, screenshots, and reading console output without modifying the Rust agent.
 allowed-tools: Bash(future:*)
@@ -17,6 +17,8 @@ The browser tool runs through the Future CLI and connects to a local visible bro
 ## Prerequisites
 
 **Chrome, Edge, or Safari must be installed on the system.** The CLI auto-discovers the browser executable. If the browser is installed in a non-standard location, pass `executablePath` to `command: "start"`.
+
+A browser on **another machine or device** needs no local install: connect to its DevTools endpoint with `--endpoint` (see "Connecting to a browser you did not launch").
 
 | OS | Expected locations |
 |----|-------------------|
@@ -63,6 +65,57 @@ If the user already started Chrome/Edge with a remote debugging port, pass the e
 future tools call browser --command "status" --endpoint "http://127.0.0.1:9222"
 ```
 
+### Connecting to a browser you did not launch
+
+`--endpoint` works on **any** command and applies to that call only — it is not
+persisted, which is what you want while probing. `start` is the exception: it
+records the endpoint in `~/.future/agent/browser/config.json` for later commands
+(and, on a socket endpoint, attaches rather than launching). Use `--endpoint` to
+look at a browser without disturbing what the user already had configured.
+
+The argument accepts three forms:
+
+| form | example | when |
+|---|---|---|
+| `http(s)` URL | `http://127.0.0.1:9222` | a browser exposing a remote debugging port |
+| `unix:` path | `unix:/data/local/tmp/chrome.sock` | the DevTools endpoint is a filesystem socket |
+| `abstract:` name | `abstract:chrome_devtools_remote` | Linux/Android abstract socket — Chrome on Android |
+
+Chrome on Android is the case behind the socket forms: it publishes DevTools on
+the abstract socket `@chrome_devtools_remote`, with no TCP port at all. When the
+`future` CLI runs *on* such a device it can dial that socket directly; from a host
+machine, forward it first (`adb forward tcp:9222 localabstract:chrome_devtools_remote`)
+and use `http://127.0.0.1:9222`, because only the host side can create a forward.
+
+Socket endpoints need a Unix-like platform. An `abstract:` endpoint is accepted
+everywhere it can be parsed, but connecting to one only works on Linux/Android;
+elsewhere the tool says so instead of failing obscurely.
+
+```bash
+# Attach to the device's own Chrome and make it the saved endpoint
+future tools call browser --command "start" --endpoint "abstract:chrome_devtools_remote"
+```
+
+On a socket endpoint `start` only attaches — `{"status": "already_running"}` —
+because there is nothing it could launch: the browser belongs to the environment
+that owns the socket, and `--port`, `executablePath` and `profileDir` do not apply.
+
+### Confirm which browser you are driving
+
+A mistyped endpoint can silently reach a *different* browser than intended (a
+port forward that lands on the desktop rather than the device, say), and every
+command still looks like it worked. `status` returns the browser's own
+`/json/version` payload, so read its identity before trusting a result:
+
+```bash
+future tools call browser --command "status" --endpoint "unix:/tmp/chrome.sock"
+# "Android-Package": "com.android.chrome"            ← the device's own Chrome
+# "User-Agent": "Linux; Android 10; K ... Mobile"
+```
+
+An `Android-Package` field, or a mobile `User-Agent`, is the evidence that a
+device browser answered; a desktop browser reports neither.
+
 **Auto-start behavior**: When any command requiring a browser runs and no endpoint is reachable, the CLI spawns a new Chrome/Edge instance with `--remote-debugging-port`. The port defaults to 9222; if that port is occupied (by a non-CDP process), the next available port is chosen. The chosen endpoint is saved to `~/.future/agent/browser/config.json` and reused for subsequent commands. Calling `start` when a browser is already reachable does NOT start a new instance — it records the existing endpoint.
 
 ## Core Workflow
@@ -94,20 +147,20 @@ future tools call browser --command "click" --ref "b1"
 ## Available Commands
 
 ### start
-Start a visible local browser. For Chrome/Edge this opens a remote debugging port; if the requested port is occupied but not reachable as a CDP endpoint, the tool chooses a nearby available port. For Safari this launches a WebDriver session (`port`, `profileDir`, and `executablePath` do not apply). If a browser endpoint is already reachable, records it without starting a new instance.
+Start a visible local browser. For Chrome/Edge this opens a remote debugging port; if the requested port is occupied but not reachable as a CDP endpoint, the tool chooses a nearby available port. For Safari this launches a WebDriver session (`port`, `profileDir`, and `executablePath` do not apply). If a browser endpoint is already reachable, records it without starting a new instance — and if that endpoint is a socket, recording it is *all* `start` can do (nothing can be launched through a socket; see "Connecting to a browser you did not launch").
 
 Arguments: `--command "start" --browser "chrome|edge|safari" --port 9222 --profileDir "optional path" --executablePath "optional path" --url "optional URL"`
 
 When `browser` is omitted, a Chromium-family browser is auto-detected. See "Choosing A Browser" above for Safari's one-time `safaridriver --enable` requirement, surfaced as `status: "permission_required"`.
 
-Returns: `{"endpoint": "http://127.0.0.1:9222", "status": "started"|"already_running", "port": 9222}`
+Returns `{"endpoint", "status"}`, where `status` is `"started"`, `"starting"` or `"already_running"`. `port`, `profileDir` and `launcher` appear only when this call actually launched the browser; an attach reports the endpoint it recorded, plus `note` when that endpoint changed. A socket endpoint is always an attach.
 
 ### status
-Check whether the local browser endpoint is reachable.
+Check whether the browser endpoint is reachable. This is also how you confirm *which* browser you are talking to: `version` is the browser's own `/json/version` payload (see "Confirm which browser you are driving").
 
-Arguments: `--command "status" --endpoint "optional URL"`
+Arguments: `--command "status" --endpoint "optional URL or socket"`
 
-Returns: `{"endpoint": "...", "reachable": true|false, "version": {...}}`
+Returns: `{"endpoint": "...", "reachable": true|false, "version": {...}}` — or `{"reachable": false, "error": "..."}` when it is not.
 
 ### tabs
 List, create, select, or close browser tabs. All actions return the full tab list.
