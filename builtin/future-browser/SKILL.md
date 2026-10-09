@@ -1,5 +1,5 @@
 ---
-version: 1.4.0
+version: 1.5.0
 name: future-browser
 description: Control a local visible Chrome, Edge, or Safari browser through Future CLI tools. Use for opening local apps, inspecting pages, clicking, typing, screenshots, and reading console output without modifying the Rust agent.
 allowed-tools: Bash(future:*)
@@ -116,6 +116,45 @@ future tools call browser --command "status" --endpoint "unix:/tmp/chrome.sock"
 An `Android-Package` field, or a mobile `User-Agent`, is the evidence that a
 device browser answered; a desktop browser reports neither.
 
+### Confirm which **tab** you are driving
+
+A browser can hold several tabs, and they are not interchangeable: a command
+that lands on a background tab modifies a page nobody is looking at and still
+reports success. `click` returning `{"clicked": "b2"}` is **not** evidence that
+anything happened.
+
+`tabs list` reports both facts, per tab:
+
+| field | meaning |
+|---|---|
+| `active` | the page commands will act on |
+| `visible` | the page that reports itself on screen (`document.visibilityState`) |
+
+They are normally equal. When they differ, a command is about to touch something
+the user cannot see:
+
+```text
+index 0 | BETA  | active=true  visible=false   ← the tool would click BETA
+index 1 | ALPHA | active=false visible=true    ← but the user is looking at ALPHA
+```
+
+Choose deliberately before interacting, and let the tool bring the tab to the
+front rather than hoping it picks the right one:
+
+```bash
+future tools call browser --command "tabs" --action "select" --index 1
+```
+
+**Verify an interaction by re-reading the page**, never by the action's own
+return value: re-run `snapshot` (or read `console`) and check that the DOM
+actually changed. Two situations make a "successful" action a no-op:
+
+- the command acted on a background tab (above);
+- the device consumed the input — on Android a locked or dimmed screen swallows
+  the first touch to wake itself, so the first `click` or `press` can vanish.
+  Keep the browser in the foreground, and re-snapshot to confirm before
+  concluding anything about the page.
+
 **Auto-start behavior**: When any command requiring a browser runs and no endpoint is reachable, the CLI spawns a new Chrome/Edge instance with `--remote-debugging-port`. The port defaults to 9222; if that port is occupied (by a non-CDP process), the next available port is chosen. The chosen endpoint is saved to `~/.future/agent/browser/config.json` and reused for subsequent commands. Calling `start` when a browser is already reachable does NOT start a new instance — it records the existing endpoint.
 
 ## Core Workflow
@@ -163,11 +202,18 @@ Arguments: `--command "status" --endpoint "optional URL or socket"`
 Returns: `{"endpoint": "...", "reachable": true|false, "version": {...}}` — or `{"reachable": false, "error": "..."}` when it is not.
 
 ### tabs
-List, create, select, or close browser tabs. All actions return the full tab list.
+List, create, select, or close browser tabs. Every action returns the full tab list, so the response shape does not change with the action.
 
 Arguments: `--command "tabs" --action "list|new|select|close" --index 0 --url "optional URL"`
 
-Returns: `{"tabs": [{"index": 0, "title": "...", "url": "...", "active": true}, ...], "tabCount": N}` plus action-specific fields (`created`, `selected`, or `closed`).
+Returns: `{"tabs": [{"index": 0, "title": "...", "url": "...", "active": true, "visible": true}, ...], "tabCount": N}` plus action-specific fields (`created`, `selected`, or `closed`).
+
+- `active` — the tab commands will act on.
+- `visible` — the tab that reports itself on screen. See "Confirm which tab you are driving".
+
+Indices are stable between invocations of the tool, so an `--index` from a listing addresses the same tab in the next command. They are still the *tool's* order, not necessarily the order of Chrome's own tab strip — use `visible` and `title`/`url` to be sure which tab you mean.
+
+`new` makes the new tab active, matching the browser switching to it. A `select` outranks the visibility heuristic: an explicit choice is treated as the user's decision.
 
 ### open
 Open a URL in the active tab. **Invalidates all refs.**
