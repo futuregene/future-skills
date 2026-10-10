@@ -1,41 +1,59 @@
 ---
-version: 0.2.1
+version: 0.3.0
 name: future-code
 description: >
-  Develop, debug, refactor, review, or maintain software in a local Git repository.
-  Prefer this skill when the current working directory is inside a Git repository and
-  the user's task concerns source code, tests, builds, configuration, or code review.
-  For non-code work in a repository, invoke it only when this workflow materially helps.
+  Do versioned work in a local Git repository: code, documents, data, analyses or other
+  artifacts whose history matters. Prefer this skill when the deliverable belongs in a
+  repository and the task involves writing, modifying, building, testing, reviewing or
+  maintaining tracked files, and when a project with no repository would benefit from one.
+  For work that produces no tracked artifact, invoke it only when this workflow materially helps.
 category: tools
 ---
 
-# Lightweight Code Development
+# Lightweight Versioned Development
 
-Help users complete software work without assuming they are developers. Translate the
-requested outcome into repository changes, explain decisions in plain language, and keep
-the process proportional to the task.
+Help users complete work that should be tracked in Git without assuming they are developers.
+The deliverable may be code, a document, a dataset, an analysis or a configuration: what
+makes it this skill's work is that the result belongs in a repository and its history matters.
+Translate the requested outcome into repository changes, explain decisions in plain language,
+and keep the process proportional to the task.
 
 ## 1. Establish scope and repository context
 
 1. Determine whether the current directory belongs to a Git repository. Treat that as a
-   strong selection signal when the request involves code, tests, builds, configuration,
-   debugging, refactoring, or review. A repository alone does not make an unrelated task
-   a code-development task. When Git is available, locate the root and capture the initial
-   state with `git rev-parse --show-toplevel` and `git status --short --branch`.
-2. Read applicable instructions before deciding how to work. Check `AGENTS.md`, `CLAUDE.md`,
+   strong selection signal when the request produces files worth tracking — source code,
+   tests, builds, configuration, prose documents, data, figures, analyses — or involves
+   debugging, refactoring, reviewing or otherwise revising them. A repository alone does not
+   make an unrelated task part of this workflow: a one-off question, search or retrieval that
+   produces no tracked artifact is not. When Git is available, locate the root and capture
+   the initial state with `git rev-parse --show-toplevel` and `git status --short --branch`.
+2. When the work will produce artifacts worth tracking but no repository exists yet,
+   recommend creating one and say why: version history, reviewable diffs, and the ability to
+   reproduce or revert a later state. Offer a plain `git init` (plus a `.gitignore` for
+   generated and large files); if the user has another tool or repository in mind, follow
+   their choice. Initialize only with the user's agreement — never turn an untracked folder
+   into a repository unasked.
+3. Read applicable instructions before deciding how to work. Check `AGENTS.md`, `CLAUDE.md`,
    README and contribution guides at the repository root and in relevant parent or child
    directories. More specific repository instructions override this general workflow.
-3. Identify whether the user wants an explanation, investigation, implementation, or
+4. Identify whether the user wants an explanation, investigation, implementation, or
    review. Preserve explicit boundaries: a diagnosis does not authorize a fix, and a
    review does not authorize editing unless the user also requests changes.
+5. Record the work in Git as it happens. Whenever the requested work changes tracked files,
+   commit it: prefer several small, coherent commits over one dump at the end, keep each
+   commit to a single intent, and write the message so a later reader knows why the change
+   exists, not only what it touched. Leave unrelated in-progress edits alone. Committing is
+   what makes the result traceable and reproducible, so treat a finished change left
+   uncommitted as unfinished — unless the user is keeping their own history and asks
+   otherwise.
 
 ## 2. Understand before changing
 
 Before editing, build a sufficient working understanding of:
 
-- where the behavior is owned;
-- how it is reached and consumed;
-- what tests, configuration, documentation or external contracts define the expected behavior;
+- where the affected behaviour, text or data is owned;
+- how it is reached and consumed, or which other files and documents depend on it;
+- what tests, configuration, documentation or external contracts define the expected result;
 - whether the relevant files contain existing user changes.
 
 Scale the depth of investigation to the risk and size of the task, but do not edit from an
@@ -84,8 +102,10 @@ Use history to answer a concrete question, not as a mandatory scan for every cha
   mechanical changes. Inspect the resulting diff either way.
 - Prefer existing project mechanisms and edit source-of-truth files. Do not hand-edit
   generated output when the repository provides a generator; run the documented command.
-- Add or update tests when behavior, regressions, or risky logic need durable coverage.
-  Do not add tests that only restate static values or mirror the implementation.
+- Add or update tests when behaviour, regressions, or risky logic need durable coverage.
+  Do not add tests that only restate static values or mirror the implementation. When the
+  deliverable is not code, give it the equivalent guard — a check, a script or a documented
+  manual verification — and record it with the artifact.
 
 ## 4. Verify proportionally
 
@@ -105,15 +125,60 @@ the change, the environment, missing dependencies or permissions before retrying
 
 ## 5. Keep Git work visible and recoverable
 
-- Work in the current checkout by default. If the user, repository instructions, or delivery
-  workflow requires a branch or separate checkout, state its location and resulting Git state
-  clearly.
+These rules apply to any tracked artifact — code, prose, data or configuration — because the
+repository is the record of the work.
+
+### Worktree-first change workflow
+
+For work beyond a trivial edit, isolate changes in a worktree under the repository's
+`.worktrees/` directory, on a branch of its own. Parallel sessions can then work in the same
+repository at once without fighting over one checkout, and only the base branch is shared.
+Follow this default in repositories that use it; a repository whose instructions say
+differently, and a read-only investigation, stay in the current checkout.
+
+1. Branch from the current remote tip, not from a local base branch that may lag behind:
+   `git fetch origin`, then
+   `git worktree add --no-track .worktrees/<name> -b <type>/<name> origin/<base>`. `--no-track`
+   matters: without it a plain `git push` would target the base branch. Pick the branch type
+   that matches the change (`feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `ci`, `chore`).
+2. Keep `.worktrees/` untracked (add it to `.gitignore` when it is absent). It holds whole
+   working copies, not source.
+3. Create, edit, verify and commit inside the worktree. Do not commit to the base branch, and
+   do not merge a worktree branch into the local base branch. A squash-merged pull request
+   gives the same content a different commit id, so a local fast-forward creates a divergence
+   that afterwards blocks every update of the base branch.
+4. Re-synchronize before pushing, not only when starting: fetch again, merge the base branch
+   into the worktree branch, re-run the checks that merge affects, then push. A branch that is
+   behind bounces between "update branch" requests and re-queued checks.
+5. Once the change lands, clean up in the same session: `git worktree remove .worktrees/<name>`,
+   delete the local and remote branch, `git worktree prune`, and fast-forward the local base
+   branch from its remote (`git fetch origin && git merge --ff-only origin/<base>`). Leftovers
+   hand the next session a stale worktree, a stale branch, or a stale base branch.
+6. Stay out of other sessions' work: never remove, reset, or force-update a worktree or branch
+   you did not create. If the local base branch carries commits you did not make, identify their
+   branch and report them instead of cleaning them up.
+
+### Recording the workflow
+
+Repository instructions (`AGENTS.md`, `CLAUDE.md`, contribution guides) are what parallel
+sessions actually share. When a repository that uses this skill has no recorded delivery
+convention — no branch or worktree rule, no commit or review expectation — offer to write
+this one into its `AGENTS.md` or `CLAUDE.md`. Add the parts that fit the repository's
+practice; do it through the same worktree and review flow, and only with the user's agreement.
+
+### Review before handoff
+
+- Say where the change lives — the worktree path and branch — and what the base branch looks
+  like afterwards, so the user can find it and test it.
 - Before handoff, use `git diff --stat` to review scope, `git diff` to review content, and
   `git diff --check` to catch whitespace errors. Check `git status --short --branch` as well,
   because ordinary diffs do not show the contents of untracked files. Look for accidental
-  files, generated noise, secrets, and unrelated edits.
-- Commit, push, open a pull request, merge, or publish only when the request or established
-  workflow authorizes that action. Report the actual outcome rather than the intended one.
+  files, generated noise, secrets, and unrelated edits, and confirm the intended work is
+  committed rather than left in the tree.
+- Commit the work you were asked to do; that local commit is the durable, reviewable record.
+  Push, open a pull request, merge, or publish only when the request or the established
+  workflow authorizes that further step, and report the actual outcome rather than the
+  intended one.
 
 ## 6. Escalate long work deliberately
 
@@ -130,6 +195,7 @@ the operating-system name. If delegation is available and appropriate, give agen
 code or evidence tasks; the supervising agent remains responsible for integration and
 independent verification of their results.
 
-Finish with the outcome, the important files or behavior changed, validation performed,
-and any remaining limitation or manual check. Keep the explanation short for simple tasks
-and detailed enough for the user to judge risk on larger changes.
+Finish with the outcome, the important files or behaviour changed, where the work is recorded
+(the branch, and the commits or pull request if any), validation performed, and any remaining
+limitation or manual check. Keep the explanation short for simple tasks and detailed enough
+for the user to judge risk on larger changes.
