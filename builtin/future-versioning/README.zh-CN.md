@@ -1,7 +1,7 @@
-# future-code 中文说明
+# future-versioning 中文说明
 
-`future-code` 是 FutureOS 的轻量版本化开发技能：凡是产出需要纳入 Git 版本管理的工作，
-都算它的范围——代码、文档、数据、分析、配置。FutureOS 是面向广泛用户的综合 Agent，
+`future-versioning` 是 FutureOS 的轻量版本化开发技能：凡是产出需要纳入 Git 版本管理的
+工作，都算它的范围——代码、文档、数据、分析、配置。FutureOS 是面向广泛用户的综合 Agent，
 因此这类工作以技能形式按需加载，不作为所有任务的默认人格或固定工作流。
 
 ## 触发定位

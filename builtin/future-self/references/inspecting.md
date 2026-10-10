@@ -56,7 +56,7 @@ question about spend needs the second command, not the first.
 - **`future skills list` is a catalogue, not a full inventory — and not a
   loader.** It fetches the platform catalogue and marks which of *those* skills
   are installed, so a skill that is on this machine but absent from the
-  catalogue does not appear at all (on a dev checkout `future-self`, `future-code`
+  catalogue does not appear at all (on a dev checkout `future-self`, `future-versioning`
   and `future-blog-post` are exactly that case). **`future doctor` is the command
   that lists every installed skill**, catalogue or not. The `description` column
   is the same text the system prompt shows, so it is a fair way to see what the

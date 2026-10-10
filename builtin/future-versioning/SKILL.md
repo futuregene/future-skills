@@ -1,6 +1,6 @@
 ---
-version: 0.3.0
-name: future-code
+version: 0.4.0
+name: future-versioning
 description: >
   Do versioned work in a local Git repository: code, documents, data, analyses or other
   artifacts whose history matters. Prefer this skill when the deliverable belongs in a

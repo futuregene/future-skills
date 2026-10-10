@@ -7,14 +7,6 @@
     "name_zh": "浏览器控制",
     "description_zh": "通过 Future CLI 控制本地 Chrome、Edge 或 Safari，按授权打开页面并执行网页操作"
   },
-  "future-code": {
-    "category": "tools",
-    "category_zh": "工具",
-    "builtin": true,
-    "enabled": true,
-    "name_zh": "轻量版本化开发",
-    "description_zh": "在 Git 仓库中版本化管理代码、文档、数据等成果，记录每次变更，并按项目规范完成审查、测试与验证"
-  },
   "future-database-lookup": {
     "category": "databases",
     "category_zh": "数据库",
@@ -133,6 +125,14 @@
     "enabled": true,
     "name_zh": "任务",
     "description_zh": "创建、编辑、运行并迭代 FutureOS 任务：可复用提示词 + 手动/定时/依赖触发，全权限运行并生成会话"
+  },
+  "future-versioning": {
+    "category": "tools",
+    "category_zh": "工具",
+    "builtin": true,
+    "enabled": true,
+    "name_zh": "轻量版本化开发",
+    "description_zh": "在 Git 仓库中版本化管理代码、文档、数据等成果，记录每次变更，并按项目规范完成审查、测试与验证"
   },
   "future-web": {
     "category": "tools",
