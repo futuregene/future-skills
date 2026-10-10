@@ -12,8 +12,8 @@
     "category_zh": "工具",
     "builtin": true,
     "enabled": true,
-    "name_zh": "轻量代码开发",
-    "description_zh": "帮助理解、编写、修改和调试代码，并按项目规范完成审查、测试与验证"
+    "name_zh": "轻量版本化开发",
+    "description_zh": "在 Git 仓库中版本化管理代码、文档、数据等成果，记录每次变更，并按项目规范完成审查、测试与验证"
   },
   "future-database-lookup": {
     "category": "databases",
