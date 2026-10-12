@@ -1,5 +1,5 @@
 ---
-version: 0.1.4
+version: 0.2.0
 name: future-task
 description: >
   Create, edit, run and iterate FutureOS tasks — a reusable prompt plus a trigger
@@ -31,10 +31,76 @@ something multi-step that needs judgment between steps, that is a loop, not a ta
    ambiguous:
    - **what** — the prompt (see §2);
    - **when** — manual / a schedule / after another task;
-   - **where** — the working directory, plus model and thinking level when the default
-     is wrong for the job.
+   - **where** — the working directory, **plus the model and the thinking level**. Both are
+     required on every create and edit — see below.
 3. State the plan back before writing it, unless the user's message already carries all
    of it.
+
+### Never create a task without a model and a thinking level
+
+Both are required, and neither is checked for you. `future task add` accepts a missing,
+empty or nonexistent value and still prints `Created task …` with exit 0:
+
+| What was passed | Stored | What happens at run time |
+|---|---|---|
+| no `--model` | `modelId: ""` | whatever the global default model happens to be at that moment |
+| `--model does-not-exist` | `modelId: "does-not-exist"` | **runs on a silently substituted model** (`resolve_request_target` → `replacement_model`), while the session, the run ledger and the run logs all show the id you typed |
+| no `--thinking` | `thinkingLevel: ""` | no reasoning (budget 0) |
+| `--thinking ultra` | `thinkingLevel: "ultra"` | also budget 0 — an unknown level falls through `_ => 0`, with no error and no warning |
+
+So the failure is invisible from either side: the create command reports success, the task
+runs, and nobody sees that it ran on a different model than the record claims — or that the
+reasoning you thought you asked for was off. Always pass **both**:
+
+- `--model <provider>/<id>` — full ids are `provider/model`. `future models --json` lists
+  them under `models.<provider>[].id`, and reports the user's global default as
+  `defaultModel`.
+- `--thinking <level>` — one of `off`, `minimal`, `low`, `medium`, `high`, `xhigh`.
+  **`medium` is a perfectly good choice — but say it explicitly.** "It defaults to medium"
+  is a reason to write `--thinking medium`, never a reason to leave the flag off: omitting
+  it stores empty, not `medium`.
+
+Check the catalogue before you write, and read the task back after — the create command's
+output proves nothing:
+
+```bash
+MODEL=future/deepseek-flash     # provider/model; must exist in the catalogue
+THINKING=medium                 # off|minimal|low|medium|high|xhigh
+
+future models --json | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+ids={f'{p}/{m[\"id\"]}' for p,ms in d['models'].items() for m in ms}
+assert '$MODEL' in ids, 'MODEL NOT IN CATALOGUE: $MODEL'
+print('model ok:', '$MODEL', '| global default:', d['defaultModel'])
+"
+
+future task add --name "…" --prompt-file draft.md --cwd "…" --daily --time 09:00 \
+  --model "$MODEL" --thinking "$THINKING"
+
+future task show <id> --json | python3 -c "
+import json,sys
+t=json.load(sys.stdin); t=t.get('task',t)
+assert t['modelId'], 'modelId is empty — the flag did not land'
+assert t['thinkingLevel'], 'thinkingLevel is empty — the flag did not land'
+print('stored:', t['modelId'], t['thinkingLevel'])
+"
+```
+
+`future task edit` takes the same two flags and **keeps** the stored values when they are
+omitted, so editing an existing task will not clear them. Tasks you did not create are the
+risk: one made by an older build, by a panel with the field left blank, or by another agent
+may already carry an empty `modelId`/`thinkingLevel`. Read it back, repair it with `edit`,
+and only then rely on its runs or hand it to the user.
+
+The desktop and phone editors already treat both as mandatory — no Default entry, and an
+empty field is rejected by name. The CLI is the only way to create a task without them, so
+coming through the CLI is not a reason to hold to a lower standard: the task you create
+this way lands in the same store and runs with the same consequences.
+
+The run envelope (§5) echoes the resolved settings, so a run's own record shows the model
+and level — but remember that an id which does not exist is echoed verbatim rather than
+rejected, so the echo is not evidence that the model is real.
 
 **Runs need the desktop.** The CLI writes to the task store; the desktop (or the headless
 desktop) is what actually executes a run, on its next tick. So `future task run` *queues*
