@@ -1,12 +1,12 @@
 ---
-version: 4.3.0
-name: future-loop
-description: FutureOS loop control plane — manage long-running goals, todos, human gates, workers, monitors, and validated completion. Use for cross-session work, ongoing task status, "keep working", "run overnight", or /future-loop. Not needed for a one-shot review or ordinary code edit.
+version: 5.0.0
+name: future-goal
+description: FutureOS goal control plane — manage long-running goals, todos, human gates, workers, monitors, and validated completion. Use for cross-session work, ongoing task status, "keep working", "run overnight", or /future-goal. Not needed for a one-shot review or ordinary code edit.
 allowed-tools: Bash(future:*)
 category: tools
 ---
 
-# Loop Control Plane
+# Goal Control Plane
 
 A durable goal and kanban, not an autonomous policy engine. The kernel enforces
 state/lease/acceptance consistency; the agent chooses strategies and judges
@@ -14,8 +14,8 @@ results. Persistent evidence is authoritative; chat/session context is a cache.
 
 ## 1. Inspect and agree on the operating contract
 
-1. Run `future loop status` in the project directory. Resume a matching goal;
-   do not create duplicates. A one-shot conversation needs no loop goal.
+1. Run `future goal status` in the project directory. Resume a matching goal;
+   do not create duplicates. A one-shot conversation needs no goal.
 2. State the objective, deliverables, acceptance checks, operating budget,
    escalation conditions and worker configuration. Ask for confirmation when
    these were not already specified. Default model = current session model;
@@ -30,9 +30,9 @@ results. Persistent evidence is authoritative; chat/session context is a cache.
    bounds outer loop iterations, NOT tokens or inner model/tool calls. Do not
    advertise a hard monetary cap unless the underlying runtime enforces it.
 
-State root = process cwd + `.future/loop/`, or `FUTURE_LOOP_ROOT`. `goal init
+State root = process cwd + `.future/goal/`, or `FUTURE_GOAL_ROOT`. `goal init
 --cwd DIR` records the project anchor; it does not relocate the ledger. Add the
-state directory to `.gitignore`. Use `future loop <command> <verb> --help` for
+state directory to `.gitignore`. Use `future goal <command> <verb> --help` for
 exact flags; unsupported flags are errors. Before using this version, check that
 `supervisor steer --help` lists `--interrupt` and `supervisor watch --help` exists.
 If not, update the executable; do not apply the old interrupt semantics or write
@@ -42,11 +42,11 @@ with the CLI; tests must use an isolated root and fresh agent endpoint.
 ## 2. Create and wire the work
 
 ```bash
-future loop goal init --objective "..."
-future loop supervisor register --goal G --session-id YOUR_CURRENT_SESSION_ID
-future loop todo add --goal G --text "..." --owner worker-a --verify "cargo check -p X"
-future loop todo add --goal G --text "Read work/a.md and independently verify ..." --blocks T1 --owner reviewer
-future loop todo add --goal G --text "Final review and handoff" --class coordination --blocks T1,T2
+future goal goal init --objective "..."
+future goal supervisor register --goal G --session-id YOUR_CURRENT_SESSION_ID
+future goal todo add --goal G --text "..." --owner worker-a --verify "cargo check -p X"
+future goal todo add --goal G --text "Read work/a.md and independently verify ..." --blocks T1 --owner reviewer
+future goal todo add --goal G --text "Final review and handoff" --class coordination --blocks T1,T2
 ```
 
 Copy YOUR session ID from the environment, not an old worker's session. Re-register
@@ -82,7 +82,7 @@ intentional: complete its connection check or supersede it with a stated reason.
   existence, not the quality of a report. Attach `--verify` for deterministic
   checks, and assign scientific/content correctness to a reviewer.
 - Validators have an independent 120-second default timeout, bounded output
-  capture, and process-tree cleanup. Set `FUTURE_LOOP_VALIDATOR_TIMEOUT_SECS`
+  capture, and process-tree cleanup. Set `FUTURE_GOAL_VALIDATOR_TIMEOUT_SECS`
   to a positive number for known longer checks. Commands use `sh -c` on Unix
   and `cmd.exe /D /S /C` on Windows; write platform-appropriate commands or call
   a portable validation program.
@@ -98,8 +98,8 @@ checks live task scopes atomically with lease acquisition, so disjoint tasks can
 share a checkout without forcing. These declarations are not a filesystem sandbox.
 
 ```bash
-future loop todo add --goal G --text "Write papers/a.md" --owner worker-a --required-write-scope papers/a.md
-future loop todo add --goal G --text "Write papers/b.md" --owner worker-b --required-write-scope papers/b.md
+future goal todo add --goal G --text "Write papers/a.md" --owner worker-a --required-write-scope papers/a.md
+future goal todo add --goal G --text "Write papers/b.md" --owner worker-b --required-write-scope papers/b.md
 ```
 
 Do not give every worker the shared parent `papers/` when they only write distinct
@@ -115,9 +115,9 @@ is relative to the onboarding CLI cwd). Absolute task paths alone do not fix an
 older guard. Check startup errors in worker logs, not just the `ended` status.
 
 ```bash
-future loop run --goal G --agent-id worker-a --model M --thinking-level L --max-turns 1
-future loop worker list --goal G
-future loop worker tail --goal G --agent-id worker-a --lines 30
+future goal run --goal G --agent-id worker-a --model M --thinking-level L --max-turns 1
+future goal worker list --goal G
+future goal worker tail --goal G --agent-id worker-a --lines 30
 ```
 
 `run` detaches by default and prints its PID/log path. Verify the worker started;
@@ -128,7 +128,7 @@ notifications before connecting to the agent, coalesces them into batches (up to
 replan, or relaunch work.
 
 While you are busy, the batches that arrive queue behind your run and fold into
-ONE next turn: a single prompt can carry several `[future-loop] goal G: …`
+ONE next turn: a single prompt can carry several `[future-goal] goal G: …`
 sections, one per batch. Reconcile it as one reading of the current board, not as
 one question per section — act once on the state you observe, and do not restart a
 worker merely because an old report is in the bundle. Batches arriving while you
@@ -139,7 +139,7 @@ are idle still get their own turn, and a folded batch is acknowledged as `merged
   a watcher failure, resume supervision with `supervisor watch --goal G` (foreground;
   run under the host service manager for boot persistence). `--once` performs one
   reconciliation. There is no promise of surviving power loss without a host service.
-- `FUTURE_LOOP_NO_DETACH=1` is for foreground embedding/tests; `--detach` is an
+- `FUTURE_GOAL_NO_DETACH=1` is for foreground embedding/tests; `--detach` is an
   internal child marker, not a user request to background the command.
 - Notifications are triggers, not authority. Automatic completion produces a JSON
   `task_delivery` receipt with goal/todo/agent/run/session IDs, validation, recent
@@ -188,7 +188,7 @@ churn can be useless. No-write signals are advisory, not proof of a stuck model.
 
 At a checkpoint, ask: what changed since the previous attempt, what evidence
 supports it, what remains uncertain, and why is another attempt worth its cost?
-Request a durable milestone with `future loop report` when appropriate; never
+Request a durable milestone with `future goal report` when appropriate; never
 force dummy file writes to satisfy a detector. Compare supervisor overhead,
 useful verified outputs, repeated work and human interventions, not raw turns.
 
@@ -196,10 +196,10 @@ useful verified outputs, repeated work and human interventions, not raw turns.
 
 ```bash
 # Routine guidance: next boundary, no discarded in-flight reasoning
-future loop supervisor steer --goal G --agent-id worker-a --instruction "Read the new measurement before retrying"
+future goal supervisor steer --goal G --agent-id worker-a --instruction "Read the new measurement before retrying"
 # Urgent correction / stop-loss: actually interrupts the running session
-future loop supervisor steer --goal G --agent-id worker-a --interrupt --instruction "Stop using the invalid dataset; use the corrected input"
-future loop worker stop --goal G --agent-id worker-a
+future goal supervisor steer --goal G --agent-id worker-a --interrupt --instruction "Stop using the invalid dataset; use the corrected input"
+future goal worker stop --goal G --agent-id worker-a
 ```
 
 Steering is recipient-scoped; broadcasts are acknowledged independently by each

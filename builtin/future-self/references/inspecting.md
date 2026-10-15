@@ -25,7 +25,7 @@ interchangeable and are not.
 | `future session transcript --session <id>` | One session's records sliced and paged: every user message, thinking, a tool's inputs/outputs/paths, per-run outcomes (`recall.md`) |
 | `future session forks <id>` | The user turns a session can be branched at |
 | `future session approvals <id>` | Approval requests the session is waiting on |
-| `future loop status` | Long-running goals, if any are open in this directory |
+| `future goal status` | Long-running goals, if any are open in this directory |
 
 **`info` and `status` answer different questions and are easy to confuse.**
 `info` reads what was recorded; `status` reads what the agent is doing and how

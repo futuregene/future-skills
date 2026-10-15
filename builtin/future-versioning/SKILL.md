@@ -182,7 +182,7 @@ practice; do it through the same worktree and review flow, and only with the use
 
 ## 6. Escalate long work deliberately
 
-Use `future-loop` for work that must continue across sessions, run for a long time, maintain
+Use `future-goal` for work that must continue across sessions, run for a long time, maintain
 durable todos, or satisfy an explicit "keep working" request. Check for a matching existing
 goal before creating one, define concrete completion evidence, and keep ordinary one-shot
 edits in the current session.
