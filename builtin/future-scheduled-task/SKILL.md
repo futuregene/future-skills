@@ -3,11 +3,11 @@ version: 0.2.0
 name: future-scheduled-task
 description: >
   Create, edit, run and iterate scheduled tasks — a reusable prompt plus a trigger
-  (a schedule or on demand) that runs at full permission and
-  produces an ordinary conversation. Use when the user asks for a recurring job, a
-  scheduled reminder, "every day / week / month …", "run this after that finishes",
-  a prompt they want to refine over several runs, or a scheduled task to trigger from
-  another agent. Also use it to fix a scheduled task whose output keeps missing the mark.
+  (a schedule, or on demand) that runs at full permission and produces an ordinary
+  conversation. Use when the user asks for a recurring job, a scheduled reminder,
+  "every day / week / month …", a prompt they want to refine over several runs, or a
+  scheduled task to trigger from another agent. Also use it to fix a scheduled task
+  whose output keeps missing the mark.
 category: tools
 allowed-tools: Bash(future:*)
 ---
