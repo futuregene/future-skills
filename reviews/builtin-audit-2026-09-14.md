@@ -20,7 +20,7 @@
 | future-document | 保留 | 核对 parse_doc 接口；本地/远程解析边界、部分结果与视觉核验限制清楚。未上传文件。 |
 | future-experimental-design | 修正至 0.0.5 | 拒绝重复/缺失 cluster ID、非法 crossover 参数和静默补造/丢弃的处理标签；澄清 cyclic Latin 不等于 carryover-balanced Williams；完善随机分配及隐藏分配序列的说明。 |
 | future-image | 保留 | 核对 image_gen/image_edit/read_image 参数；现有超时、授权、付费重试不确定性和文件验证契约合理。未执行付费图片调用。 |
-| future-loop | 保留 | 本机 help 支持 `steer --interrupt`、`supervisor watch`、相对 goal cwd 的 write scopes；静态契约测试通过。未建立 goal、启动 worker 或改动 ledger。 |
+| future-goal | 保留 | 本机 help 支持 `steer --interrupt`、`supervisor watch`、相对 goal cwd 的 write scopes；静态契约测试通过。未建立 goal、启动 worker 或改动 ledger。 |
 | future-paper | 保留 | 核对 search_paper/get_paper 参数；明确摘要不等于全文、生成摘要不等于原文证据。未额外发起论文检索。 |
 | future-peer-review | 修正至 0.1.1 | 退役有错误接口和“审图失败算通过”逻辑的历史画图器，保留无外部调用的迁移提示入口；独立绘图请求转 future-image；更新报告规范指向。 |
 | future-scientific-writing | 修正至 0.1.1 | 将过期的“最新版”更新为 CONSORT 2025、SPIRIT 2025、TRIPOD+AI；区分参考摘要与完整官方 checklist。 |
