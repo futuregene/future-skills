@@ -40,13 +40,14 @@ it.
 # recorded with the session
 future session set <id> --model <id> --thinking <level> --cwd <dir> --title <name>
 future session set <id> --parent <session-id>   # lineage only; "" detaches
+future session set <id> --append-system-prompt "…"   # see below; "" clears
 # --cwd also files the conversation in the desktop app's workspace list — see
 # `desktop-app.md`; the directory must exist for that part.
 
 # applied to the live session; `--json` reports what landed under `updated`
 future session set <id> --tools read,shell --permission workspace --sandbox manual
 future session set <id> --context-files off --auto-compact off --auto-retry on
-future session set <id> --system-prompt "…" --append-system-prompt "…"
+future session set <id> --system-prompt "…"
 
 future session rename <id> <name>       # the shorter form of --title
 future session compact --session <id>   # compact that session's context now
@@ -65,10 +66,55 @@ compaction events. Active runs are rejected, and it requires an explicit
 `--permission` is the approval gate (`all|workspace|none`) and `--sandbox` the
 OS wrapping (`off|manual|sandbox`) — independent settings, and `sandbox` is
 refused when the platform cannot provide one. `future session status <id>` reads
-back the permission level, the sandbox tier (`sandboxTier`), auto-compact and the
-context files — but **not** `--auto-retry`, the tool set or the system prompt, so
-confirm those from `session set --json`, whose `updated` map names what it
-applied. Check the read-back rather than assuming a change landed.
+back the permission level, the sandbox tier (`sandboxTier`), auto-compact, the
+context files and the system-prompt append segment — but **not** `--auto-retry`
+or the tool set, so confirm those from `session set --json`, whose `updated` map
+names what it applied. Check the read-back rather than assuming a change landed.
+
+## Rules that should keep applying
+
+When the same instruction has to be restated in every message — an output format,
+a language, a house style, a standing prohibition — put it in the session's
+system prompt once instead of repeating it per turn. The user's messages stay
+short, and the rule is in force from the first token of every run rather than
+competing with whatever else the turn contains.
+
+Two knobs exist and they behave differently:
+
+| | `--append-system-prompt "…"` | `--system-prompt "…"` |
+|---|---|---|
+| Lands | after the project context and workspace memory | as the whole prompt, replacing the built-in one |
+| Stored | with the session record | nothing is stored |
+| Survives | an Agent restart, and applies to runs any client starts | until the Agent stops, then gone |
+
+**Use `--append-system-prompt` for anything meant to persist.** `--system-prompt`
+is applied to the live session only: the next run rebuilds the prompt from its
+built-in sections (identity, skills, project context, workspace memory), so a
+replacement does not outlive the run it was set for — do not promise the user it
+will.
+
+```bash
+future session new --append-system-prompt "Answer in 中文." --json   # at creation
+future session set <id> --append-system-prompt "Answer in 中文."     # or after
+future session set <id> --append-system-prompt ""                    # clear it
+future session status <id>                                          # read it back
+future session status <id> --system-prompt                          # the whole prompt
+```
+
+`status` reports the segment on one line and whether project context is folded
+in; add `--system-prompt` for the full text the next run would send (tens of
+kilobytes — ask for it when you need to quote or check it, not as a routine
+read). `--json` carries `appendSystemPrompt` and `contextFilesEnabled`.
+
+Two things to get right before writing one:
+
+- **It is a standing instruction, so wording matters.** It applies to every later
+  turn in that conversation, including turns the user has not asked about yet.
+  Say what the user asked for, not a guess at what they would like.
+- **It is the user's decision, like any other setting** (see the ground rules in
+  `SKILL.md`). Propose the text and read back what landed. Prefer it over
+  inventing a notes file: the rule lives where the model already reads.
+
 
 ## Stopping work and answering approvals
 
