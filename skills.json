@@ -124,7 +124,7 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "定时任务",
-    "description_zh": "创建、编辑、运行并迭代定时任务：可复用提示词 + 定时/手动/依赖触发，全权限运行并生成会话"
+    "description_zh": "创建、编辑、运行并迭代定时任务：可复用提示词 + 定时或手动触发，全权限运行并生成会话"
   },
   "future-versioning": {
     "category": "tools",
