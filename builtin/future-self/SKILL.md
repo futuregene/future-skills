@@ -1,5 +1,5 @@
 ---
-version: 1.9.0
+version: 1.10.0
 name: future-self
 description: Inspect and adjust this FutureOS installation — global agent settings, the desktop app's own settings and workspaces, sessions, skills, tools and models, the account and credit balance, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", "what did we do before", "how is my account" or "show me my balance", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, slicing one session's own records (including thinking and tool inputs/outputs), reading or changing global agent or desktop-app settings, adding a workspace from the terminal, reloading the model registry after a hand-edited models.json (重载/刷新模型), understanding the code behind a behaviour, or account profile and credit balance. Never for reading credentials, and not for ordinary task work on the user's project.
 allowed-tools: Bash(future:*)
