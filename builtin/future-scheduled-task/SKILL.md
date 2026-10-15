@@ -1,32 +1,33 @@
 ---
 version: 0.2.0
-name: future-task
+name: future-scheduled-task
 description: >
-  Create, edit, run and iterate FutureOS tasks — a reusable prompt plus a trigger
-  (manual, schedule, or dependency on another task) that runs at full permission and
+  Create, edit, run and iterate scheduled tasks — a reusable prompt plus a trigger
+  (a schedule, on demand, or dependency on another task) that runs at full permission and
   produces an ordinary conversation. Use when the user asks for a recurring job, a
   scheduled reminder, "every day / week / month …", "run this after that finishes",
   a prompt they want to refine over several runs, or a scheduled task to trigger from
-  another agent. Also use it to fix a task whose output keeps missing the mark.
+  another agent. Also use it to fix a scheduled task whose output keeps missing the mark.
 category: tools
 allowed-tools: Bash(future:*)
 ---
 
-# FutureOS tasks
+# Scheduled tasks
 
-A task is one durable unit of work: a **prompt**, a **working directory**, an optional
-**model / thinking level**, and a **trigger**. Each run opens (or reuses) an ordinary
-conversation, runs at **full permission** with no approval prompts, and writes a run
-record. The prompt is the part that is hard to get right — this skill exists mainly to
-make the prompt good and to keep improving it with evidence.
+A scheduled task is one durable unit of work: a **prompt**, a **working directory**, an
+optional **model / thinking level**, and a **trigger**. Each run opens (or reuses) an
+ordinary conversation, runs at **full permission** with no approval prompts, and writes a
+run record. It runs on its trigger, and can always be run on demand as well. The prompt is
+the part that is hard to get right — this skill exists mainly to make the prompt good and
+to keep improving it with evidence.
 
 Not the same as `future goal`: a goal is a long-running objective with todos, evidence and human
-gates. A task is one fixed action that finishes in a single run. If the user describes
-something multi-step that needs judgment between steps, that is a goal, not a task.
+gates. A scheduled task is one fixed action that finishes in a single run. If the user describes
+something multi-step that needs judgment between steps, that is a goal, not a scheduled task.
 
 ## 1. Before creating anything
 
-1. `future task list --json` — reuse an existing task rather than duplicating it.
+1. `future task list --json` — reuse an existing scheduled task rather than duplicating it.
 2. Settle the three things the user must decide, and ask only about what is genuinely
    ambiguous:
    - **what** — the prompt (see §2);
@@ -36,7 +37,7 @@ something multi-step that needs judgment between steps, that is a goal, not a ta
 3. State the plan back before writing it, unless the user's message already carries all
    of it.
 
-### Never create a task without a model and a thinking level
+### Never create a scheduled task without a model and a thinking level
 
 Both are required, and neither is checked for you. `future task add` accepts a missing,
 empty or nonexistent value and still prints `Created task …` with exit 0:
