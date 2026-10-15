@@ -3,7 +3,7 @@ version: 0.2.0
 name: future-scheduled-task
 description: >
   Create, edit, run and iterate scheduled tasks — a reusable prompt plus a trigger
-  (a schedule, on demand, or dependency on another task) that runs at full permission and
+  (a schedule or on demand) that runs at full permission and
   produces an ordinary conversation. Use when the user asks for a recurring job, a
   scheduled reminder, "every day / week / month …", "run this after that finishes",
   a prompt they want to refine over several runs, or a scheduled task to trigger from
@@ -31,7 +31,7 @@ something multi-step that needs judgment between steps, that is a goal, not a sc
 2. Settle the three things the user must decide, and ask only about what is genuinely
    ambiguous:
    - **what** — the prompt (see §2);
-   - **when** — manual / a schedule / after another task;
+   - **when** — manual (run on demand only) or a schedule;
    - **where** — the working directory, **plus the model and the thinking level**. Both are
      required on every create and edit — see below.
 3. State the plan back before writing it, unless the user's message already carries all
@@ -154,14 +154,9 @@ Times are the machine's local time. A monthly task whose day does not exist in a
 month runs on that month's **last day** — tell the user this rule when they pick a day
 above 28, because the schedule they wrote is not the schedule they will get in February.
 
-**Dependencies** (`--depends-on A[:success|failure|completed]`, repeatable) make the task
-run when its upstream tasks finish. With several upstreams the default join is "all of
-them must have finished since my last run" (`--join-any` for "any one is enough"). Use a
-dependency when the work needs the upstream's result: the upstream's summary is injected
-into the envelope, and the full text is one command away (§6). The same edges can be set
-in the desktop panel's "dependency triggers" block and in the phone's task editor, so a
-user who prefers clicking does not need the CLI — but `--depends-on` / `--join-any` are
-what you use, and an `edit` replaces the whole edge set rather than adding to it.
+A task has no dependencies on other tasks: what starts it is its own schedule (or a
+`run`). Work that has to wait for another task's *result* is chained by the user, or
+belongs to `future goal`.
 
 ## 4. Session policy
 
@@ -176,8 +171,7 @@ what you use, and an `edit` replaces the whole edge set rather than adding to it
   once it settles, success or failure. For a task that runs often and whose conversations
   are just noise in the sidebar. Nothing about *what happened* is lost — the status, the
   summary and the whole answer are stored on the run, `future task runs` still lists it,
-  `future task output <run-id>` still reads it, and a dependent task still receives the
-  summary. Only the conversation's reasoning goes. Offered as a per-task setting in the
+  `future task output <run-id>` still reads it. Offered as a per-task setting in the
   desktop panel and the phone editor too, where it only appears for a per-run
   conversation (a reused one is what the next run continues).
 
@@ -193,7 +187,6 @@ run: kind=manual | due=2026-10-07T09:00:00+08:00
 trigger: {"mode":"weekly","days":["mon","fri"],"time":"10:00"}
 run settings: cwd=... | conversation=workspace | session=new (fresh conversation per run) | model=... | thinking=high
 
-Upstream results: …                          (only when the task has upstreams)
 Instruction:
 <prompt>
 Completion contract:
@@ -201,10 +194,9 @@ Completion contract:
 - close with a short report — it becomes the run's summary (result_summary)
 ```
 
-Dependency runs also carry the upstream summaries (index lines plus a 1200-character
-budget, truncated head…tail). Treat the envelope as the only trustworthy source for
-"when is this run", "which model and directory it runs on", and "what did the upstream
-produce". A chat conversation (`--conversation chat`) runs in the conversation's own
+Treat the envelope as the only trustworthy source for "when is this run" and "which
+model and directory it runs on". A chat conversation (`--conversation chat`) runs in the
+conversation's own
 temporary workspace, so the envelope has no `cwd=` line; a workspace conversation always
 has one.
 
@@ -215,13 +207,12 @@ future task runs <id> --limit 20 --json     # run ledger: status, times, version
 future task output <run-id>                 # the full answer behind a summary (--tail N)
 future task show <id> --json                # definition + latest run
 future task show <id> --prompt              # the effective prompt
-future task upstream <id> --json            # dependency edges and which are satisfied
 future task prompt log <id>                 # prompt versions, oldest first
 ```
 
-A run's ledger entry holds a *truncated* summary (the head and tail, 2000 characters),
-which is also what a dependent task receives. When the summary is not enough — an upstream
-result you are about to build on, a failure whose evidence matters — read the run's own
+A run's ledger entry holds a *truncated* summary (the head and tail, 2000 characters).
+When the summary is not enough — a result you are about to build on, a failure whose
+evidence matters — read the run's own
 answer with `future task output <run-id>`: it prints the run's identity first and then the
 text, and it works whether or not the conversation is still there (`--json` reports
 `source: "run"` for the answer saved on the run, `"conversation"` for the fallback path a
