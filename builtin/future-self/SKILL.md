@@ -1,5 +1,5 @@
 ---
-version: 1.8.0
+version: 1.9.0
 name: future-self
 description: Inspect and adjust this FutureOS installation — global agent settings, the desktop app's own settings and workspaces, sessions, skills, tools and models, the account and credit balance, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", "what did we do before", "how is my account" or "show me my balance", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, slicing one session's own records (including thinking and tool inputs/outputs), reading or changing global agent or desktop-app settings, adding a workspace from the terminal, reloading the model registry after a hand-edited models.json (重载/刷新模型), understanding the code behind a behaviour, or account profile and credit balance. Never for reading credentials, and not for ordinary task work on the user's project.
 allowed-tools: Bash(future:*)
@@ -72,6 +72,7 @@ detail recalled from this page alone is usually a detail missed.
 | `future version --json` | Which build this is: version, **commit**, target, dirty |
 | `future session list --json` | Every session, newest first, with its `cwd`, model and title |
 | `future session status <id> [--json]` | One session's **live state**: permission, context, runs |
+| `future session status <id> --system-prompt` | The whole prompt that session's next run would send |
 | `future session transcript --session <id> --counts --json` | What kinds of records a session holds |
 | `future session history search --all --query <text> --json` | Whether a topic appears anywhere |
 | `future account balance` | Remaining credits (a remote call — see `references/account.md`) |
@@ -103,9 +104,13 @@ The point of all of the above is a personal agent that needs less re-explaining.
   Chinese" (observed) is different from "you prefer terse answers" (inferred).
   Say which one you are acting on when it changes what you do.
 - **Preferences are not stored anywhere by default.** If the user wants the
-  agent to remember something, propose writing it down explicitly — a notes
-  file in their workspace, or a `future config` value when the setting exists —
-  and say where you put it. Do not silently accumulate a private profile.
+  agent to remember something, propose writing it down explicitly — a standing
+  rule for one conversation goes in that session's system prompt
+  (`future session set <id> --append-system-prompt "…"`, see
+  `references/settings.md`), something that should hold everywhere goes in a
+  `future config` value when the setting exists, and otherwise a notes file in
+  their workspace — and say where you put it. Do not silently accumulate a
+  private profile.
 - **Prefer asking to inferring when the cost of being wrong is real.** Changing
   a default model, permission level or sandbox tier on an inferred preference
   is not acceptable; on an explicit request it is.
