@@ -83,28 +83,38 @@ Two knobs exist and they behave differently:
 
 | | `--append-system-prompt "…"` | `--system-prompt "…"` |
 |---|---|---|
-| Lands | after the project context and workspace memory | as the whole prompt, replacing the built-in one |
-| Stored | with the session record | nothing is stored |
-| Survives | an Agent restart, and applies to runs any client starts | until the Agent stops, then gone |
+| Lands | after the project context and workspace memory | as the prompt's opening section, instead of the built-in identity and tool rules |
+| Stored | with the session record | with the session record |
+| Survives | an Agent restart, and applies to runs any client starts | the same |
+| Cleared by | an empty value | an empty value |
 
-**Use `--append-system-prompt` for anything meant to persist.** `--system-prompt`
-is applied to the live session only: the next run rebuilds the prompt from its
-built-in sections (identity, skills, project context, workspace memory), so a
-replacement does not outlive the run it was set for — do not promise the user it
-will.
+Both are recorded with the session, which is what makes them worth using over
+repeating an instruction in every message. **Prefer `--append-system-prompt`**
+unless the built-in prompt is actively in the way: it adds rules without
+removing the identity, tool and approval guidance the agent needs to behave, and
+it is the narrower change to explain to the user.
+
+`--system-prompt` replaces that opening section outright — project context,
+workspace memory and the append still follow it, but the built-in identity and
+tool guidance are gone. Reach for it when the user wants a genuinely different
+assistant for that conversation, not to nudge a behaviour.
 
 ```bash
 future session new --append-system-prompt "Answer in 中文." --json   # at creation
 future session set <id> --append-system-prompt "Answer in 中文."     # or after
 future session set <id> --append-system-prompt ""                    # clear it
-future session status <id>                                          # read it back
+future session set <id> --system-prompt "You review, you do not edit."  # replace
+future session status <id>                                          # read both back
 future session status <id> --system-prompt                          # the whole prompt
 ```
 
-`status` reports the segment on one line and whether project context is folded
-in; add `--system-prompt` for the full text the next run would send (tens of
-kilobytes — ask for it when you need to quote or check it, not as a routine
-read). `--json` carries `appendSystemPrompt` and `contextFilesEnabled`.
+`status` reports the append on one line and, when set, that the prompt is
+replaced; add `--system-prompt` for the full text the next run would send (tens
+of kilobytes — ask for it when you need to quote or check it, not as a routine
+read) and `--json` for it as an object. `--json` on its own carries
+`appendSystemPrompt`, `customSystemPrompt` and `contextFilesEnabled`.
+`future session info` reads the recorded values back from the journal, so it
+still answers when you only want to know what was set.
 
 Two things to get right before writing one:
 
