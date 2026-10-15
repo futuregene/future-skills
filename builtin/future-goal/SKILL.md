@@ -1,5 +1,5 @@
 ---
-version: 5.0.0
+version: 5.1.0
 name: future-goal
 description: FutureOS goal control plane — manage long-running goals, todos, human gates, workers, monitors, and validated completion. Use for cross-session work, ongoing task status, "keep working", "run overnight", or /future-goal. Not needed for a one-shot review or ordinary code edit.
 allowed-tools: Bash(future:*)
@@ -30,19 +30,21 @@ results. Persistent evidence is authoritative; chat/session context is a cache.
    bounds outer loop iterations, NOT tokens or inner model/tool calls. Do not
    advertise a hard monetary cap unless the underlying runtime enforces it.
 
-State root = process cwd + `.future/goal/`, or `FUTURE_GOAL_ROOT`. `goal init
---cwd DIR` records the project anchor; it does not relocate the ledger. Add the
-state directory to `.gitignore`. Use `future goal <command> <verb> --help` for
-exact flags; unsupported flags are errors. Before using this version, check that
-`supervisor steer --help` lists `--interrupt` and `supervisor watch --help` exists.
-If not, update the executable; do not apply the old interrupt semantics or write
-new-schema events with an older binary. Agent transport discovery is shared
-with the CLI; tests must use an isolated root and fresh agent endpoint.
+State root = process cwd + `.future/goal/`, or `FUTURE_GOAL_ROOT`. `init --cwd
+DIR` records the project anchor; it does not relocate the ledger. Add the state
+directory to `.gitignore`. Use `future goal <command> [<verb>] --help` for exact
+flags; a leading group name is optional, so `future goal goal init` and
+`future goal init` are the same command. Unsupported flags are errors. Before
+using this version, check that `supervisor steer --help` lists `--interrupt` and
+`supervisor watch --help` exists. If not, update the executable; do not apply
+the old interrupt semantics or write new-schema events with an older binary.
+Agent transport discovery is shared with the CLI; tests must use an isolated
+root and fresh agent endpoint.
 
 ## 2. Create and wire the work
 
 ```bash
-future goal goal init --objective "..."
+future goal init --objective "..."
 future goal supervisor register --goal G --session-id YOUR_CURRENT_SESSION_ID
 future goal todo add --goal G --text "..." --owner worker-a --verify "cargo check -p X"
 future goal todo add --goal G --text "Read work/a.md and independently verify ..." --blocks T1 --owner reviewer
