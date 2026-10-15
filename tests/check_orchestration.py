@@ -12,7 +12,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = [
-    ROOT / "builtin" / "future-loop" / "SKILL.md",
+    ROOT / "builtin" / "future-goal" / "SKILL.md",
     ROOT / "third-party" / "future-explore" / "SKILL.md",
 ]
 CASES = [
@@ -38,7 +38,7 @@ CASES = [
      "Is this independent corroboration of correctness?", False),
     ("joint-change", "A rerun changed model, input data, algorithm and budget and gained 40 points. No controlled comparison exists.",
      "Is all 40 points proven attributable to the model change alone?", False),
-    ("watchdog-boundary", "The loop watchdog runs, but there is no adapter or monitor for the external GPU service.",
+    ("watchdog-boundary", "The goal watchdog runs, but there is no adapter or monitor for the external GPU service.",
      "Does the watchdog guarantee automatic detection of GPU readiness?", False),
 ]
 

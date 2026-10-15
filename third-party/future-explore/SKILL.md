@@ -150,7 +150,7 @@ or range cannot clear a requirement over an untested domain.
 
 ## Explore, hand off and resume
 
-For durable/multi-worker work, load `future-loop`, inspect existing goals, use
+For durable/multi-worker work, load `future-goal`, inspect existing goals, use
 owner-scoped tasks and isolated output directories, and name relevant artifact
 paths and versions in downstream briefs. Do not feed every worker the entire
 cross-task ledger. At each checkpoint ask what new evidence changed the decision,
@@ -175,7 +175,7 @@ One worker's completion or a `last todo` label never establishes global closure.
 Each asynchronous experiment names a monitor owner, job/receipt ID, result endpoint,
 next check, timeout handling, supported wakeup mechanism and reserved monitoring
 budget. Read existing receipts; never resubmit an irreversible action just to find
-its ID. The loop watchdog handles loop liveness/outbox, not arbitrary external
+its ID. The goal watchdog handles goal liveness/outbox, not arbitrary external
 scores or resource allocation. If no persistent monitoring exists, disclose that
 rather than promising automatic follow-up. On new results or unblocking events,
 reassess within valid authorization; ask only for expired or changed permissions.

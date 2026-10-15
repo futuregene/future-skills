@@ -33,7 +33,7 @@ carries its own orientation:
 | `CLAUDE.md` | Workspace layout: which crate owns what, and which slice of `~/.future/` |
 | `docs/README.md` | The docs index — guides, architecture, internals |
 | `docs/guide/` | User-facing behaviour: CLI, settings, sessions, channels, screenshots |
-| `docs/architecture/` | The design behind a subsystem (loop control plane, storage, RPC) |
+| `docs/architecture/` | The design behind a subsystem (goal control plane, storage, RPC) |
 | `FUTURE.md` + `.future/memory/` | Institutional gotchas recorded by earlier sessions — read the matching entry before working in that area |
 | `packages/rpc/proto/future.proto` | The RPC wire contract: the single source of truth for every command and event |
 

@@ -20,9 +20,9 @@ conversation, runs at **full permission** with no approval prompts, and writes a
 record. The prompt is the part that is hard to get right — this skill exists mainly to
 make the prompt good and to keep improving it with evidence.
 
-Not the same as `future loop`: loop is a long-running goal with todos, evidence and human
+Not the same as `future goal`: a goal is a long-running objective with todos, evidence and human
 gates. A task is one fixed action that finishes in a single run. If the user describes
-something multi-step that needs judgment between steps, that is a loop, not a task.
+something multi-step that needs judgment between steps, that is a goal, not a task.
 
 ## 1. Before creating anything
 

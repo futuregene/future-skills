@@ -1,12 +1,12 @@
-"""Offline guardrails for the loop CLI instructions (no model/tool execution)."""
+"""Offline guardrails for the goal CLI instructions (no model/tool execution)."""
 from pathlib import Path
 import re
 import unittest
 
-SKILL = Path(__file__).resolve().parents[1] / "builtin" / "future-loop" / "SKILL.md"
+SKILL = Path(__file__).resolve().parents[1] / "builtin" / "future-goal" / "SKILL.md"
 
 
-class LoopContractTests(unittest.TestCase):
+class GoalContractTests(unittest.TestCase):
     def test_documented_id_pattern_matches_added_not_created(self):
         text = SKILL.read_text(encoding="utf-8")
         pattern = re.search(r"`(todo\\s[^`\n]+)`", text).group(1)
