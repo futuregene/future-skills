@@ -77,6 +77,7 @@ detail recalled from this page alone is usually a detail missed.
 | `future session history search --all --query <text> --json` | Whether a topic appears anywhere |
 | `future account balance` | Remaining credits (a remote call — see `references/account.md`) |
 | `future doctor` | One pass over login, agent, sandbox, providers, sessions, skills |
+| `future mcp list` | MCP servers this CLI can call (using them is the `future-mcp` skill) |
 
 **`session info` and `session status` answer different questions and are easy to
 confuse.** `info` reads what was recorded; `status` reads what the agent is doing
