@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 COMMANDS = [
     ["tests/check_builtin.py"],
     ["-m", "unittest", "discover", "-s", "tests", "-v"],
-    ["-m", "unittest", "discover", "-s", "builtin/future-experimental-design/tests", "-v"],
+    ["-m", "unittest", "discover", "-s", "third-party/future-experimental-design/tests", "-v"],
     ["-m", "unittest", "discover", "-s", "builtin/future-slides/tests", "-v"],
     ["tests/check_orchestration.py"],
     ["builtin/future-deep-research/tests/check_skill.py"],

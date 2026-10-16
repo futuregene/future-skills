@@ -34,7 +34,6 @@
   "future-experimental-design": {
     "category": "methodology",
     "category_zh": "方法论",
-    "builtin": true,
     "enabled": true,
     "name_zh": "实验设计",
     "description_zh": "设计科学实验方案，包括对照组、样本量计算、随机化和统计分析计划"
