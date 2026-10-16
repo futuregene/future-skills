@@ -1,5 +1,5 @@
 ---
-version: 1.10.0
+version: 1.11.0
 name: future-self
 description: Inspect and adjust this FutureOS installation — global agent settings, the desktop app's own settings and workspaces, sessions, skills, tools and models, the account and credit balance, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", "what did we do before", "how is my account" or "show me my balance", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, slicing one session's own records (including thinking and tool inputs/outputs), reading or changing global agent or desktop-app settings, adding a workspace from the terminal, reloading the model registry after a hand-edited models.json (重载/刷新模型), understanding the code behind a behaviour, or account profile and credit balance. Never for reading credentials, and not for ordinary task work on the user's project.
 allowed-tools: Bash(future:*)
@@ -74,6 +74,7 @@ detail recalled from this page alone is usually a detail missed.
 | `future session status <id> [--json]` | One session's **live state**: permission, context, runs |
 | `future session status <id> --system-prompt` | The whole prompt that session's next run would send |
 | `future session transcript --session <id> --counts --json` | What kinds of records a session holds |
+| `future session reset <id> <selectors> [--yes]` | Delete part of one session's **own** history (dry run unless `--yes`; backed up) |
 | `future session history search --all --query <text> --json` | Whether a topic appears anywhere |
 | `future account balance` | Remaining credits (a remote call — see `references/account.md`) |
 | `future doctor` | One pass over login, agent, sandbox, providers, sessions, skills |
