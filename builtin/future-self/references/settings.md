@@ -157,6 +157,60 @@ is a **model call** (it spends credits, and only renames with `--apply`).
 "Compress this conversation" — `future session compact --session <id>`: report it
 as an asynchronous request, not a finished summary.
 
+## Trimming a session's own history
+
+Compaction can only *project* a history: it is required to keep every user
+original, so a session whose user turns alone exceed its ceiling reports
+`context compaction budget exceeded` and never recovers by itself. Shortening
+such a session means **deleting** part of it, which is what `future session
+reset` does. Treat it as destructive: it is the one session command whose whole
+purpose is to remove the user's own words.
+
+```bash
+future session reset <id> --dry-run                    # what would go (the default)
+future session reset <id> --keep-last 3 --yes           # keep the 3 newest turns
+future session reset <id> --keep-first 5 --keep-last 3 --yes   # head and tail
+future session reset <id> --drop thinking,tool-results --yes
+future session reset <id> --all --yes                   # keep the session, drop its history
+```
+
+Selectors are combinable, and at least one is required: `--all` (keep only the
+session record), `--keep-first N` / `--keep-last N` (whole user turns — one user
+message plus everything up to the next, the boundary `session forks` shows), and
+`--drop thinking,tool-calls,tool-results,attachments,compaction` for the part that
+is kept. An unknown `--drop` name is an error, never silently ignored.
+
+What to know before running it:
+
+- **It is a dry run unless you pass `--yes`.** The preview reports entries and
+  turns before → after, an estimated token size (the compactor's estimator; the
+  live `contextTokens` in `session status` only moves after the session's next
+  request), the per-kind counts, and the first/last surviving entries. Show that
+  preview to the user and get an explicit yes before applying.
+- **Applying writes a backup first**, at
+  `~/.future/agent/session-backups/<session-id>-<timestamp>.json`: the session's
+  complete entry list as it was *before* the reset. It is printed, it is
+  lossless (the `entries` array is the storage representation, so it is also the
+  input a future restore would read), and it is the only copy of what was
+  deleted — do not move or delete it.
+- **An active run or a running compaction is refused**, not interrupted: finish
+  or stop the work first (`future session abort <id>`).
+- **The session record is untouched** — id, name, cwd, model, thinking level,
+  permission, and both system-prompt segments survive every selector. Only
+  entries are removed, and the deletion is reflected everywhere the history is
+  read afterwards (`session transcript`, `session history`, the desktop and
+  mobile timelines).
+- **A user turn can be a session's context.** `--keep-last 2` on a session whose
+  first turns hold standing constraints will drop those constraints; say so when
+  you propose it. `--all` is only right when the request is to keep the session
+  as an empty shell.
+
+When NOT to use it: for a session that is merely large, prefer `future session
+compact --session <id>` (lossless, keeps every original) and reach for `reset`
+when the request is specifically to shorten, slim down, or start the conversation
+over while keeping the same session — or when compaction itself has already
+refused with the budget error.
+
 ## Two things not to do unasked
 
 **`future session delete`** is destructive and not recoverable from the CLI — it
