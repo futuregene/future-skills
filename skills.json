@@ -99,7 +99,7 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "MCP 服务器",
-    "description_zh": "通过 future mcp CLI 使用 MCP 服务器：查看、添加或移除 ~/.future/mcp.json 中的服务器，检索某个服务器的工具并读取其参数 schema，再按 schema 调用；列出与结果都有分页与字节上限"
+    "description_zh": "通过 future mcp CLI 使用 MCP 服务器：查看、添加或移除 ~/.future/mcp.json 中的服务器，先检查其是否可用，再检索某个服务器的工具、读取参数 schema 并按 schema 调用；启动昂贵的服务器可用 serve 长驻一个会话，列出与结果都有分页与字节上限"
   },
   "future-skill-creator": {
     "category": "tools",
