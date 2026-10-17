@@ -35,5 +35,20 @@ class GoalContractTests(unittest.TestCase):
             self.assertIn(fragment, text)
 
 
+    def test_worker_model_and_thinking_defaults_are_not_inherited(self):
+        # The CLI inherits nothing from the launching session; the skill must say
+        # so, or a supervisor silently runs workers on the registry default and
+        # "medium". Guard the claim (and its verifiable pointers) against edits.
+        text = re.sub(r"\s+", " ", SKILL.read_text(encoding="utf-8"))
+        for fragment in [
+            "inherits NOTHING",
+            "not inherited from the active session",
+            'DEFAULT_THINKING_LEVEL = "medium"',
+            "making a worker match this session REQUIRES both flags",
+            "Omitting a flag is silent",
+        ]:
+            self.assertIn(fragment, text)
+
+
 if __name__ == "__main__":
     unittest.main()
