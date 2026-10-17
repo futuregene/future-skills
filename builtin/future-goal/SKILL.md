@@ -1,5 +1,5 @@
 ---
-version: 5.1.0
+version: 5.1.1
 name: future-goal
 description: FutureOS goal control plane — manage long-running goals, todos, human gates, workers, monitors, and validated completion. Use for cross-session work, ongoing task status, "keep working", "run overnight", or /future-goal. Not needed for a one-shot review or ordinary code edit.
 allowed-tools: Bash(future:*)
@@ -18,9 +18,24 @@ results. Persistent evidence is authoritative; chat/session context is a cache.
    do not create duplicates. A one-shot conversation needs no goal.
 2. State the objective, deliverables, acceptance checks, operating budget,
    escalation conditions and worker configuration. Ask for confirmation when
-   these were not already specified. Default model = current session model;
-   check availability with `future models`. Never change a user-pinned model,
-   thinking level, budget or acceptance standard without permission.
+   these were not already specified.
+   - **Convention (what you should choose):** the default worker model AND
+     thinking level are this session's own. Check availability with
+     `future models`.
+   - **CLI behaviour (what actually happens):** `future goal run` inherits
+     NOTHING. Without both flags the new worker session gets the model
+     registry's default model (`future models` prints it as `default: …`) and
+     the hard-coded `DEFAULT_THINKING_LEVEL = "medium"`
+     (`agent/src/rpc/session.rs`; applied unconditionally in
+     `agent/src/rpc/commands/session_lifecycle.rs`, see the "not inherited
+     from the active session" comment). Omitting a flag is silent: the run
+     starts normally on a budget you did not choose. So making a worker match
+     this session REQUIRES both flags:
+     `future goal run --goal G --agent-id A --model M --thinking-level L`.
+     `future goal run --help` labels both as overrides; read back what the
+     worker session recorded rather than assuming inheritance.
+   - Never change a user-pinned model, thinking level, budget or acceptance
+     standard without permission.
 3. Choose the smallest adequate workflow:
    - **Light:** one worker and targeted checks; no automatic research swarm.
    - **Standard:** implementation/exploration plus a separate verification task.
