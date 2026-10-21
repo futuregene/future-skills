@@ -26,6 +26,16 @@ future auth status            # whether a login is configured at all
   a reason to act. If the balance is low, say so and stop; buying credits is the
   user's action on the platform, not a tool call you make.
 
+## Signing out
+
+`future auth logout` removes the stored key from `auth.json` — the real
+credential, not a cached copy. It is not recoverable on this machine afterwards;
+the only way back is `future auth login`. So it is an explicit request, never a
+troubleshooting step: say what it removes and what it costs the user, run it only
+when told to, and read `future auth status` afterwards instead of assuming.
+(`future auth credential` exists for shell scripts — it prints the key, so it is
+not a way to inspect the configuration either.)
+
 ```bash
 future account profile
 future account balance --json

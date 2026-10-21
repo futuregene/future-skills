@@ -1,7 +1,7 @@
 ---
-version: 1.11.0
+version: 1.12.0
 name: future-self
-description: Inspect and adjust this FutureOS installation — global agent settings, the desktop app's own settings and workspaces, sessions, skills, tools and models, the account and credit balance, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", "what did we do before", "how is my account" or "show me my balance", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, slicing one session's own records (including thinking and tool inputs/outputs), reading or changing global agent or desktop-app settings, adding a workspace from the terminal, reloading the model registry after a hand-edited models.json (重载/刷新模型), understanding the code behind a behaviour, or account profile and credit balance. Never for reading credentials, and not for ordinary task work on the user's project.
+description: Inspect and adjust this FutureOS installation — global agent settings, the desktop app's own settings and workspaces, sessions, skills, tools and models, the account and credit balance, the machines paired to this one's remote desktop, a backup or restore of the local record, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", "what did we do before", "how is my account", "which device is controlling this machine" or "show me my balance", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, slicing one session's own records (including thinking and tool inputs/outputs), reading or changing global agent or desktop-app settings, adding a workspace from the terminal, pruning idle conversations, pairing or unpairing a remote device, backing up or restoring the installation, reloading the model registry after a hand-edited models.json (重载/刷新模型), understanding the code behind a behaviour, or account profile and credit balance. Never for reading credentials, and not for ordinary task work on the user's project.
 allowed-tools: Bash(future:*)
 category: tools
 ---
@@ -57,8 +57,10 @@ detail recalled from this page alone is usually a detail missed.
 | What is configured, installed, running, or recorded? What is this build? Which session am I? | `references/inspecting.md` |
 | What happened in a conversation? Did we ever discuss X? Slice one session's records. | `references/recall.md` |
 | The account, the credit balance, whether a login exists. | `references/account.md` |
-| Change a setting, a session, a skill; stop a run; answer an approval; refresh the model registry. | `references/settings.md` |
+| Change a setting, a session, a skill; stop a run; answer an approval; delete old conversations; refresh the model registry. | `references/settings.md` |
 | The desktop app's own preferences, and its workspaces. | `references/desktop-app.md` |
+| The devices that drive this machine, the desktops it drives, hosting headless, a self-hosted relay. | `references/remote.md` |
+| Back up, verify or restore the whole local record. | `references/data.md` |
 | Why does it behave this way? Read the code that implements it. | `references/source.md` |
 | The bound behind a claim, or what this skill cannot know. | `references/limits.md` |
 
@@ -76,6 +78,8 @@ detail recalled from this page alone is usually a detail missed.
 | `future session transcript --session <id> --counts --json` | What kinds of records a session holds |
 | `future session reset <id> <selectors> [--yes]` | Delete part of one session's **own** history (dry run unless `--yes`; backed up) |
 | `future session history search --all --query <text> --json` | Whether a topic appears anywhere |
+| `future session prune --older-than <age> [--yes]` | Delete conversations idle longer than `<age>` (dry run unless `--yes`; no undo) |
+| `future remote status --json` | Whether this machine is serving its remote desktop, and who is in control |
 | `future account balance` | Remaining credits (a remote call — see `references/account.md`) |
 | `future doctor` | One pass over login, agent, sandbox, providers, sessions, skills |
 | `future mcp list` | MCP servers this CLI can call (using them is the `future-mcp` skill) |
@@ -88,12 +92,13 @@ using 40% of its context window while `info` reports 40M lifetime tokens — onl
 `status` is correct in either case.
 
 **Most session and model commands need a running Agent.** `future session
-list/info/status/transcript/history/forks/approvals` and `future models` ask the
-Agent over local IPC and fail with `unable to connect to Future Agent` when none
-is reachable, rather than returning an empty result. The reads that work with
+list/info/status/transcript/history/forks/wait/approvals` and `future models` ask
+the Agent over local IPC and fail with `unable to connect to Future Agent` when
+none is reachable, rather than returning an empty result. The reads that work with
 nothing running are `future config get`, `future desktop settings`, `future
 workspace`, `future version`, `future auth status`, `future skills list` and
-`future doctor`.
+`future doctor` — plus the `future remote` commands that only read its pairing
+books (`references/remote.md`).
 
 ## 4. Building a picture of the user
 
@@ -147,9 +152,14 @@ false statement if you forget them.
   session's records with `transcript`.
 - `references/account.md` — the platform account and the credit balance.
 - `references/settings.md` — changing global settings, sessions and skills;
-  stopping runs; approvals; refreshing the model registry.
+  stopping runs; approvals; deleting old conversations; refreshing the model
+  registry.
 - `references/desktop-app.md` — the desktop app's own store: its settings and its
   workspaces (`future workspace`).
+- `references/remote.md` — this machine as a host (`future remote devices`, `future
+  headless`) and as a client (`future remote peers`), plus a self-hosted relay.
+- `references/data.md` — `future data`: a backup, an interrupted restore and its
+  fence, and what is not recoverable without one.
 - `references/source.md` — reading the code that implements this agent, and
   attributing a behaviour to the right build.
 - `references/limits.md` — every bound, and which of them make a claim unsafe.

@@ -46,10 +46,20 @@ exists to prevent.
   creating a second row, and the directory must already exist. A workspace row is
   bookkeeping, not a conversation: adding one creates no session.
 - **The live views need a running Agent.** `session list/info/status/transcript/
-  history/forks/approvals` and `future models` fail with `unable to connect to
-  Future Agent` when nothing is running; only `config get`, `desktop settings`,
+  history/forks/wait/approvals` and `future models` fail with `unable to connect
+  to Future Agent` when nothing is running; only `config get`, `desktop settings`,
   `workspace`, `version`, `auth status`, `skills list` and `doctor` answer
   offline.
+- **A pairing book is not the runtime.** `future remote devices`/`peers` read a
+  file, but whether a bridge is connected, whether a device is present and
+  whether the machine is serving live in the running Desktop. With none running
+  those fields are **null** — "the book cannot know" — and `future remote
+  status` exit 0 covers `off`, `failed` and `revoked` too: a machine that is off
+  answered the question. Test `state`, not the exit code (`remote.md`).
+- **Prune's clock is the newest history entry, and deletion has no undo.**
+  `--older-than` does not read the file's mtime or `session list`'s `UPDATED:`,
+  and nothing in the CLI restores a deleted session — only a `future data
+  backup` taken beforehand does (`data.md`).
 - **`future desktop settings` and `future workspace` ignore `FUTURE_HOME`.**
   They read and write `~/.future/app/app.db` under the real home, exactly as the
   desktop app does, so a session running under another `FUTURE_HOME` still
