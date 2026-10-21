@@ -1,5 +1,5 @@
 ---
-version: 0.2.0
+version: 0.2.1
 name: future-scheduled-task
 description: >
   Create, edit, run and iterate scheduled tasks — a reusable prompt plus a trigger
@@ -149,10 +149,12 @@ are cheap.
 | Every day | `--daily --time 09:00` |
 | Selected weekdays | `--weekly --days mon,wed,fri --time 10:00` |
 | A day each month | `--monthly --day 31 --time 09:00` |
+| Once a year | `--yearly --month 12 --day 31 --time 22:00` |
 
-Times are the machine's local time. A monthly task whose day does not exist in a short
-month runs on that month's **last day** — tell the user this rule when they pick a day
-above 28, because the schedule they wrote is not the schedule they will get in February.
+Times are the machine's local time. A monthly or yearly task whose day does not exist
+in that month runs on that month's **last day** — tell the user this rule when they
+pick a day above 28, because the schedule they wrote is not the schedule they will get
+in February (and `2/29` runs on the 28th in a common year).
 
 A task has no dependencies on other tasks: what starts it is its own schedule (or a
 `run`). Work that has to wait for another task's *result* is chained by the user, or
