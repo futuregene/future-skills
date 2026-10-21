@@ -145,6 +145,53 @@ future session approvals <id>              # what it wants, with the request id
 future session approve <id> <request-id>   # or reject; add --allow <glob> to stop asking
 ```
 
+## One-shot runs from the terminal
+
+`future run` is the non-interactive entry point, and its flags decide which
+session the work lands in:
+
+```bash
+future run "Explain this project"                        # new session
+future run --continue "Pick up where we left off"        # the most recently updated session
+future run --session <id> "…"                            # a named one
+future run @README.md "Summarize this"                   # attach files as <file> blocks
+future run --model <id>:high --thinking high "…"         # per-run model/thinking
+future run --permission workspace --tools read,shell "…" # per-run gate and tool set
+future run --mode json "What is 2+2?"                    # one JSON object on exit
+```
+
+- **Per-run overrides do not stick.** `--model`, `--thinking`, `--permission`,
+  `--tools` apply to that run only; a session's own settings are `session set`
+  (above). The system-prompt flags are the exception — they are recorded with the
+  session.
+- **`--no-session` runs ephemeral**: nothing is written, so there is no id to
+  return to. Reach for it instead of creating a conversation the user did not ask
+  for.
+- **A new session costs one extra model call** for its title; `--no-title` skips
+  it. Sessions that already exist are never renamed.
+- **`@files` are read before the prompt is sent** and wrapped in `<file
+  name="<absolute path>">` tags — cheap for a handful of files, and it spends
+  context, so attach what is needed rather than a directory.
+- `--verbose` writes progress and tool calls to stderr, which is the readable
+  form when the answer itself is being piped somewhere.
+
+## Running something long without blocking this turn
+
+```bash
+future run --no-wait --session <id> "…"                     # ack now, answer later
+future session wait <id> [--run <run-id>] [--timeout 15m] [--mode json]
+```
+
+Without `--no-wait`, `future run` streams the answer and exits when the run
+ends. With it, the prompt is queued and the command prints an ack carrying the
+run id, so the work continues in that session whether or not this shell survives
+and `future session wait` later prints the answer (a run that already finished
+returns at once). `--timeout` defaults to **5m** and a timeout is an error that
+still reports the run id — raise the timeout for a long run rather than polling.
+`--steer` is the opposite choice: it interrupts the session's active run and asks
+immediately, instead of queueing behind it. Without either flag a prompt is
+appended behind whatever is running.
+
 ## Creating and branching sessions
 
 `future session new [--cwd <dir>] [--name <text>]`, `forks <id>` →
@@ -210,6 +257,41 @@ compact --session <id>` (lossless, keeps every original) and reach for `reset`
 when the request is specifically to shorten, slim down, or start the conversation
 over while keeping the same session — or when compaction itself has already
 refused with the budget error.
+
+## Deleting conversations in bulk
+
+```bash
+future session prune --older-than 24h                      # preview (the default)
+future session prune --older-than 24h --yes                # apply
+future session prune --older-than 12h --keep <id> --yes    # protect one session
+future session prune --older-than 3d --json                # the report as data
+```
+
+`<age>` is `<number><unit>` with `m`, `h`, `d` or `w` (`90m`, `12h`, `3d`, `2w`).
+Idle is measured from the session's **newest history entry** — the last user turn
+and what came with it — not from the file's mtime and not from `session list`'s
+`UPDATED:`, which a rename or a storage upgrade rewrites without anybody using
+the conversation.
+
+- **It is a dry run unless `--yes` is given.** The preview lists every matching
+  session with its age and title; show that (or at least the count) and get an
+  explicit yes. This is the one command whose whole effect is deleting the user's
+  own words, and a "24 hours" that is a day too wide is not recoverable.
+- **An active run is skipped, never interrupted**, and the Agent refuses a
+  session that starts a run or a compaction between the listing and the deletion;
+  that refusal is reported per session, so the rest of the batch still goes. Each
+  deletion is confirmed against the session list afterwards, so a long batch
+  still reports the truth.
+- **A session whose age cannot be established** (no history and no timestamp) is
+  left untouched. `--keep <id>` is repeatable and is the way to protect a session
+  the user names.
+- **Which command the request means**: `prune` deletes whole conversations;
+  `session reset` (the section above) trims one conversation's turns;
+  `session compact` only projects it. "Clean up old conversations" is `prune`,
+  "make this one shorter" is `reset`.
+- **There is no undo.** Only a `future data backup` taken beforehand can bring a
+  deleted session back — see `references/data.md` before agreeing to a large
+  batch.
 
 ## Two things not to do unasked
 

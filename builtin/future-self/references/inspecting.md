@@ -17,6 +17,7 @@ interchangeable and are not.
 | `future doctor` | Whether login, agent, sandbox, providers, sessions and skills are healthy |
 | `future models --json` | Which models are available to this agent |
 | `future auth status` | Whether the user is signed in (and to which platform) |
+| `future remote status [--json]` | Whether this machine's remote desktop is serving, and which paired device is in control (`remote.md`) |
 | `future skills list` | Catalogue skills with their install status — **not** a full list of what is installed (see below) |
 | `future tools list` / `describe <name>` | Platform & browser tools the **CLI** can call (note: not the model's own tools — see below) |
 | `future session list --json` | Every session, newest first, in a `{"sessions":[…]}` envelope: `id`, `sessionName`, `model`, `cwd`, `queryCount`, `updatedAtMs`, `firstMessage`, `parentSessionId`, `isStreaming` |
@@ -65,15 +66,22 @@ question about spend needs the second command, not the first.
 
 ## What needs a running Agent
 
-`future session list/info/status/transcript/history/forks/approvals` and
+`future session list/info/status/transcript/history/forks/approvals/wait` and
 `future models` ask the Agent over local IPC; with none reachable they fail with
 `unable to connect to Future Agent` (exit 1) rather than returning an empty
 result. The reads that work with nothing running are `future config get`,
 `future desktop settings`, `future workspace`, `future version`,
 `future auth status`, `future skills list` and `future doctor`.
 
+`future remote status` is the other split one: the pairing books are on disk, but
+"is it serving right now" and "is that device's bridge connected" only a running
+Desktop knows — that is what its nulls and `desktopRunning` mean
+(`remote.md`).
+
 `future doctor` is the right first call when something looks wrong: it is one
-pass over all of the above and reports what is missing rather than failing.
+pass over all of the above and reports what is missing rather than failing. On a
+fresh install, `future init` is its repair counterpart: it installs the builtin
+skills and, on macOS and Linux, links `future` into `~/.future/bin/`.
 
 ## Which session am I?
 
