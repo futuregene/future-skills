@@ -145,6 +145,36 @@ future session approvals <id>              # what it wants, with the request id
 future session approve <id> <request-id>   # or reject; add --allow <glob> to stop asking
 ```
 
+## One-shot runs from the terminal
+
+`future run` is the non-interactive entry point, and its flags decide which
+session the work lands in:
+
+```bash
+future run "Explain this project"                        # new session
+future run --continue "Pick up where we left off"        # the most recently updated session
+future run --session <id> "…"                            # a named one
+future run @README.md "Summarize this"                   # attach files as <file> blocks
+future run --model <id>:high --thinking high "…"         # per-run model/thinking
+future run --permission workspace --tools read,shell "…" # per-run gate and tool set
+future run --mode json "What is 2+2?"                    # one JSON object on exit
+```
+
+- **Per-run overrides do not stick.** `--model`, `--thinking`, `--permission`,
+  `--tools` apply to that run only; a session's own settings are `session set`
+  (above). The system-prompt flags are the exception — they are recorded with the
+  session.
+- **`--no-session` runs ephemeral**: nothing is written, so there is no id to
+  return to. Reach for it instead of creating a conversation the user did not ask
+  for.
+- **A new session costs one extra model call** for its title; `--no-title` skips
+  it. Sessions that already exist are never renamed.
+- **`@files` are read before the prompt is sent** and wrapped in `<file
+  name="<absolute path>">` tags — cheap for a handful of files, and it spends
+  context, so attach what is needed rather than a directory.
+- `--verbose` writes progress and tool calls to stderr, which is the readable
+  form when the answer itself is being piped somewhere.
+
 ## Running something long without blocking this turn
 
 ```bash
