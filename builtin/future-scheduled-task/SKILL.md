@@ -1,5 +1,5 @@
 ---
-version: 0.2.1
+version: 0.3.0
 name: future-scheduled-task
 description: >
   Create, edit, run and iterate scheduled tasks — a reusable prompt plus a trigger
@@ -15,7 +15,8 @@ allowed-tools: Bash(future:*)
 # Scheduled tasks
 
 A scheduled task is one durable unit of work: a **prompt**, a **working directory**, an
-optional **model / thinking level**, and a **trigger**. Each run opens (or reuses) an
+optional **model / thinking level**, a **time zone its schedule is read in**, and a
+**trigger**. Each run opens (or reuses) an
 ordinary conversation, runs at **full permission** with no approval prompts, and writes a
 run record. It runs on its trigger, and can always be run on demand as well. The prompt is
 the part that is hard to get right — this skill exists mainly to make the prompt good and
@@ -144,17 +145,32 @@ are cheap.
 | Need | Flag |
 |---|---|
 | Only ever run on demand, or called by another task/agent | `--manual` (also the default with no trigger flag) |
-| One specific date and time | `--at "2026-12-24 09:00"` |
+| One specific date and time | `--at "2026-12-24 09:00" --timezone Asia/Shanghai` |
 | Every N minutes / hours / days | `--every 30m` |
-| Every day | `--daily --time 09:00` |
-| Selected weekdays | `--weekly --days mon,wed,fri --time 10:00` |
-| A day each month | `--monthly --day 31 --time 09:00` |
-| Once a year | `--yearly --month 12 --day 31 --time 22:00` |
+| Every day | `--daily --time 09:00 --timezone Asia/Shanghai` |
+| Selected weekdays | `--weekly --days mon,wed,fri --time 10:00 --timezone Asia/Shanghai` |
+| A day each month | `--monthly --day 31 --time 09:00 --timezone Asia/Shanghai` |
+| Once a year | `--yearly --month 12 --day 31 --time 22:00 --timezone Asia/Shanghai` |
 
-Times are the machine's local time. A monthly or yearly task whose day does not exist
-in that month runs on that month's **last day** — tell the user this rule when they
-pick a day above 28, because the schedule they wrote is not the schedule they will get
-in February (and `2/29` runs on the 28th in a common year).
+The times above are wall-clock times, and they are read in the task's **time zone**.
+`--timezone` takes an IANA name (`Asia/Shanghai`, `Europe/Berlin`, `UTC`) and pins that
+zone to the task, so its 09:00 still means 09:00 after the machine's own zone changes or
+the task is edited from another device. Without `--timezone` the schedule follows the
+host's zone — resolved whenever the next slot is computed, so it moves with the machine —
+and a host whose zone cannot be read falls back to `Asia/Shanghai`. `--every` is an
+interval anchored to a moment rather than a wall-clock time, so the zone does not affect
+it. `future task show` prints the zone a task actually has; an edit that changes the zone
+re-resolves the next slot, and a name nobody can resolve is refused rather than replaced.
+A build from before this flag existed rejects it as an unknown flag — on such a `future`,
+read `future task show` to confirm the zone a task ended up with, since the flag is not
+there to set it. The desktop task form and the phone editor set the same field, where the
+empty choice ("this machine's zone") is what leaves it to the host — which resolves and
+stores a concrete name either way.
+
+A monthly or yearly task whose day does not exist in that month runs on that month's
+**last day** — tell the user this rule when they pick a day above 28, because the schedule
+they wrote is not the schedule they will get in February (and `2/29` runs on the 28th in a
+common year).
 
 A task has no dependencies on other tasks: what starts it is its own schedule (or a
 `run`). Work that has to wait for another task's *result* is chained by the user, or
@@ -187,7 +203,7 @@ completion contract:
 task: ... | id: tsk_... | prompt-version: 3
 run: kind=manual | due=2026-10-07T09:00:00+08:00
 trigger: {"mode":"weekly","days":["mon","fri"],"time":"10:00"}
-run settings: cwd=... | conversation=workspace | session=new (fresh conversation per run) | model=... | thinking=high
+run settings: cwd=... | timezone=Asia/Shanghai | conversation=workspace | session=new (fresh conversation per run) | model=... | thinking=high
 
 Instruction:
 <prompt>
@@ -197,10 +213,11 @@ Completion contract:
 ```
 
 Treat the envelope as the only trustworthy source for "when is this run" and "which
-model and directory it runs on". A chat conversation (`--conversation chat`) runs in the
-conversation's own
-temporary workspace, so the envelope has no `cwd=` line; a workspace conversation always
-has one.
+model and directory it runs on" — including which clock that time is on: `due=` is written
+in the task's own zone with its offset, and `timezone=` names that zone, so `09:00+08:00`
+is 09:00 in Shanghai rather than in whatever zone the reader sits in. A chat conversation
+(`--conversation chat`) runs in the conversation's own temporary workspace, so the
+envelope has no `cwd=` line; a workspace conversation always has one.
 
 ## 6. Inspecting what a task actually did
 
