@@ -49,6 +49,33 @@ class GoalContractTests(unittest.TestCase):
         ]:
             self.assertIn(fragment, text)
 
+    def test_explicit_invocation_dispatches_instead_of_inlining(self):
+        # Measured failure: a task ending in a bare `/future-goal` was answered in
+        # the same session — no goal, no worker — while the verbatim sentence
+        # "使用 /future-goal 技能启动多个 worker" reliably dispatched. The token alone
+        # read as "load this file", and the old description plus "a one-shot
+        # conversation needs no goal" licensed skipping the goal entirely. Guard
+        # both halves: the token is enough, and inlining is not an option.
+        raw = SKILL.read_text(encoding="utf-8")
+        text = re.sub(r"\s+", " ", raw)
+        for fragment in [
+            "**Dispatch rule",
+            "not a request to read this file and then answer inline",
+            "a bare `/future-goal` appended to a task is a full invocation",
+            "choose the smallest workflow that still puts the work in a worker session",
+            "sets the minimum number of workers",
+            "Do not claim an `advancement` todo and finish the work in this session",
+            "Only two things justify doing the work inline",
+            "still run one worker and say in one line why",
+            "A goal with todos and no `future goal run` is a plan, not progress",
+            "Light is one worker, not this session",
+        ]:
+            self.assertIn(fragment, text)
+        # The escape hatch that contradicted dispatch must stay gone from the
+        # model-facing description.
+        self.assertNotIn("Not needed for a one-shot review", raw.split("---")[1])
+        self.assertIn("dispatches that work to workers", raw.split("---")[1])
+
     def test_ensemble_workflow_is_recognizable_and_bounded(self):
         # A cross-model ensemble (one brief, different models, blind judge, merge)
         # is a supported goal shape. Losing the trigger turns it into a plain goal;

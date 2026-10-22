@@ -1,7 +1,7 @@
 ---
-version: 5.2.0
+version: 5.3.0
 name: future-goal
-description: FutureOS goal control plane — manage long-running goals, todos, human gates, workers, monitors, validated completion, and multi-model ensembles (one brief run by different models, judged blind, then synthesized — "让不同模型分别做再合成", "取长补短"). Use for cross-session work, ongoing task status, "keep working", "run overnight", or /future-goal. Not needed for a one-shot review or ordinary code edit.
+description: FutureOS goal control plane — manage long-running goals, todos, human gates, workers, monitors, validated completion, and multi-model ensembles (one brief run by different models, judged blind, then synthesized — "让不同模型分别做再合成", "取长补短"). Use for cross-session work, ongoing task status, "keep working", "run overnight", or /future-goal; an explicit /future-goal that carries work dispatches that work to workers instead of doing it inline. A message with no work to dispatch needs no goal.
 allowed-tools: Bash(future:*)
 category: tools
 ---
@@ -14,8 +14,31 @@ results. Persistent evidence is authoritative; chat/session context is a cache.
 
 ## 1. Inspect and agree on the operating contract
 
+**Dispatch rule — read this before choosing a workflow.** A `/future-goal`
+token is a request to run the work it accompanies as a supervised goal, not a
+request to read this file and then answer inline. It needs no verb and no
+argument: the task is whatever the message asks for, so a bare `/future-goal`
+appended to a task is a full invocation. An explicit invocation overrides the
+smallest-workflow choice in step 3 — choose the smallest workflow that still
+puts the work in a worker session.
+
+- A phrase naming a count ("multiple workers", "a few agents", "three
+  reviewers", "in parallel") sets the minimum number of workers. With no
+  count, use your own decomposition: two or more when the work has genuinely
+  independent parts.
+- You own decomposition, dispatch, acceptance and synthesis. Do not claim an
+  `advancement` todo and finish the work in this session — one session wearing
+  both hats is the outcome this rule exists to prevent. `coordination` tasks,
+  synthesis and reviewing artifacts stay with you.
+- Only two things justify doing the work inline: the message carries no work
+  to do (a question about the goal itself), or the user says not to create a
+  goal. "It is just one task" is not a justification while work is attached.
+  If the work genuinely cannot be split, still run one worker and say in one
+  line why, instead of doing it here and calling the skill unnecessary.
+
 1. Run `future goal status` in the project directory. Resume a matching goal;
-   do not create duplicates. A one-shot conversation needs no goal.
+   do not create duplicates. A message with no work to dispatch needs no goal
+   (see the dispatch rule above).
 2. State the objective, deliverables, acceptance checks, operating budget,
    escalation conditions and worker configuration. Ask for confirmation when
    these were not already specified.
@@ -36,7 +59,8 @@ results. Persistent evidence is authoritative; chat/session context is a cache.
      worker session recorded rather than assuming inheritance.
    - Never change a user-pinned model, thinking level, budget or acceptance
      standard without permission.
-3. Choose the smallest adequate workflow:
+3. Choose the smallest adequate workflow — every one of these dispatches at
+   least one worker session, and Light is one worker, not this session:
    - **Light:** one worker and targeted checks; no automatic research swarm.
    - **Standard:** implementation/exploration plus a separate verification task.
    - **Heavy:** genuinely different method families in parallel, synthesis and
@@ -111,6 +135,10 @@ intentional: complete its connection check or supersede it with a stated reason.
   a portable validation program.
 
 ## 3. Dispatch without becoming a polling agent
+
+A goal with todos and no `future goal run` is a plan, not progress. Dispatch
+before reporting readiness, and treat each agent id showing up in
+`future goal worker list` as the proof that work actually left this session.
 
 Declare each task's complete write set with `todo add --required-write-scope`:
 comma-separated file/directory paths, relative to the goal's recorded cwd (NOT
