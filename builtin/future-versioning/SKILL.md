@@ -1,5 +1,5 @@
 ---
-version: 0.4.0
+version: 0.5.0
 name: future-versioning
 description: >
   Do versioned work in a local Git repository: code, documents, data, analyses or other
@@ -165,6 +165,41 @@ sessions actually share. When a repository that uses this skill has no recorded 
 convention — no branch or worktree rule, no commit or review expectation — offer to write
 this one into its `AGENTS.md` or `CLAUDE.md`. Add the parts that fit the repository's
 practice; do it through the same worktree and review flow, and only with the user's agreement.
+When the file already exists, add what is missing rather than restructuring someone else's,
+and keep the addition in a commit of its own.
+
+**Name this skill in the file.** A session that later opens the repository reads its
+instructions but not the conversation that wrote them, so nothing there would tell it to load
+this skill. Open the recorded convention with that pointer, worded for the repository:
+
+> This repository follows the `future-versioning` skill. Load it before changing tracked files.
+
+That line is what makes the file executable rather than descriptive: the repository file
+records its own decisions, and this skill supplies the steps, commands and failure handling.
+Name the skill exactly, put the pointer where a session reads it first, and do not restate the
+skill's instructions under it — a copy becomes a stale second source the first time the skill
+changes.
+
+**Follow this skill's shape.** Write the sections a session needs, in the order it needs them,
+and only the parts the repository decides for itself:
+
+- scope — what the repository holds, and what is generated, vendored or excluded;
+- the base branch, and how a change branch and worktree are cut, including their naming;
+- commit expectations — granularity, message form, anything a commit must include;
+- the check gate before handoff: the exact commands, in the order they run;
+- how work is finished — merge or pull request, who opens or merges it, what cleanup follows;
+- boundaries that are easy to get wrong: files not to touch, other sessions' branches, secrets.
+
+Leave out what does not belong in a repository instruction file: this skill's defaults (they
+change with upgrades, and a copy here becomes a stale duplicate), volatile status such as open
+pull requests or current tasks, machine paths and credentials, and anything tooling already
+enforces. Keep it readable in one sitting — a file that grows into a manual stops being
+followed — link to a long procedure instead of inlining it, and merge a new rule into an
+existing section rather than appending another one.
+
+**Check that it can be followed.** Re-read the result as a session that has only this file: it
+should be able to cut a branch, run the checks and finish the work without asking what was
+meant.
 
 ### Review before handoff
 
