@@ -52,7 +52,7 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "长程目标",
-    "description_zh": "FutureOS 目标控制平面——将对话转化为持久、可审查的长程目标：目标、todo、人工门禁、监控、证据与闭环验证都持久化在聊天之外"
+    "description_zh": "FutureOS 目标控制平面——将对话转化为持久、可审查的长程目标：目标、todo、人工门禁、监控、证据与闭环验证都持久化在聊天之外；也编排多模型集成：同一份 brief 由不同模型分别执行，盲评后取长补短合成"
   },
   "future-explore": {
     "category": "tools",
