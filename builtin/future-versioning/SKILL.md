@@ -1,5 +1,5 @@
 ---
-version: 0.5.0
+version: 0.6.0
 name: future-versioning
 description: >
   Do versioned work in a local Git repository: code, documents, data, analyses or other
@@ -161,12 +161,28 @@ differently, and a read-only investigation, stay in the current checkout.
 ### Recording the workflow
 
 Repository instructions (`AGENTS.md`, `CLAUDE.md`, contribution guides) are what parallel
-sessions actually share. When a repository that uses this skill has no recorded delivery
-convention — no branch or worktree rule, no commit or review expectation — offer to write
-this one into its `AGENTS.md` or `CLAUDE.md`. Add the parts that fit the repository's
-practice; do it through the same worktree and review flow, and only with the user's agreement.
-When the file already exists, add what is missing rather than restructuring someone else's,
-and keep the addition in a commit of its own.
+sessions actually share, so a repository that follows this skill should record its delivery
+convention there. When the repository has no recorded convention — no branch or worktree rule,
+no commit or review expectation — write the one it should have, in a commit of its own, and
+report it at handoff with that commit id so the user can drop it in one step. Recording is
+part of the work: an offer that waits for an answer is the step most likely to be skipped, and
+the later session that needed the file then has nothing to read. Add the parts that fit the
+repository's practice and go through the same worktree and review flow. When the file already
+exists, add what is missing rather than restructuring someone else's, and keep the addition in
+a commit of its own.
+
+Ask before writing when the file is not yours to set:
+
+- the repository belongs to someone else — a clone of an upstream or third-party project, a
+  change you will offer back as a pull request, a shared repository with its own maintainers:
+  describe the addition and let them decide;
+- the repository already records a delivery convention that conflicts with this workflow:
+  follow what is written, and propose a change only when the user asks for one;
+- the user has said they do not want instructions written into this repository, or it is
+  scratch work that will not hand anything to a later session.
+
+Initializing a repository keeps its own gate (§1): writing instructions into an existing
+repository is routine and reversible, turning a plain directory into a repository is neither.
 
 **Name this skill in the file.** A session that later opens the repository reads its
 instructions but not the conversation that wrote them, so nothing there would tell it to load
@@ -214,6 +230,9 @@ meant.
   Push, open a pull request, merge, or publish only when the request or the established
   workflow authorizes that further step, and report the actual outcome rather than the
   intended one.
+- If this skill's workflow applied and the repository still has no recorded convention, the
+  handoff says so in one line with the reason. A gap named at handoff is a decision; an
+  unmentioned one reads as a step that was skipped.
 
 ## 6. Escalate long work deliberately
 
