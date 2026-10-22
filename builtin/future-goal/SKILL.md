@@ -1,7 +1,7 @@
 ---
-version: 5.1.1
+version: 5.2.0
 name: future-goal
-description: FutureOS goal control plane — manage long-running goals, todos, human gates, workers, monitors, and validated completion. Use for cross-session work, ongoing task status, "keep working", "run overnight", or /future-goal. Not needed for a one-shot review or ordinary code edit.
+description: FutureOS goal control plane — manage long-running goals, todos, human gates, workers, monitors, validated completion, and multi-model ensembles (one brief run by different models, judged blind, then synthesized — "让不同模型分别做再合成", "取长补短"). Use for cross-session work, ongoing task status, "keep working", "run overnight", or /future-goal. Not needed for a one-shot review or ordinary code edit.
 allowed-tools: Bash(future:*)
 category: tools
 ---
@@ -41,6 +41,12 @@ results. Persistent evidence is authoritative; chat/session context is a cache.
    - **Standard:** implementation/exploration plus a separate verification task.
    - **Heavy:** genuinely different method families in parallel, synthesis and
      independent validation; justify the communication cost.
+   - **Ensemble:** one frozen brief, several genuinely different *models*, blind
+     judging and synthesis (§7). Choose it when the user asks for cross-model
+     combination ("让不同模型分别做再合成", "取长补短", "1+1>2", "多专家") or
+     when a high-value deliverable's quality justifies N independent candidates.
+     Different methods or prompts on ONE model is Heavy, not Ensemble; N runs of
+     the same model is neither — say which of the three you are doing.
 4. Set budget checkpoints in wall time, cost and/or attempts. `--max-turns`
    bounds outer loop iterations, NOT tokens or inner model/tool calls. Do not
    advertise a hard monetary cap unless the underlying runtime enforces it.
@@ -275,3 +281,70 @@ report **not achieved / partial / blocked / awaiting decision** with the gap. Do
 not close unresolved acceptance gaps or label a paused goal successful. Obtain
 approval to expand budgets. "All methods impossible" is not a prerequisite for
 honestly stopping an open-ended research task.
+
+## 7. Ensemble across models
+
+An **ensemble** goal is ONE deliverable produced by several *different models*
+from the same brief, then merged by the orchestrator into a single better result.
+Models differ in what they saw and practised during training, so their weak and
+strong spots differ too; combination pays only where those spots differ and the
+comparison is neutral. Four conditions carry it — one frozen brief, genuinely
+different minds, blind judging, evidence-based synthesis — and each has a
+predictable way to fail:
+
+1. **Freeze the brief before dispatch.** Write `ensemble/brief.md`: objective,
+   deliverable path and format, constraints, and the acceptance checks that will
+   decide between candidates. Every candidate gets that same text (name the file
+   and paste it); any deviation (a model without image input, a different tool
+   allowance) goes into the brief, never improvised per worker. Freezing the
+   criteria before reading any candidate is what keeps the comparison honest: a
+   checklist written after the best answer arrives scores that answer highest.
+2. **Roster genuinely different models.** `future models` shows the registry and
+   each model's context/thinking ceiling. Prefer different families and the
+   strengths the deliverable needs (code-specialised vs long-context reasoning vs
+   writing), and record the roster with the reason per model. Two siblings of one
+   family mostly duplicate each other — say the roster is not diverse instead of
+   calling it an ensemble. Keep thinking level and turn budget equal unless effort
+   asymmetry is itself the experiment, and record that too. Cost is roughly
+   N × candidate + judge + synthesis + verification per round, so state N and the
+   budget in the operating contract (§1) and add no round without a checkpoint.
+3. **Isolate candidates.** One owner, one todo, one output directory per
+   candidate, declared as that task's entire write scope:
+
+   ```bash
+   future goal todo add --goal G --owner cand-a --class advancement \
+     --text "Candidate A: from ensemble/brief.md write ensemble/a/solution.py and ensemble/a/notes.md; do not read or edit ensemble/b/ or the brief" \
+     --required-write-scope ensemble/a/ --verify "python ensemble/a/check.py"
+   future goal run --goal G --agent-id cand-a --model M_A --thinking-level high --max-turns 1
+   ```
+
+   Mutual blindness is the diversity being purchased: each task text forbids
+   reading another candidate's directory or editing the brief, and two candidates
+   writing one path is a scope conflict, not collaboration. Candidates are not
+   told which models the others are.
+4. **Judge blind, then synthesize.** Build one judging packet: outputs relabelled
+   `C1..Cn` (model, agent id and path stripped, order shuffled), the frozen brief
+   and its checklist. Give it to a judge that is not among the candidates when the
+   roster allows it, and ask for per-criterion scores with supporting evidence plus
+   "what is uniquely right, and what fails uniquely, in this candidate" — not one
+   overall winner, because the synthesis needs the pieces. Then this session (or
+   one dedicated synthesis worker with its own write scope) produces the
+   deliverable: start from the strongest candidate and graft, rather than
+   averaging. Resolve disagreements in the order the brief fixes — hard acceptance
+   checks, then correctness, then style — never merging two contradictory answers
+   into one that satisfies neither; re-run the deterministic checks after every
+   graft into code or data.
+5. **Require the synthesis to beat the best candidate.** Run the frozen checks on
+   the synthesized artifact and on the single best candidate, then compare the
+   judged criteria. If synthesis does not clearly win, ship the best candidate and
+   report that — ties are common, and pretending otherwise discards the evidence
+   the ensemble was paid for. Record per candidate: model, thinking level,
+   run/session id, path, check result, judged strengths and failures, and what was
+   grafted from where. That attribution is what makes the next roster choice
+   better than a guess.
+
+Close as §6 requires (one delivery record per candidate, evidence naming the
+checks actually run), and keep the candidate directories until the final artifact
+is verified — they are the reproduction evidence for the comparison, not scratch
+space. Brief, task-text, judging-packet and provenance templates:
+`references/ensemble.md`.

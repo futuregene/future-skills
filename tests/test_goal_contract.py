@@ -49,6 +49,25 @@ class GoalContractTests(unittest.TestCase):
         ]:
             self.assertIn(fragment, text)
 
+    def test_ensemble_workflow_is_recognizable_and_bounded(self):
+        # A cross-model ensemble (one brief, different models, blind judge, merge)
+        # is a supported goal shape. Losing the trigger turns it into a plain goal;
+        # losing the guards turns it into N copies of one model or an unaudited
+        # "best of" merge that never beats a single candidate.
+        text = SKILL.read_text(encoding="utf-8")
+        self.assertIn("ensemble", text.split("---")[1])
+        for fragment in [
+            "**Ensemble:**",
+            "## 7. Ensemble across models",
+            "Freeze the brief before dispatch",
+            "Roster genuinely different models",
+            "Judge blind, then synthesize",
+            "Require the synthesis to beat the best candidate",
+            "references/ensemble.md",
+        ]:
+            self.assertIn(fragment, text)
+        self.assertTrue((SKILL.parent / "references" / "ensemble.md").is_file())
+
 
 if __name__ == "__main__":
     unittest.main()
