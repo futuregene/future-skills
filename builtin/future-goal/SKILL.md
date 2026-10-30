@@ -1,5 +1,5 @@
 ---
-version: 5.3.0
+version: 5.4.0
 name: future-goal
 description: FutureOS goal control plane — manage long-running goals, todos, human gates, workers, monitors, validated completion, and multi-model ensembles (one brief run by different models, judged blind, then synthesized — "让不同模型分别做再合成", "取长补短"). Use for cross-session work, ongoing task status, "keep working", "run overnight", or /future-goal; an explicit /future-goal that carries work dispatches that work to workers instead of doing it inline. A message with no work to dispatch needs no goal.
 allowed-tools: Bash(future:*)
@@ -43,20 +43,26 @@ puts the work in a worker session.
    escalation conditions and worker configuration. Ask for confirmation when
    these were not already specified.
    - **Convention (what you should choose):** the default worker model AND
-     thinking level are this session's own. Check availability with
-     `future models`.
-   - **CLI behaviour (what actually happens):** `future goal run` inherits
-     NOTHING. Without both flags the new worker session gets the model
-     registry's default model (`future models` prints it as `default: …`) and
-     the hard-coded `DEFAULT_THINKING_LEVEL = "medium"`
-     (`agent/src/rpc/session.rs`; applied unconditionally in
-     `agent/src/rpc/commands/session_lifecycle.rs`, see the "not inherited
-     from the active session" comment). Omitting a flag is silent: the run
-     starts normally on a budget you did not choose. So making a worker match
-     this session REQUIRES both flags:
-     `future goal run --goal G --agent-id A --model M --thinking-level L`.
-     `future goal run --help` labels both as overrides; read back what the
-     worker session recorded rather than assuming inheritance.
+     thinking level are this session's own — the CLI now enforces that by
+     inheriting from the supervisor. Check availability with `future models`.
+   - **CLI behaviour (what actually happens):** a worker INHERITS the model and
+     thinking level of the goal's supervising session. With neither flag,
+     `future goal run` reads the session recorded by `supervisor register
+     --session-id …` and applies its configuration to the fresh worker session,
+     printing `⚙ worker … (inherited from supervisor)`; when the goal has no
+     supervisor session to read it falls back to the agent's own defaults
+     (`future models` prints the default model) and says so on the same line.
+     Pass `--model` / `--thinking-level` only when the task genuinely needs a
+     different level, and state the reason in the same breath: an override is
+     printed as `⚙ worker … (override; supervisor was …)` and stamped into the
+     run header as `model_source=override`, so an unexplained one is visible to
+     whoever reads the run log next. A `--resume-session` relaunch keeps that
+     session's own configuration unless a flag overrides it. `--max-turns`
+     (default 6) is the caller's choice and is never inherited.
+   - **Provenance is recorded, not assumed:** every run header carries `model`,
+     `thinking_level` and `model_source` (`supervisor` / `override` / `default`
+     / `session`). A missing field means an older log, never "nothing was
+     overridden".
    - Never change a user-pinned model, thinking level, budget or acceptance
      standard without permission.
 3. Choose the smallest adequate workflow — every one of these dispatches at
