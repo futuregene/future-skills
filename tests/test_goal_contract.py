@@ -35,19 +35,32 @@ class GoalContractTests(unittest.TestCase):
             self.assertIn(fragment, text)
 
 
-    def test_worker_model_and_thinking_defaults_are_not_inherited(self):
-        # The CLI inherits nothing from the launching session; the skill must say
-        # so, or a supervisor silently runs workers on the registry default and
-        # "medium". Guard the claim (and its verifiable pointers) against edits.
+    def test_worker_configuration_inherits_the_supervisor_unless_overridden(self):
+        # Reversed contract (future-os worker-config v1): a worker used to
+        # inherit NOTHING and the skill had to tell every supervisor to pass
+        # both flags 鈥?which turned one pasted command line into the de-facto
+        # configuration of every worker in a goal. `future goal run` now
+        # inherits the supervising session's model + thinking level, records
+        # which case decided it, and prints an override. Guard both halves: the
+        # new claim, and the absence of the old instructions.
         text = re.sub(r"\s+", " ", SKILL.read_text(encoding="utf-8"))
         for fragment in [
-            "inherits NOTHING",
-            "not inherited from the active session",
-            'DEFAULT_THINKING_LEVEL = "medium"',
-            "making a worker match this session REQUIRES both flags",
-            "Omitting a flag is silent",
+            "INHERITS the model and thinking level of the goal's supervising session",
+            "(inherited from supervisor)",
+            "(override; supervisor was",
+            "model_source=override",
+            "Provenance is recorded, not assumed",
+            "falls back to the agent's own defaults",
+            "is the caller's choice and is never inherited",
         ]:
             self.assertIn(fragment, text)
+        for stale in [
+            "inherits NOTHING",
+            'DEFAULT_THINKING_LEVEL = "medium"',
+            "REQUIRES both flags",
+            "Omitting a flag is silent",
+        ]:
+            self.assertNotIn(stale, text)
 
     def test_explicit_invocation_dispatches_instead_of_inlining(self):
         # Measured failure: a task ending in a bare `/future-goal` was answered in
