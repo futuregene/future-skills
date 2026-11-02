@@ -25,3 +25,7 @@
 2) `py_compile` 23/23 通过；16 个模块 `import` 全通过（`clr` 只在 `initialize()` 内导入）。
 3) 无引擎子集实跑：`PropertyPackageManager.recommend_for_system()` 三组输入返回合理方法链；`CompoundDatabase.list_all()` = 21 个组分，`get_info("Water")` 给出 Tc=647.14 K、Pc=22064000 Pa、ω=0.344；`search("propyl")` = `[]`；`DWSIMAutomation()` = `ValueError: DWSIM path not configured`。
 4) frontmatter `name` 等于目录名 `dwsim`；`references/dwsim-expert-agent.md` 与 `src/` 均在目录内。
+
+## 未导入的引用（2026-11-02 清理）
+
+上游 README 里的 \LICENSE\ 链接指向仓库根目录，本技能目录内没有该文件，链接已改为纯文本。

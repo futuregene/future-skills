@@ -59,7 +59,20 @@
 | `datadrivenconstruction/DDC_Skills_*` | 383 | MIT | 221 个土建技能，需逐条核对规范适用性 |
 | `Owl-Listener/designer-skills` | 3214 | MIT | 设计学方法，需与国内设计教学口径对齐后引入 |
 
-## 四、自研候补
+## 四、文档里刻意不提供的引用
+
+技能正文里出现过、但本库**故意没有**对应物的引用，已去掉链接、保留文字（`tests/check_references.py` 会阻止这类引用再次长出来）：
+
+| 技能 | 被去掉的引用 | 原因 |
+| --- | --- | --- |
+| `markdown-mermaid-writing` | `../../docs/project/{issues,kanban,pr}/…`、`../adr/…`、`../workflow_guide.md`、`../operational_readiness.md`、`mermaid_diagrams/kanban.md` | 上游仓库自己的项目管理文档与模板，不属于可复用技能内容 |
+| `reverse-engineering` | `../field-journal/seed-014_unity-il2cpp-reverse.md`、`../../ops/analysis-*-*.md`、`tools-emulation.md`、`anti-analysis-ctf.md`、`patterns-runtime.md` | `field-journal` / `ops` / 其余 ctf-reverse 文件均未导入，刻意不提供 |
+| `timesfm-forecasting` | `forecast_visualization.png` | 示例图未随技能导入 |
+| `dwsim` | `LICENSE` | 许可证在上游仓库根目录，技能目录内没有 |
+
+同目录下 `markdown-mermaid-writing` 的 `../markdown_style_guide.md`、`../mermaid_style_guide.md` 与 `mermaid_diagrams/*.md` 有对应物，改成了 `references/` 下的真实路径，属修正而非删除。
+
+## 五、自研候补
 
 1. **国内会计准则与税务**：CAS 收入确认、增值税、汇算清缴、合并报表口径差异。
 2. **NUEDC 电子设计竞赛**：赛题流程、常用模块、测评与报告规范。
