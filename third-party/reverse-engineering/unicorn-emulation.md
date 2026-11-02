@@ -725,7 +725,7 @@ def hook_block_timer(mu, address, size, user_data):
 mu.hook_add(UC_HOOK_BLOCK, hook_block_timer)
 ```
 
-For vectored interrupts, `context_save()` before hijack, write `PC`/`LR`/`xPSR`, emulate ISR, then `context_restore`. See tools-emulation.md for Qiling's `ql.hw` abstraction which automates this.
+For vectored interrupts, `context_save()` before hijack, write `PC`/`LR`/`xPSR`, emulate ISR, then `context_restore`. See [tools-dynamic.md](tools-dynamic.md#qiling-framework-cross-platform-emulation) for Qiling's `ql.hw` abstraction which automates this.
 
 ---
 
@@ -876,7 +876,7 @@ Batch `mem_read`/`mem_write` and `reg_read_batch` to cut crossings. For brute-fo
 
 ## Keystone + Unicorn Trace Inversion
 
-Binary applies `add/sub/xor/rol/ror` transforms with no memory effects (MeePwn 2017). Invert by reversing the trace and swapping inverse ops, re-assemble with Keystone, emulate with Unicorn. See anti-analysis-ctf.md.
+Binary applies `add/sub/xor/rol/ror` transforms with no memory effects (MeePwn 2017). Invert by reversing the trace and swapping inverse ops, re-assemble with Keystone, emulate with Unicorn. See [anti-analysis.md](anti-analysis.md#instruction-trace-inversion-with-keystone-and-unicorn-meepwn-ctf-2017).
 
 ```python
 from keystone import *
@@ -982,7 +982,7 @@ else:
             break
 ```
 
-See patterns-runtime.md for the GDB `call rax` + `ptrace` bypass variant.
+See [field-notes.md](field-notes.md#multi-stage-shellcode-loaders) for the GDB `call rax` + `ptrace` bypass variant.
 
 ---
 
@@ -1058,7 +1058,7 @@ Concrete vs symbolic vs OS — pick the right engine for the CTF slice.
 | Engine | Execution | OS / Syscalls | Arch | Symbolic | Snapshot | Best for | CTF refs |
 |---|---|---|---|---|---|---|---|
 | **Unicorn** | Concrete, TCG | None (raw CPU) | x86, ARM, MIPS, RISC-V, M68K, SPARC, S390X | No | `context_save`/`restore` + `mem_read` | Shellcode, bare-metal firmware, anti-debug slice, custom VM dispatch | See [tools.md](tools.md#unicorn-emulation) |
-| **Qiling** | Concrete, Unicorn+OS | Yes (syscalls, FS, registry via rootfs) | Same as Unicorn + OS layer | No (but hooks Python) | `ql.save`/`restore` (wraps context) | Foreign ELF with libc, syscall-heavy, `ptrace`/socket bypass | See tools-emulation.md |
+| **Qiling** | Concrete, Unicorn+OS | Yes (syscalls, FS, registry via rootfs) | Same as Unicorn + OS layer | No (but hooks Python) | `ql.save`/`restore` (wraps context) | Foreign ELF with libc, syscall-heavy, `ptrace`/socket bypass | See [tools-dynamic.md](tools-dynamic.md#qiling-framework-cross-platform-emulation) |
 | **QEMU** | Concrete, TCG/system | Full system or user-mode | Same + full peripherals | No | VM snapshot, `dump-guest-memory` | Full Linux boot, kernel driver RE, hardware MMIO via `-machine` | See [platforms-hardware.md](platforms-hardware.md) |
 | **angr** | Symbolic (VEX) | SimProcedures (SimLinux) | x86, ARM, MIPS | Yes (Claripy/Z3) | State copy (`state.copy()`) | Flag checkers, path explosion, no MMIO timing | See [tools-dynamic.md](tools-dynamic.md) |
 | **Triton** | Concrete + symbolic (DSE) | Pin/DBI-backed | x86, x86_64, AArch64 | Yes (Ast) | Single-path trace | Linear deobfuscation, taint, one-path solve | See [tools-advanced.md](tools-advanced.md#triton-dynamic-symbolic-execution) |
@@ -1309,6 +1309,6 @@ Verification prints `ok: nested VM flag recovered` when the VM check passes. Pat
 - Unicorn Engine: `Uc`, `UC_ARCH_*`, `UC_MODE_*`, `mem_map`, `mem_write`, `reg_write`, `emu_start`, `hook_add`, `UC_HOOK_*`, `UC_ERR_*`, `mmio_map`, `context_save`/`restore`/`update`, `mem_protect`, `mem_regions`, `ctl_remove_cache`/`ctl_flush_tb`, `reg_read_batch`.
 - Capstone: `Cs(CS_ARCH_X86, CS_MODE_64)` / `Cs(CS_ARCH_ARM, CS_MODE_THUMB)` for trace annotation; pair with `UC_HOOK_CODE`/`BLOCK` for coverage and SMC detection.
 - Keystone: `Ks(KS_ARCH_X86, KS_MODE_64).asm(...)` for trace inversion.
-- Qiling: `Qiling(path, rootfs)` when syscalls are needed — see tools-emulation.md for anti-debug and input fuzzing.
+- Qiling: `Qiling(path, rootfs)` when syscalls are needed — see [tools-dynamic.md](tools-dynamic.md#qiling-framework-cross-platform-emulation) for anti-debug and input fuzzing.
 - QEMU vs angr vs Triton: concrete/system vs symbolic — see comparison table above; VMProtect/Themida devirtualization via [tools-advanced.md](tools-advanced.md#vmprotect-analysis).
-- Prior art: [tools.md](tools.md#unicorn-emulation), [field-notes.md](field-notes.md#unicorn-emulation-complex-state), anti-analysis-ctf.md, tools-emulation.md, [tools-advanced.md](tools-advanced.md#custom-vm-bytecode-lifting-to-llvm-ir-google-ctf-2017).
+- Prior art: [tools.md](tools.md#unicorn-emulation), [field-notes.md](field-notes.md#unicorn-emulation-complex-state), [anti-analysis.md](anti-analysis.md#instruction-trace-inversion-with-keystone-and-unicorn-meepwn-ctf-2017), [tools-dynamic.md](tools-dynamic.md#qiling-framework-cross-platform-emulation), [tools-advanced.md](tools-advanced.md#custom-vm-bytecode-lifting-to-llvm-ir-google-ctf-2017).

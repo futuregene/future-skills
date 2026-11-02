@@ -83,20 +83,30 @@
 
 自研技能请用 `future-skill-creator`，并沿用本仓库的 `SOURCE.md` 约定（自研技能注明"本仓库原创"）。
 
-## 六、踩坑：守卫命令之前先取回 origin/main
+## 六、踩坑：守卫命令之前先取回 `origin/main`
 
-不要直接跑 git diff --quiet origin/main dev-<user> 判断一个分叉分支能否收敛。本机实测：
+不要直接跑 `git diff --quiet origin/main dev-<user>` 判断一个分叉分支能否收敛。本机实测：
 
-`
+```bash
 git diff --quiet origin/main dev-huichen
 fatal: Needed a single revision
-`
+```
 
-因为本地根本没有 origin/main 这个 ref（CLI 的浅克隆/单分支配置下常见）。正确顺序是先把它取下来，**不 checkout**：
+因为本地根本没有 `origin/main` 这个 ref（CLI 的浅克隆/单分支配置下常见）。正确顺序是先把它取下来，**不 checkout**：
 
-`ash
+```bash
 git fetch origin main:main
 git diff --quiet origin/main dev-<user>   # 现在才成立
-`
+```
 
-同理，任何"比较远端与本地分支"的守卫都应在 git fetch 之后写，否则守卫本身先失败，看起来像分支有问题。
+同理，任何"比较远端与本地分支"的守卫都应在 `git fetch` 之后写，否则守卫本身先失败，看起来像分支有问题。
+
+## 七、踩坑：别在 PowerShell 双引号里写反引号
+
+本仓库的 `SOURCE.md` 与本文档曾因此受伤：`commit` 后面的提交号丢了首字母，
+`tools-mcp.md` 显示成 `ools-mcp.md`、`radare2-r2pipe.md` 显示成 `adare2-r2pipe.md`，
+一个列表项还被回车劈成两行。原因是 PowerShell 双引号字符串里反引号是转义符：
+`` `a `` 是响铃、`` `t `` 是制表、`` `r `` 是回车。
+
+写含反引号的文本时用单引号 here-string（`@' … '@`），或者直接用文件编辑工具，不要走 shell 拼接。
+`tests/check_control_chars.py` 现在会拦住这类损伤。
