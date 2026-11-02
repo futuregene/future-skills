@@ -11,6 +11,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 COMMANDS = [
+    ["tests/check_registry.py"],
     ["tests/check_builtin.py"],
     ["-m", "unittest", "discover", "-s", "tests", "-v"],
     ["-m", "unittest", "discover", "-s", "third-party/future-experimental-design/tests", "-v"],
