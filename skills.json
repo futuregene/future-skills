@@ -5,7 +5,8 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "浏览器控制",
-    "description_zh": "通过 Future CLI 控制本地 Chrome、Edge 或 Safari，按授权打开页面并执行网页操作"
+    "description_zh": "通过 Future CLI 控制本地 Chrome、Edge 或 Safari，按授权打开页面并执行网页操作",
+    "scope": "general"
   },
   "future-database-lookup": {
     "category": "computing",
@@ -13,7 +14,8 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "科学数据库查询",
-    "description_zh": "确定性查询 78 个公开科学数据库，包括生物医学、材料科学、监管、金融等领域"
+    "description_zh": "确定性查询 78 个公开科学数据库，包括生物医学、材料科学、监管、金融等领域",
+    "scope": "general"
   },
   "future-deep-research": {
     "category": "research",
@@ -21,7 +23,8 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "深度研究",
-    "description_zh": "执行多轮深度研究任务，自动搜索、分析并综合多源信息生成研究报告"
+    "description_zh": "执行多轮深度研究任务，自动搜索、分析并综合多源信息生成研究报告",
+    "scope": "general"
   },
   "future-document": {
     "category": "docs",
@@ -29,14 +32,16 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "文档解析",
-    "description_zh": "按隐私与离线要求选择本地解析或授权的远程 PDF/Word 解析，输出结构化 Markdown 并说明提取限制"
+    "description_zh": "按隐私与离线要求选择本地解析或授权的远程 PDF/Word 解析，输出结构化 Markdown 并说明提取限制",
+    "scope": "general"
   },
   "future-experimental-design": {
     "category": "research",
     "category_zh": "科研与建模",
     "enabled": true,
     "name_zh": "实验设计",
-    "description_zh": "设计科学实验方案，包括对照组、样本量计算、随机化和统计分析计划"
+    "description_zh": "设计科学实验方案，包括对照组、样本量计算、随机化和统计分析计划",
+    "scope": "general"
   },
   "future-image": {
     "category": "docs",
@@ -44,7 +49,8 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "图像生成与编辑",
-    "description_zh": "文本到图像生成、自然语言图像编辑和图像分析"
+    "description_zh": "文本到图像生成、自然语言图像编辑和图像分析",
+    "scope": "general"
   },
   "future-goal": {
     "category": "platform",
@@ -52,14 +58,16 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "长程目标",
-    "description_zh": "FutureOS 目标控制平面——将对话转化为持久、可审查的长程目标：目标、todo、人工门禁、监控、证据与闭环验证都持久化在聊天之外；也编排多模型集成：同一份 brief 由不同模型分别执行，盲评后取长补短合成。显式调用 /future-goal 会把随附的任务派发给 worker 执行，而不是在当前会话里直接做完"
+    "description_zh": "FutureOS 目标控制平面——将对话转化为持久、可审查的长程目标：目标、todo、人工门禁、监控、证据与闭环验证都持久化在聊天之外；也编排多模型集成：同一份 brief 由不同模型分别执行，盲评后取长补短合成。显式调用 /future-goal 会把随附的任务派发给 worker 执行，而不是在当前会话里直接做完",
+    "scope": "general"
   },
   "future-explore": {
     "category": "research",
     "category_zh": "科研与建模",
     "enabled": true,
     "name_zh": "探索求解与验证",
-    "description_zh": "按风险和预算选择轻量、标准或重型研究流程，比较方法、记录增量证据、独立验证，并区分达标、受阻和预算耗尽"
+    "description_zh": "按风险和预算选择轻量、标准或重型研究流程，比较方法、记录增量证据、独立验证，并区分达标、受阻和预算耗尽",
+    "scope": "general"
   },
   "future-paper": {
     "category": "research",
@@ -67,7 +75,8 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "文献搜索与获取",
-    "description_zh": "跨多数据库搜索学术文献，按标识符获取全文内容"
+    "description_zh": "跨多数据库搜索学术文献，按标识符获取全文内容",
+    "scope": "general"
   },
   "future-peer-review": {
     "category": "research",
@@ -75,7 +84,8 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "同行评审",
-    "description_zh": "结构化稿件/基金评审，基于清单的系统性评估方法"
+    "description_zh": "结构化稿件/基金评审，基于清单的系统性评估方法",
+    "scope": "general"
   },
   "future-scientific-writing": {
     "category": "research",
@@ -83,7 +93,8 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "科研写作",
-    "description_zh": "按证据提纲撰写和修订科学稿件，遵循用户与期刊的结构、引用及报告规范"
+    "description_zh": "按证据提纲撰写和修订科学稿件，遵循用户与期刊的结构、引用及报告规范",
+    "scope": "general"
   },
   "future-self": {
     "category": "platform",
@@ -91,7 +102,8 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "自我认知与用户画像",
-    "description_zh": "读取和调整本机 Agent 与桌面应用的状态——全局设置、桌面设置与工作区、会话、技能、工具与模型、账户余额、本机远程桌面的配对设备与可连接的远端、本地备份与恢复，以及用户与 Agent 的历史对话——用于回答「我现在的配置是什么」「我对你了解什么」「我们之前做过什么」「现在哪台设备在控制这台机器」，并据此整理旧会话、做个性化与主动协助"
+    "description_zh": "读取和调整本机 Agent 与桌面应用的状态——全局设置、桌面设置与工作区、会话、技能、工具与模型、账户余额、本机远程桌面的配对设备与可连接的远端、本地备份与恢复，以及用户与 Agent 的历史对话——用于回答「我现在的配置是什么」「我对你了解什么」「我们之前做过什么」「现在哪台设备在控制这台机器」，并据此整理旧会话、做个性化与主动协助",
+    "scope": "general"
   },
   "future-mcp": {
     "category": "platform",
@@ -99,7 +111,8 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "MCP 服务器",
-    "description_zh": "通过 future mcp CLI 使用 MCP 服务器：查看、添加或移除 ~/.future/mcp.json 中的服务器，先检查其是否可用，再检索某个服务器的工具、读取参数 schema 并按 schema 调用；启动昂贵的服务器可用 serve 长驻一个会话，列出与结果都有分页与字节上限"
+    "description_zh": "通过 future mcp CLI 使用 MCP 服务器：查看、添加或移除 ~/.future/mcp.json 中的服务器，先检查其是否可用，再检索某个服务器的工具、读取参数 schema 并按 schema 调用；启动昂贵的服务器可用 serve 长驻一个会话，列出与结果都有分页与字节上限",
+    "scope": "general"
   },
   "future-skill-creator": {
     "category": "platform",
@@ -107,7 +120,8 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "自定义技能创建",
-    "description_zh": "在本地创建或更新自定义技能，采用成熟的技能设计模式"
+    "description_zh": "在本地创建或更新自定义技能，采用成熟的技能设计模式",
+    "scope": "general"
   },
   "future-software-install": {
     "category": "platform",
@@ -115,7 +129,8 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "轻量软件安装与镜像配置",
-    "description_zh": "跨 Windows、macOS 和 Linux 安装轻量命令行工具、Chrome 与文档处理库，并提供中国大陆网络镜像策略"
+    "description_zh": "跨 Windows、macOS 和 Linux 安装轻量命令行工具、Chrome 与文档处理库，并提供中国大陆网络镜像策略",
+    "scope": "general"
   },
   "future-slides": {
     "category": "docs",
@@ -123,7 +138,8 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "幻灯片与演示生成",
-    "description_zh": "默认生成原生可编辑 PPTX，适用于跨学科科研汇报、组会、答辩、教学和严肃演示；保留证据、引用与原图，分别检查内容、可编辑性和实际渲染，图片式幻灯片需明确选择"
+    "description_zh": "默认生成原生可编辑 PPTX，适用于跨学科科研汇报、组会、答辩、教学和严肃演示；保留证据、引用与原图，分别检查内容、可编辑性和实际渲染，图片式幻灯片需明确选择",
+    "scope": "general"
   },
   "future-scheduled-task": {
     "category": "platform",
@@ -131,7 +147,8 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "定时任务",
-    "description_zh": "创建、编辑、运行并迭代定时任务：可复用提示词 + 定时或手动触发，全权限运行并生成会话"
+    "description_zh": "创建、编辑、运行并迭代定时任务：可复用提示词 + 定时或手动触发，全权限运行并生成会话",
+    "scope": "general"
   },
   "future-versioning": {
     "category": "platform",
@@ -139,7 +156,8 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "轻量版本化开发",
-    "description_zh": "在 Git 仓库中版本化管理代码、文档、数据等成果，记录每次变更，并按项目规范完成审查、测试与验证"
+    "description_zh": "在 Git 仓库中版本化管理代码、文档、数据等成果，记录每次变更，并按项目规范完成审查、测试与验证",
+    "scope": "general"
   },
   "future-web": {
     "category": "platform",
@@ -147,1497 +165,1711 @@
     "builtin": true,
     "enabled": true,
     "name_zh": "网页搜索",
-    "description_zh": "搜索公开网络获取最新信息，返回页面标题、URL 和内容摘要"
+    "description_zh": "搜索公开网络获取最新信息，返回页面标题、URL 和内容摘要",
+    "scope": "general"
   },
   "adaptyv": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "Adaptyv 生物实验",
-    "description_zh": "使用 Adaptyv Bio Foundry API 和 Python SDK 进行蛋白质实验设计、提交和结果获取"
+    "description_zh": "使用 Adaptyv Bio Foundry API 和 Python SDK 进行蛋白质实验设计、提交和结果获取",
+    "scope": "general"
   },
   "aeon": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "时间序列机器学习",
-    "description_zh": "时间序列分类、回归、聚类、预测、异常检测等 ML 任务的专用工具包"
+    "description_zh": "时间序列分类、回归、聚类、预测、异常检测等 ML 任务的专用工具包",
+    "scope": "general"
   },
   "anndata": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "单细胞数据格式",
-    "description_zh": "单细胞分析中的注释矩阵数据结构，支持 .h5ad 文件读写及 scverse 生态集成"
+    "description_zh": "单细胞分析中的注释矩阵数据结构，支持 .h5ad 文件读写及 scverse 生态集成",
+    "scope": "general"
   },
   "arbor": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "Arbor 迭代改进",
-    "description_zh": "自主改进代码、训练配方、Agent 框架、数据管线等实际工件"
+    "description_zh": "自主改进代码、训练配方、Agent 框架、数据管线等实际工件",
+    "scope": "general"
   },
   "arboreto": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "基因调控网络推断",
-    "description_zh": "从基因表达数据推断基因调控网络，支持 GRNBoost2 和 GENIE3 算法"
+    "description_zh": "从基因表达数据推断基因调控网络，支持 GRNBoost2 和 GENIE3 算法",
+    "scope": "general"
   },
   "astropy": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "天文物理计算",
-    "description_zh": "天文和天体物理工作流核心库，涵盖单位转换、坐标、星表、时间、WCS 等"
+    "description_zh": "天文和天体物理工作流核心库，涵盖单位转换、坐标、星表、时间、WCS 等",
+    "scope": "general"
   },
   "autoskill": {
     "category": "platform",
     "category_zh": "平台与工具",
     "enabled": true,
     "name_zh": "自动技能生成",
-    "description_zh": "通过 screenpipe 观察用户屏幕，检测重复研究工作流并自动生成匹配技能"
+    "description_zh": "通过 screenpipe 观察用户屏幕，检测重复研究工作流并自动生成匹配技能",
+    "scope": "general"
   },
   "benchling-integration": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "Benchling 实验平台",
-    "description_zh": "Benchling Python SDK 与 REST API 集成，管理注册实体、库存、ELN、工作流等"
+    "description_zh": "Benchling Python SDK 与 REST API 集成，管理注册实体、库存、ELN、工作流等",
+    "scope": "general"
   },
   "bids": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "脑影像数据标准",
-    "description_zh": "BIDS 神经影像数据格式规范，用于组织 MRI、EEG、MEG 等脑成像数据"
+    "description_zh": "BIDS 神经影像数据格式规范，用于组织 MRI、EEG、MEG 等脑成像数据",
+    "scope": "general"
   },
   "biopython": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "生物信息学工具包",
-    "description_zh": "全面的分子生物学工具包，支持序列操作、文件解析（FASTA/GenBank）、BLAST、PDB 结构等"
+    "description_zh": "全面的分子生物学工具包，支持序列操作、文件解析（FASTA/GenBank）、BLAST、PDB 结构等",
+    "scope": "general"
   },
   "bioservices": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "生物信息学服务集成",
-    "description_zh": "40+ 生物信息学服务的统一 Python 接口，支持 UniProt、KEGG、ChEBI 等多数据库查询"
+    "description_zh": "40+ 生物信息学服务的统一 Python 接口，支持 UniProt、KEGG、ChEBI 等多数据库查询",
+    "scope": "general"
   },
   "bulk-rnaseq": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "批量 RNA-seq 分析",
-    "description_zh": "端到端批量 RNA-seq 流程：从 FASTQ 到 QC、比对、定量、差异表达和功能富集分析"
+    "description_zh": "端到端批量 RNA-seq 流程：从 FASTQ 到 QC、比对、定量、差异表达和功能富集分析",
+    "scope": "general"
   },
   "cellxgene-census": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "单细胞数据查询",
-    "description_zh": "通过 CZ CELLxGENE Census 编程查询公开单细胞和空间转录组数据"
+    "description_zh": "通过 CZ CELLxGENE Census 编程查询公开单细胞和空间转录组数据",
+    "scope": "general"
   },
   "clinical-decision-support": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "临床决策支持",
-    "description_zh": "生成专业临床决策支持文档，适用于制药和临床研究场景"
+    "description_zh": "生成专业临床决策支持文档，适用于制药和临床研究场景",
+    "scope": "general"
   },
   "clinical-reports": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "临床报告撰写",
-    "description_zh": "撰写综合临床报告：病例报告、诊断报告、影像学报告等专业医学文档"
+    "description_zh": "撰写综合临床报告：病例报告、诊断报告、影像学报告等专业医学文档",
+    "scope": "general"
   },
   "cobrapy": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "代谢网络建模",
-    "description_zh": "基于约束的代谢建模（COBRA）：FBA、FVA、基因敲除、通量采样、SBML 模型"
+    "description_zh": "基于约束的代谢建模（COBRA）：FBA、FVA、基因敲除、通量采样、SBML 模型",
+    "scope": "general"
   },
   "consciousness-council": {
     "category": "research",
     "category_zh": "科研与建模",
     "enabled": true,
     "name_zh": "思维委员会审议",
-    "description_zh": "运行多视角思维委员会审议，对任意问题、决策或创意挑战进行多角度探讨"
+    "description_zh": "运行多视角思维委员会审议，对任意问题、决策或创意挑战进行多角度探讨",
+    "scope": "general"
   },
   "dask": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "大规模分布式计算",
-    "description_zh": "超内存规模的 pandas/NumPy 分布式计算框架，无缝扩展现有数据分析代码"
+    "description_zh": "超内存规模的 pandas/NumPy 分布式计算框架，无缝扩展现有数据分析代码",
+    "scope": "general"
   },
   "datamol": {
     "category": "chemistry-materials",
     "category_zh": "化学与材料",
     "enabled": true,
     "name_zh": "分子化学信息学",
-    "description_zh": "RDKit 的 Pythonic 封装，简化分子操作接口，适用于标准化化学信息学任务"
+    "description_zh": "RDKit 的 Pythonic 封装，简化分子操作接口，适用于标准化化学信息学任务",
+    "scope": "general"
   },
   "deepchem": {
     "category": "chemistry-materials",
     "category_zh": "化学与材料",
     "enabled": true,
     "name_zh": "分子深度学习",
-    "description_zh": "分子机器学习工具包，用于性质预测（ADMET、毒性）、药物-靶点相互作用等"
+    "description_zh": "分子机器学习工具包，用于性质预测（ADMET、毒性）、药物-靶点相互作用等",
+    "scope": "general"
   },
   "deeptools": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "NGS 数据分析",
-    "description_zh": "NGS 分析工具包：BAM 转 bigWig、QC、热图/谱图、峰注释等"
+    "description_zh": "NGS 分析工具包：BAM 转 bigWig、QC、热图/谱图、峰注释等",
+    "scope": "general"
   },
   "depmap": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "癌症依赖图谱",
-    "description_zh": "查询 Cancer Dependency Map，获取癌细胞系基因依赖性评分（CRISPR Chronos）"
+    "description_zh": "查询 Cancer Dependency Map，获取癌细胞系基因依赖性评分（CRISPR Chronos）",
+    "scope": "general"
   },
   "dhdna-profiler": {
     "category": "research",
     "category_zh": "科研与建模",
     "enabled": true,
     "name_zh": "认知模式分析",
-    "description_zh": "从文本中提取认知模式和思维指纹，分析思维风格和认知特征"
+    "description_zh": "从文本中提取认知模式和思维指纹，分析思维风格和认知特征",
+    "scope": "general"
   },
   "diffdock": {
     "category": "chemistry-materials",
     "category_zh": "化学与材料",
     "enabled": true,
     "name_zh": "分子对接",
-    "description_zh": "DiffDock 和 DiffDock-L 分子对接工具，从 PDB 结构预测蛋白质-小分子结合姿态"
+    "description_zh": "DiffDock 和 DiffDock-L 分子对接工具，从 PDB 结构预测蛋白质-小分子结合姿态",
+    "scope": "general"
   },
   "dnanexus-integration": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "DNAnexus 云基因组",
-    "description_zh": "DNAnexus 云基因组平台：构建应用、管理数据、dxpy Python SDK 集成"
+    "description_zh": "DNAnexus 云基因组平台：构建应用、管理数据、dxpy Python SDK 集成",
+    "scope": "general"
   },
   "esm": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "蛋白质语言模型",
-    "description_zh": "使用 ESM3/ESMC 等蛋白质语言模型进行结构预测、功能注释和突变分析"
+    "description_zh": "使用 ESM3/ESMC 等蛋白质语言模型进行结构预测、功能注释和突变分析",
+    "scope": "general"
   },
   "etetoolkit": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "系统发育树分析",
-    "description_zh": "系统发育树工具包：树操作（Newick/NHX）、进化事件检测、同源性分析、可视化"
+    "description_zh": "系统发育树工具包：树操作（Newick/NHX）、进化事件检测、同源性分析、可视化",
+    "scope": "general"
   },
   "exploratory-data-analysis": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "探索性数据分析",
-    "description_zh": "对 200+ 文件格式的科学数据进行全面探索性分析，生成统计摘要和可视化"
+    "description_zh": "对 200+ 文件格式的科学数据进行全面探索性分析，生成统计摘要和可视化",
+    "scope": "general"
   },
   "flowio": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "流式细胞数据解析",
-    "description_zh": "解析 FCS 流式细胞标准文件，提取事件为 NumPy 数组，读取元数据"
+    "description_zh": "解析 FCS 流式细胞标准文件，提取事件为 NumPy 数组，读取元数据",
+    "scope": "general"
   },
   "fluidsim": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "流体力学模拟",
-    "description_zh": "计算流体力学模拟框架，用于湍流、多相流等 CFD 模拟"
+    "description_zh": "计算流体力学模拟框架，用于湍流、多相流等 CFD 模拟",
+    "scope": "general"
   },
   "geniml": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "基因组区间机器学习",
-    "description_zh": "处理基因组区间数据（BED 文件）的机器学习工具包"
+    "description_zh": "处理基因组区间数据（BED 文件）的机器学习工具包",
+    "scope": "general"
   },
   "geomaster": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "地理空间科学",
-    "description_zh": "综合地理空间科学技能：遥感、GIS、空间分析、机器学习应用于地理数据"
+    "description_zh": "综合地理空间科学技能：遥感、GIS、空间分析、机器学习应用于地理数据",
+    "scope": "general"
   },
   "geopandas": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "地理空间数据处理",
-    "description_zh": "处理矢量地理空间数据的 Python 库，支持 shapefile、GeoJSON、GeoPackage"
+    "description_zh": "处理矢量地理空间数据的 Python 库，支持 shapefile、GeoJSON、GeoPackage",
+    "scope": "general"
   },
   "get-available-resources": {
     "category": "platform",
     "category_zh": "平台与工具",
     "enabled": true,
     "name_zh": "计算资源检测",
-    "description_zh": "在计算密集型任务开始前检测系统可用资源（CPU/GPU/内存/磁盘）"
+    "description_zh": "在计算密集型任务开始前检测系统可用资源（CPU/GPU/内存/磁盘）",
+    "scope": "general"
   },
   "gget": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "生物数据库快速查询",
-    "description_zh": "20+ 生物信息学数据库的快速 CLI/Python 查询工具"
+    "description_zh": "20+ 生物信息学数据库的快速 CLI/Python 查询工具",
+    "scope": "general"
   },
   "ginkgo-cloud-lab": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "Ginkgo 云实验室",
-    "description_zh": "通过 Ginkgo Bioworks Cloud Lab 提交和管理湿实验协议"
+    "description_zh": "通过 Ginkgo Bioworks Cloud Lab 提交和管理湿实验协议",
+    "scope": "general"
   },
   "glycoengineering": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "糖基化工程",
-    "description_zh": "分析和工程化蛋白质糖基化：N-糖基化位点扫描、糖型预测和改造"
+    "description_zh": "分析和工程化蛋白质糖基化：N-糖基化位点扫描、糖型预测和改造",
+    "scope": "general"
   },
   "gtars": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "基因组区间分析",
-    "description_zh": "基于 Rust 的高性能基因组区间分析工具包，含 Python 绑定"
+    "description_zh": "基于 Rust 的高性能基因组区间分析工具包，含 Python 绑定",
+    "scope": "general"
   },
   "histolab": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "病理切片预处理",
-    "description_zh": "轻量级全切片图像瓦片提取和预处理工具"
+    "description_zh": "轻量级全切片图像瓦片提取和预处理工具",
+    "scope": "general"
   },
   "hugging-science": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "HuggingFace 科研模型",
-    "description_zh": "在生物、化学、物理等科学领域使用 HuggingFace 预训练模型"
+    "description_zh": "在生物、化学、物理等科学领域使用 HuggingFace 预训练模型",
+    "scope": "general"
   },
   "hypogenic": {
     "category": "research",
     "category_zh": "科研与建模",
     "enabled": true,
     "name_zh": "自动假设生成",
-    "description_zh": "基于表格数据的自动化 LLM 驱动假设生成和检验"
+    "description_zh": "基于表格数据的自动化 LLM 驱动假设生成和检验",
+    "scope": "general"
   },
   "hypothesis-generation": {
     "category": "research",
     "category_zh": "科研与建模",
     "enabled": true,
     "name_zh": "科学假设构建",
-    "description_zh": "从实验观察出发，系统化构建和评价科学假设"
+    "description_zh": "从实验观察出发，系统化构建和评价科学假设",
+    "scope": "general"
   },
   "imaging-data-commons": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "癌症影像数据",
-    "description_zh": "从 NCI Imaging Data Commons 查询和下载公开癌症影像数据"
+    "description_zh": "从 NCI Imaging Data Commons 查询和下载公开癌症影像数据",
+    "scope": "general"
   },
   "iso-13485-certification": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "ISO 13485 认证",
-    "description_zh": "医疗器械质量管理体系 ISO 13485 认证文档准备工具包"
+    "description_zh": "医疗器械质量管理体系 ISO 13485 认证文档准备工具包",
+    "scope": "general"
   },
   "labarchive-integration": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "LabArchive 电子实验本",
-    "description_zh": "电子实验本 API 集成：管理笔记本、条目、附件和数据备份"
+    "description_zh": "电子实验本 API 集成：管理笔记本、条目、附件和数据备份",
+    "scope": "general"
   },
   "lamindb": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "LaminDB 数据湖仓",
-    "description_zh": "开源血缘感知的生物数据库，管理数据集和模型训练的完整数据链路"
+    "description_zh": "开源血缘感知的生物数据库，管理数据集和模型训练的完整数据链路",
+    "scope": "general"
   },
   "latchbio-integration": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "Latch 生信平台",
-    "description_zh": "Latch 生物信息学工作流平台：构建管线、管理数据和云资源"
+    "description_zh": "Latch 生物信息学工作流平台：构建管线、管理数据和云资源",
+    "scope": "general"
   },
   "latex-posters": {
     "category": "docs",
     "category_zh": "文档与设计",
     "enabled": true,
     "name_zh": "LaTeX 学术海报",
-    "description_zh": "使用 beamerposter、tikzposter 或 baposter 创建专业研究海报"
+    "description_zh": "使用 beamerposter、tikzposter 或 baposter 创建专业研究海报",
+    "scope": "general"
   },
   "markdown-mermaid-writing": {
     "category": "docs",
     "category_zh": "文档与设计",
     "enabled": true,
     "name_zh": "Markdown 与图表写作",
-    "description_zh": "全面的 Markdown 和 Mermaid 图表写作技能，适用于科学文档"
+    "description_zh": "全面的 Markdown 和 Mermaid 图表写作技能，适用于科学文档",
+    "scope": "general"
   },
   "market-research-reports": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "市场研究报告",
-    "description_zh": "生成 McKinsey/BCG/Bain 风格的 50+ 页综合市场研究报告"
+    "description_zh": "生成 McKinsey/BCG/Bain 风格的 50+ 页综合市场研究报告",
+    "scope": "general"
   },
   "matchms": {
     "category": "chemistry-materials",
     "category_zh": "化学与材料",
     "enabled": true,
     "name_zh": "质谱相似性分析",
-    "description_zh": "代谢组学质谱相似性和化合物鉴定工具"
+    "description_zh": "代谢组学质谱相似性和化合物鉴定工具",
+    "scope": "general"
   },
   "matlab": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "MATLAB/Octave 计算",
-    "description_zh": "MATLAB 和 GNU Octave 数值计算：矩阵运算、数据分析、可视化和科学计算"
+    "description_zh": "MATLAB 和 GNU Octave 数值计算：矩阵运算、数据分析、可视化和科学计算",
+    "scope": "general"
   },
   "matplotlib": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "Python 绑图",
-    "description_zh": "底层绑图库，提供对图形元素完全自定义的科学绑图能力"
+    "description_zh": "底层绑图库，提供对图形元素完全自定义的科学绑图能力",
+    "scope": "general"
   },
   "medchem": {
     "category": "chemistry-materials",
     "category_zh": "化学与材料",
     "enabled": true,
     "name_zh": "药物化学筛选",
-    "description_zh": "药物化学过滤规则：类药性、毒性基团、结构警报等化合物筛选"
+    "description_zh": "药物化学过滤规则：类药性、毒性基团、结构警报等化合物筛选",
+    "scope": "general"
   },
   "modal": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "Modal 无服务器计算",
-    "description_zh": "Modal 无服务器云平台：按需运行 Python，支持 GPU 实例"
+    "description_zh": "Modal 无服务器云平台：按需运行 Python，支持 GPU 实例",
+    "scope": "general"
   },
   "molecular-dynamics": {
     "category": "chemistry-materials",
     "category_zh": "化学与材料",
     "enabled": true,
     "name_zh": "分子动力学模拟",
-    "description_zh": "使用 OpenMM 和 MDAnalysis 运行和分析分子动力学模拟"
+    "description_zh": "使用 OpenMM 和 MDAnalysis 运行和分析分子动力学模拟",
+    "scope": "general"
   },
   "molfeat": {
     "category": "chemistry-materials",
     "category_zh": "化学与材料",
     "enabled": true,
     "name_zh": "分子特征化",
-    "description_zh": "100+ 分子特征化方法：ECFP、MACCS、描述符、预训练模型"
+    "description_zh": "100+ 分子特征化方法：ECFP、MACCS、描述符、预训练模型",
+    "scope": "general"
   },
   "networkx": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "复杂网络分析",
-    "description_zh": "创建、分析和可视化复杂网络和图结构的 Python 工具"
+    "description_zh": "创建、分析和可视化复杂网络和图结构的 Python 工具",
+    "scope": "general"
   },
   "neurokit2": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "生理信号处理",
-    "description_zh": "全面的生物信号处理工具包：ECG、EEG、EDA、EMG 等生理数据分析"
+    "description_zh": "全面的生物信号处理工具包：ECG、EEG、EDA、EMG 等生理数据分析",
+    "scope": "general"
   },
   "neuropixels-analysis": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "Neuropixels 记录分析",
-    "description_zh": "使用 SpikeInterface 端到端分析 Neuropixels 细胞外电生理记录"
+    "description_zh": "使用 SpikeInterface 端到端分析 Neuropixels 细胞外电生理记录",
+    "scope": "general"
   },
   "nextflow": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "Nextflow 工作流",
-    "description_zh": "构建、运行和调试 Nextflow 数据管线及 nf-core 工作流"
+    "description_zh": "构建、运行和调试 Nextflow 数据管线及 nf-core 工作流",
+    "scope": "general"
   },
   "omero-integration": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "OMERO 显微镜数据",
-    "description_zh": "显微镜数据管理平台，通过 Python 访问图像、分析像素和元数据"
+    "description_zh": "显微镜数据管理平台，通过 Python 访问图像、分析像素和元数据",
+    "scope": "general"
   },
   "onekgpd": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "千人基因组计划",
-    "description_zh": "千人基因组计划数据查询和分析，获取人群遗传变异信息"
+    "description_zh": "千人基因组计划数据查询和分析，获取人群遗传变异信息",
+    "scope": "general"
   },
   "open-notebook": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "Open Notebook AI",
-    "description_zh": "自托管开源 AI 研究助手，替代 Google NotebookLM 进行文档分析"
+    "description_zh": "自托管开源 AI 研究助手，替代 Google NotebookLM 进行文档分析",
+    "scope": "general"
   },
   "opentrons-integration": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "Opentrons 移液机器人",
-    "description_zh": "Opentrons OT-2 和 Flex 液体处理机器人协议编写"
+    "description_zh": "Opentrons OT-2 和 Flex 液体处理机器人协议编写",
+    "scope": "general"
   },
   "optimize-for-gpu": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "GPU 加速优化",
-    "description_zh": "使用 CuPy、Numba CUDA、cuDF 等将 Python 代码 GPU 加速"
+    "description_zh": "使用 CuPy、Numba CUDA、cuDF 等将 Python 代码 GPU 加速",
+    "scope": "general"
   },
   "pacsomatic": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "肿瘤-正常体细胞分析",
-    "description_zh": "nf-core/pacsomatic 配对肿瘤-正常样本体细胞变异分析工具"
+    "description_zh": "nf-core/pacsomatic 配对肿瘤-正常样本体细胞变异分析工具",
+    "scope": "general"
   },
   "paperzilla": {
     "category": "research",
     "category_zh": "科研与建模",
     "enabled": true,
     "name_zh": "Paperzilla 文献推荐",
-    "description_zh": "与 Paperzilla 中的文献推荐和项目交互，管理研究论文"
+    "description_zh": "与 Paperzilla 中的文献推荐和项目交互，管理研究论文",
+    "scope": "general"
   },
   "pathml": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "计算病理学",
-    "description_zh": "全特征计算病理学工具包：多重免疫荧光、H&E 染色分析"
+    "description_zh": "全特征计算病理学工具包：多重免疫荧光、H&E 染色分析",
+    "scope": "general"
   },
   "pathway-enrichment": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "通路富集分析",
-    "description_zh": "对基因列表进行通路和基因集富集分析，解释生物学意义"
+    "description_zh": "对基因列表进行通路和基因集富集分析，解释生物学意义",
+    "scope": "general"
   },
   "phylogenetics": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "系统发育分析",
-    "description_zh": "使用 MAFFT、IQ-TREE 2 和 BEAST2 构建和分析系统发育树"
+    "description_zh": "使用 MAFFT、IQ-TREE 2 和 BEAST2 构建和分析系统发育树",
+    "scope": "general"
   },
   "pi-agent": {
     "category": "platform",
     "category_zh": "平台与工具",
     "enabled": true,
     "name_zh": "Pi 终端 AI 编程",
-    "description_zh": "使用 Pi 极简终端编程框架进行编码和任务自动化"
+    "description_zh": "使用 Pi 极简终端编程框架进行编码和任务自动化",
+    "scope": "general"
   },
   "polars": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "Polars 高性能数据",
-    "description_zh": "高性能 DataFrame 库，用于 Python ETL、分析和 pandas 迁移"
+    "description_zh": "高性能 DataFrame 库，用于 Python ETL、分析和 pandas 迁移",
+    "scope": "general"
   },
   "polars-bio": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "Polars 基因组区间",
-    "description_zh": "基于 Polars 的高性能基因组区间操作和生物信息学文件 I/O"
+    "description_zh": "基于 Polars 的高性能基因组区间操作和生物信息学文件 I/O",
+    "scope": "general"
   },
   "primekg": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "精准医学知识图谱",
-    "description_zh": "查询 PrimeKG 精准医学知识图谱，获取多尺度生物数据"
+    "description_zh": "查询 PrimeKG 精准医学知识图谱，获取多尺度生物数据",
+    "scope": "general"
   },
   "protocolsio-integration": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "protocols.io 协议",
-    "description_zh": "集成 protocols.io API，管理和分享科学实验协议"
+    "description_zh": "集成 protocols.io API，管理和分享科学实验协议",
+    "scope": "general"
   },
   "pufferlib": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "强化学习框架",
-    "description_zh": "高性能强化学习框架，专为速度和规模化优化"
+    "description_zh": "高性能强化学习框架，专为速度和规模化优化",
+    "scope": "general"
   },
   "pydeseq2": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "差异表达分析",
-    "description_zh": "使用 PyDESeq2 进行批量 RNA-seq 差异基因表达分析"
+    "description_zh": "使用 PyDESeq2 进行批量 RNA-seq 差异基因表达分析",
+    "scope": "general"
   },
   "pydicom": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "DICOM 医学影像",
-    "description_zh": "处理 DICOM 医学影像文件的 Python 库"
+    "description_zh": "处理 DICOM 医学影像文件的 Python 库",
+    "scope": "general"
   },
   "pyhealth": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "临床深度学习",
-    "description_zh": "构建临床/医疗深度学习管线：EHR、信号、影像数据处理"
+    "description_zh": "构建临床/医疗深度学习管线：EHR、信号、影像数据处理",
+    "scope": "general"
   },
   "pylabrobot": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "实验室自动化",
-    "description_zh": "跨厂商实验室自动化框架，支持 Hamilton、Tecan 等多种设备"
+    "description_zh": "跨厂商实验室自动化框架，支持 Hamilton、Tecan 等多种设备",
+    "scope": "general"
   },
   "pymatgen": {
     "category": "chemistry-materials",
     "category_zh": "化学与材料",
     "enabled": true,
     "name_zh": "材料科学分析",
-    "description_zh": "材料科学工具包：晶体结构、相图、能带结构、态密度等"
+    "description_zh": "材料科学工具包：晶体结构、相图、能带结构、态密度等",
+    "scope": "general"
   },
   "pymc": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "贝叶斯建模",
-    "description_zh": "贝叶斯统计建模：层次模型、MCMC（NUTS）、变分推断"
+    "description_zh": "贝叶斯统计建模：层次模型、MCMC（NUTS）、变分推断",
+    "scope": "general"
   },
   "pymoo": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "多目标优化",
-    "description_zh": "多目标优化框架：NSGA-II、NSGA-III、MOEA/D、Pareto 前沿"
+    "description_zh": "多目标优化框架：NSGA-II、NSGA-III、MOEA/D、Pareto 前沿",
+    "scope": "general"
   },
   "pyopenms": {
     "category": "chemistry-materials",
     "category_zh": "化学与材料",
     "enabled": true,
     "name_zh": "质谱分析平台",
-    "description_zh": "完整质谱分析平台：蛋白质组学和代谢组学特征检测、定量和鉴定"
+    "description_zh": "完整质谱分析平台：蛋白质组学和代谢组学特征检测、定量和鉴定",
+    "scope": "general"
   },
   "pysam": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "基因组文件处理",
-    "description_zh": "基因组文件工具包：SAM/BAM/CRAM、VCF/BCF、FASTA/FASTQ"
+    "description_zh": "基因组文件工具包：SAM/BAM/CRAM、VCF/BCF、FASTA/FASTQ",
+    "scope": "general"
   },
   "pytdc": {
     "category": "chemistry-materials",
     "category_zh": "化学与材料",
     "enabled": true,
     "name_zh": "药物发现数据集",
-    "description_zh": "Therapeutics Data Commons：AI 就绪的药物发现数据集和基准"
+    "description_zh": "Therapeutics Data Commons：AI 就绪的药物发现数据集和基准",
+    "scope": "general"
   },
   "pytorch-lightning": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "PyTorch Lightning 训练",
-    "description_zh": "深度学习框架：将 PyTorch 代码组织为 Lightning 模块，简化训练流程"
+    "description_zh": "深度学习框架：将 PyTorch 代码组织为 Lightning 模块，简化训练流程",
+    "scope": "general"
   },
   "pyzotero": {
     "category": "research",
     "category_zh": "科研与建模",
     "enabled": true,
     "name_zh": "Zotero 文献管理",
-    "description_zh": "使用 pyzotero 操作 Zotero 参考文献库：检索、创建和管理文献条目"
+    "description_zh": "使用 pyzotero 操作 Zotero 参考文献库：检索、创建和管理文献条目",
+    "scope": "general"
   },
   "rdkit": {
     "category": "chemistry-materials",
     "category_zh": "化学与材料",
     "enabled": true,
     "name_zh": "RDKit 化学信息学",
-    "description_zh": "化学信息学工具包：SMILES/SDF 解析、分子描述符、药效团、子结构搜索"
+    "description_zh": "化学信息学工具包：SMILES/SDF 解析、分子描述符、药效团、子结构搜索",
+    "scope": "general"
   },
   "research-grants": {
     "category": "research",
     "category_zh": "科研与建模",
     "enabled": true,
     "name_zh": "研究基金申请",
-    "description_zh": "撰写 NSF、NIH、DOE、DARPA 和台湾 NSTC 等基金申请书"
+    "description_zh": "撰写 NSF、NIH、DOE、DARPA 和台湾 NSTC 等基金申请书",
+    "scope": "general"
   },
   "rowan": {
     "category": "chemistry-materials",
     "category_zh": "化学与材料",
     "enabled": true,
     "name_zh": "Rowan 分子建模",
-    "description_zh": "云原生分子建模和药物化学工作流平台，含 Python API"
+    "description_zh": "云原生分子建模和药物化学工作流平台，含 Python API",
+    "scope": "general"
   },
   "scanpy": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "单细胞 RNA-seq",
-    "description_zh": "标准单细胞 RNA-seq 分析：QC、标准化、降维、聚类、差异表达"
+    "description_zh": "标准单细胞 RNA-seq 分析：QC、标准化、降维、聚类、差异表达",
+    "scope": "general"
   },
   "scholar-evaluation": {
     "category": "research",
     "category_zh": "科研与建模",
     "enabled": true,
     "name_zh": "学术评价",
-    "description_zh": "使用 ScholarEval 框架系统评估学术工作的质量与影响"
+    "description_zh": "使用 ScholarEval 框架系统评估学术工作的质量与影响",
+    "scope": "general"
   },
   "scientific-brainstorming": {
     "category": "research",
     "category_zh": "科研与建模",
     "enabled": true,
     "name_zh": "科学头脑风暴",
-    "description_zh": "开放式研究创意探索，跨学科联想和创新研究方向的灵感激发"
+    "description_zh": "开放式研究创意探索，跨学科联想和创新研究方向的灵感激发",
+    "scope": "general"
   },
   "scientific-critical-thinking": {
     "category": "research",
     "category_zh": "科研与建模",
     "enabled": true,
     "name_zh": "科学批判思维",
-    "description_zh": "评估科学证据和方法论质量：实验设计有效性、逻辑推理和潜在偏差"
+    "description_zh": "评估科学证据和方法论质量：实验设计有效性、逻辑推理和潜在偏差",
+    "scope": "general"
   },
   "scientific-schematics": {
     "category": "docs",
     "category_zh": "文档与设计",
     "enabled": true,
     "name_zh": "科学示意图",
-    "description_zh": "使用 AI 创建发表级科学示意图、机制图和图形摘要"
+    "description_zh": "使用 AI 创建发表级科学示意图、机制图和图形摘要",
+    "scope": "general"
   },
   "scientific-visualization": {
     "category": "docs",
     "category_zh": "文档与设计",
     "enabled": true,
     "name_zh": "科学可视化",
-    "description_zh": "创建发表级图表：包含多子图和高级绑图元素的综合可视化"
+    "description_zh": "创建发表级图表：包含多子图和高级绑图元素的综合可视化",
+    "scope": "general"
   },
   "scikit-bio": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "生物数据分析",
-    "description_zh": "生物数据工具包：序列分析、比对、系统发育、多样性指标"
+    "description_zh": "生物数据工具包：序列分析、比对、系统发育、多样性指标",
+    "scope": "general"
   },
   "scikit-learn": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "机器学习",
-    "description_zh": "Python 机器学习：分类、回归、聚类、降维、模型选择和预处理"
+    "description_zh": "Python 机器学习：分类、回归、聚类、降维、模型选择和预处理",
+    "scope": "general"
   },
   "scikit-survival": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "生存分析",
-    "description_zh": "全面的生存分析和时间到事件建模 Python 工具包"
+    "description_zh": "全面的生存分析和时间到事件建模 Python 工具包",
+    "scope": "general"
   },
   "scvelo": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "RNA 速率分析",
-    "description_zh": "使用 scVelo 从未剪接/已剪接 mRNA 动态估计细胞状态转换"
+    "description_zh": "使用 scVelo 从未剪接/已剪接 mRNA 动态估计细胞状态转换",
+    "scope": "general"
   },
   "scvi-tools": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "单细胞生成模型",
-    "description_zh": "单细胞组学深度生成模型：批效应校正、数据整合、差异表达"
+    "description_zh": "单细胞组学深度生成模型：批效应校正、数据整合、差异表达",
+    "scope": "general"
   },
   "seaborn": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "统计可视化",
-    "description_zh": "与 pandas 集成的统计可视化库，快速探索数据分布和关系"
+    "description_zh": "与 pandas 集成的统计可视化库，快速探索数据分布和关系",
+    "scope": "general"
   },
   "shap": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "模型可解释性",
-    "description_zh": "使用 SHAP 值进行模型预测解释和特征重要性分析"
+    "description_zh": "使用 SHAP 值进行模型预测解释和特征重要性分析",
+    "scope": "general"
   },
   "simpy": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "离散事件模拟",
-    "description_zh": "基于进程的离散事件模拟框架，用于排队系统、供应链等仿真"
+    "description_zh": "基于进程的离散事件模拟框架，用于排队系统、供应链等仿真",
+    "scope": "general"
   },
   "stable-baselines3": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "强化学习算法",
-    "description_zh": "生产级强化学习算法实现：PPO、SAC、DQN、TD3 等"
+    "description_zh": "生产级强化学习算法实现：PPO、SAC、DQN、TD3 等",
+    "scope": "general"
   },
   "statistical-analysis": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "统计分析指导",
-    "description_zh": "引导式统计分析：测试选择、假设检验、效应量报告"
+    "description_zh": "引导式统计分析：测试选择、假设检验、效应量报告",
+    "scope": "general"
   },
   "statistical-power": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "统计功效计算",
-    "description_zh": "样本量和统计功效计算：实验规划和研究设计"
+    "description_zh": "样本量和统计功效计算：实验规划和研究设计",
+    "scope": "general"
   },
   "statsmodels": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "统计建模",
-    "description_zh": "Python 统计模型库：OLS、GLM、混合模型、时间序列分析"
+    "description_zh": "Python 统计模型库：OLS、GLM、混合模型、时间序列分析",
+    "scope": "general"
   },
   "sympy": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "符号数学",
-    "description_zh": "Python 符号数学：代数、微积分、方程求解、符号线性代数"
+    "description_zh": "Python 符号数学：代数、微积分、方程求解、符号线性代数",
+    "scope": "general"
   },
   "tamarind": {
     "category": "chemistry-materials",
     "category_zh": "化学与材料",
     "enabled": true,
     "name_zh": "Tamarind 分子设计",
-    "description_zh": "访问 Tamarind Bio 开源分子设计和结构生物学工具集"
+    "description_zh": "访问 Tamarind Bio 开源分子设计和结构生物学工具集",
+    "scope": "general"
   },
   "tiledbvcf": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "变异数据存储",
-    "description_zh": "使用 TileDB 高效存储和检索基因组变异数据（VCF/BCF）"
+    "description_zh": "使用 TileDB 高效存储和检索基因组变异数据（VCF/BCF）",
+    "scope": "general"
   },
   "timesfm-forecasting": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "时间序列预测",
-    "description_zh": "使用 Google TimesFM 基础模型进行零样本时间序列预测"
+    "description_zh": "使用 Google TimesFM 基础模型进行零样本时间序列预测",
+    "scope": "general"
   },
   "torch-geometric": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "图神经网络",
-    "description_zh": "PyTorch Geometric：节点/边/图分类、消息传递、图卷积"
+    "description_zh": "PyTorch Geometric：节点/边/图分类、消息传递、图卷积",
+    "scope": "general"
   },
   "torchdrug": {
     "category": "chemistry-materials",
     "category_zh": "化学与材料",
     "enabled": true,
     "name_zh": "药物分子 GNN",
-    "description_zh": "PyTorch 原生分子和蛋白质图神经网络，自定义 GNN 架构"
+    "description_zh": "PyTorch 原生分子和蛋白质图神经网络，自定义 GNN 架构",
+    "scope": "general"
   },
   "transformers": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "HuggingFace Transformers",
-    "description_zh": "加载 Hub 模型、运行管线推理、文本生成的 Transformers 库"
+    "description_zh": "加载 Hub 模型、运行管线推理、文本生成的 Transformers 库",
+    "scope": "general"
   },
   "treatment-plans": {
     "category": "life-science",
     "category_zh": "生命科学与医药",
     "enabled": true,
     "name_zh": "治疗方案",
-    "description_zh": "生成简洁聚焦的 3-4 页 LaTeX/PDF 格式治疗方案"
+    "description_zh": "生成简洁聚焦的 3-4 页 LaTeX/PDF 格式治疗方案",
+    "scope": "general"
   },
   "umap-learn": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "UMAP 降维",
-    "description_zh": "UMAP 非线性降维：2D/3D 嵌入、聚类预处理、高维数据可视化"
+    "description_zh": "UMAP 非线性降维：2D/3D 嵌入、聚类预处理、高维数据可视化",
+    "scope": "general"
   },
   "usfiscaldata": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "美国财政数据",
-    "description_zh": "查询美国财政部 REST API 获取联邦财政数据"
+    "description_zh": "查询美国财政部 REST API 获取联邦财政数据",
+    "scope": "general"
   },
   "vaex": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "十亿级数据处理",
-    "description_zh": "处理和可视化数十亿行的大型表格数据，超出内存限制"
+    "description_zh": "处理和可视化数十亿行的大型表格数据，超出内存限制",
+    "scope": "general"
   },
   "venue-templates": {
     "category": "docs",
     "category_zh": "文档与设计",
     "enabled": true,
     "name_zh": "期刊模板",
-    "description_zh": "各大期刊和会议的 LaTeX 模板、格式要求和投稿指南"
+    "description_zh": "各大期刊和会议的 LaTeX 模板、格式要求和投稿指南",
+    "scope": "general"
   },
   "what-if-oracle": {
     "category": "research",
     "category_zh": "科研与建模",
     "enabled": true,
     "name_zh": "多情景分析",
-    "description_zh": "运行结构化 What-If 情景分析：4-6 分支（最佳、可能、最坏、黑天鹅）"
+    "description_zh": "运行结构化 What-If 情景分析：4-6 分支（最佳、可能、最坏、黑天鹅）",
+    "scope": "general"
   },
   "xlsx": {
     "category": "docs",
     "category_zh": "文档与设计",
     "enabled": true,
     "name_zh": "Excel 电子表格",
-    "description_zh": "创建、编辑、分析或转换 Excel 电子表格文件"
+    "description_zh": "创建、编辑、分析或转换 Excel 电子表格文件",
+    "scope": "general"
   },
   "zarr-python": {
     "category": "computing",
     "category_zh": "数据与计算",
     "enabled": true,
     "name_zh": "Zarr 多维数组",
-    "description_zh": "云存储分块 N-D 数组：压缩存储、并行 I/O、S3/GCS 兼容"
+    "description_zh": "云存储分块 N-D 数组：压缩存储、并行 I/O、S3/GCS 兼容",
+    "scope": "general"
   },
   "kicad": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "KiCad 工程分析",
-    "description_zh": "解析 KiCad 工程与 PDF 原理图：ERC/DRC、网络追踪、原理图与 PCB 交叉核对、电源树、DFM，结论带置信度"
+    "description_zh": "解析 KiCad 工程与 PDF 原理图：ERC/DRC、网络追踪、原理图与 PCB 交叉核对、电源树、DFM，结论带置信度",
+    "scope": "hdu"
   },
   "spice": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "电路 SPICE 仿真",
-    "description_zh": "用 ngspice/ltspice/xyce 对子电路做工作点、AC、瞬态仿真验证"
+    "description_zh": "用 ngspice/ltspice/xyce 对子电路做工作点、AC、瞬态仿真验证",
+    "scope": "hdu"
   },
   "bom": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "BOM 管理",
-    "description_zh": "BOM 提取、补全、比价与下单，串联立创/得捷/贸泽等供应链技能"
+    "description_zh": "BOM 提取、补全、比价与下单，串联立创/得捷/贸泽等供应链技能",
+    "scope": "hdu"
   },
   "lcsc": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "立创商城选型",
-    "description_zh": "按立创编号或型号检索器件，查库存价格、取数据手册（国内生产采购主力）"
+    "description_zh": "按立创编号或型号检索器件，查库存价格、取数据手册（国内生产采购主力）",
+    "scope": "hdu"
   },
   "digikey": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "DigiKey 选型",
-    "description_zh": "按型号检索 DigiKey 器件，查库存价格并下载数据手册"
+    "description_zh": "按型号检索 DigiKey 器件，查库存价格并下载数据手册",
+    "scope": "hdu"
   },
   "mouser": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "Mouser 选型",
-    "description_zh": "检索 Mouser 器件作为打样次选来源"
+    "description_zh": "检索 Mouser 器件作为打样次选来源",
+    "scope": "hdu"
   },
   "element14": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "element14 选型",
-    "description_zh": "检索 Newark/Farnell/element14 器件，国际来源与可靠数据手册"
+    "description_zh": "检索 Newark/Farnell/element14 器件，国际来源与可靠数据手册",
+    "scope": "hdu"
   },
   "jlcpcb": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "嘉立创制板",
-    "description_zh": "嘉立创制板与贴片：BOM/CPL 生成、基础库与扩展库约束、设计规则、下单流程"
+    "description_zh": "嘉立创制板与贴片：BOM/CPL 生成、基础库与扩展库约束、设计规则、下单流程",
+    "scope": "hdu"
   },
   "pcbway": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "PCBWay 制板",
-    "description_zh": "PCBWay 制板与贴装、设计规则、下单流程"
+    "description_zh": "PCBWay 制板与贴装、设计规则、下单流程",
+    "scope": "hdu"
   },
   "emc": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "EMC 预合规",
-    "description_zh": "基于原理图与 PCB 分析结果做 EMC 预合规风险分析"
+    "description_zh": "基于原理图与 PCB 分析结果做 EMC 预合规风险分析",
+    "scope": "hdu"
   },
   "datasheets": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "数据手册提取",
-    "description_zh": "从器件 PDF 抽取引脚、电气特性、外设与拓扑等结构化规格"
+    "description_zh": "从器件 PDF 抽取引脚、电气特性、外设与拓扑等结构化规格",
+    "scope": "hdu"
   },
   "ros2": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "ROS 2 开发",
-    "description_zh": "ROS2 节点与组件、QoS、lifecycle、colcon/ament、nav2/MoveIt2、micro-ROS 与构建排错"
+    "description_zh": "ROS2 节点与组件、QoS、lifecycle、colcon/ament、nav2/MoveIt2、micro-ROS 与构建排错",
+    "scope": "hdu"
   },
   "ros1": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "ROS 1 开发",
-    "description_zh": "ROS1 节点、包结构与遗留系统维护"
+    "description_zh": "ROS1 节点、包结构与遗留系统维护",
+    "scope": "hdu"
   },
   "docker-ros2-development": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "ROS 2 容器化",
-    "description_zh": "ROS2 镜像分层、GPU 透传、CI 与多机部署"
+    "description_zh": "ROS2 镜像分层、GPU 透传、CI 与多机部署",
+    "scope": "hdu"
   },
   "robot-bringup": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "机器人上电调试",
-    "description_zh": "标定、URDF/xacro、TF 树、启动编排与故障排查"
+    "description_zh": "标定、URDF/xacro、TF 树、启动编排与故障排查",
+    "scope": "hdu"
   },
   "robot-perception": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "机器人感知",
-    "description_zh": "点云处理、传感器标定、SLAM 与检测流水线"
+    "description_zh": "点云处理、传感器标定、SLAM 与检测流水线",
+    "scope": "hdu"
   },
   "robotics-design-patterns": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "机器人架构模式",
-    "description_zh": "机器人软件架构模式与 SOLID 原则的落地方式"
+    "description_zh": "机器人软件架构模式与 SOLID 原则的落地方式",
+    "scope": "hdu"
   },
   "robotics-security": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "机器人安全",
-    "description_zh": "SROS2、DDS 安全配置与机器人系统攻击面"
+    "description_zh": "SROS2、DDS 安全配置与机器人系统攻击面",
+    "scope": "hdu"
   },
   "robotics-software-principles": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "机器人软件工程",
-    "description_zh": "机器人项目的工程原则、代码组织与可维护性"
+    "description_zh": "机器人项目的工程原则、代码组织与可维护性",
+    "scope": "hdu"
   },
   "robotics-testing": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "机器人测试",
-    "description_zh": "单元/集成/仿真测试用例设计与覆盖率"
+    "description_zh": "单元/集成/仿真测试用例设计与覆盖率",
+    "scope": "hdu"
   },
   "ros2-web-integration": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "ROS 2 Web 集成",
-    "description_zh": "rosbridge/roslibjs 与浏览器端可视化"
+    "description_zh": "rosbridge/roslibjs 与浏览器端可视化",
+    "scope": "hdu"
   },
   "malware-analysis": {
     "category": "security",
     "category_zh": "安全与取证",
     "enabled": true,
     "name_zh": "恶意样本分析",
-    "description_zh": "静态/动态/行为分析、IOC 提取、YARA 与 Sigma 规则、沙箱"
+    "description_zh": "静态/动态/行为分析、IOC 提取、YARA 与 Sigma 规则、沙箱",
+    "scope": "hdu"
   },
   "ida-reverse": {
     "category": "security",
     "category_zh": "安全与取证",
     "enabled": true,
     "name_zh": "IDA 逆向",
-    "description_zh": "IDA 脚本化、反编译、交叉引用与类型恢复"
+    "description_zh": "IDA 脚本化、反编译、交叉引用与类型恢复",
+    "scope": "hdu"
   },
   "radare2": {
     "category": "security",
     "category_zh": "安全与取证",
     "enabled": true,
     "name_zh": "radare2 分析",
-    "description_zh": "r2 命令体系、调试与脚本化分析"
+    "description_zh": "r2 命令体系、调试与脚本化分析",
+    "scope": "hdu"
   },
   "binary-diff": {
     "category": "security",
     "category_zh": "安全与取证",
     "enabled": true,
     "name_zh": "二进制差分",
-    "description_zh": "补丁对比、1-day 定位与符号恢复"
+    "description_zh": "补丁对比、1-day 定位与符号恢复",
+    "scope": "hdu"
   },
   "reverse-engineering": {
     "category": "security",
     "category_zh": "安全与取证",
     "enabled": true,
     "name_zh": "逆向方法论",
-    "description_zh": "通用逆向分析流程与 DSL/虚拟机保护还原"
+    "description_zh": "通用逆向分析流程与 DSL/虚拟机保护还原",
+    "scope": "hdu"
   },
   "protocol-reverse": {
     "category": "security",
     "category_zh": "安全与取证",
     "enabled": true,
     "name_zh": "协议逆向",
-    "description_zh": "私有二进制协议、Protobuf/gRPC 与 PCAP 驱动的协议还原"
+    "description_zh": "私有二进制协议、Protobuf/gRPC 与 PCAP 驱动的协议还原",
+    "scope": "hdu"
   },
   "threat-intelligence": {
     "category": "security",
     "category_zh": "安全与取证",
     "enabled": true,
     "name_zh": "威胁情报",
-    "description_zh": "OSINT/CTI 溯源、IOC 富化与攻击活动归因"
+    "description_zh": "OSINT/CTI 溯源、IOC 富化与攻击活动归因",
+    "scope": "hdu"
   },
   "supply-chain-security": {
     "category": "security",
     "category_zh": "安全与取证",
     "enabled": true,
     "name_zh": "供应链安全",
-    "description_zh": "SBOM、SCA、构建完整性与依赖溯源评估"
+    "description_zh": "SBOM、SCA、构建完整性与依赖溯源评估",
+    "scope": "hdu"
   },
   "llm-security": {
     "category": "security",
     "category_zh": "安全与取证",
     "enabled": true,
     "name_zh": "大模型应用安全",
-    "description_zh": "提示注入、工具滥用、RAG 泄露与记忆投毒的评估"
+    "description_zh": "提示注入、工具滥用、RAG 泄露与记忆投毒的评估",
+    "scope": "hdu"
   },
   "dotnet-reverse": {
     "category": "security",
     "category_zh": "安全与取证",
     "enabled": true,
     "name_zh": ".NET 逆向",
-    "description_zh": ".NET/CLR 程序结构分析、反混淆与 IL 阅读"
+    "description_zh": ".NET/CLR 程序结构分析、反混淆与 IL 阅读",
+    "scope": "hdu"
   },
   "math-modeling-solver": {
     "category": "research",
     "category_zh": "科研与建模",
     "enabled": true,
     "name_zh": "数学建模求解",
-    "description_zh": "数模竞赛求解：题型分析、模型决策树、算法 cookbook、Python 与 MATLAB 模板"
+    "description_zh": "数模竞赛求解：题型分析、模型决策树、算法 cookbook、Python 与 MATLAB 模板",
+    "scope": "hdu"
   },
   "math-modeling-paper": {
     "category": "research",
     "category_zh": "科研与建模",
     "enabled": true,
     "name_zh": "数模论文写作",
-    "description_zh": "数模论文结构、模型检验、参考文献规范与终稿格式检查"
+    "description_zh": "数模论文结构、模型检验、参考文献规范与终稿格式检查",
+    "scope": "hdu"
   },
   "dcf-model": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "DCF 估值模型",
-    "description_zh": "按投行口径搭建 DCF 股权估值模型：历史财务与驱动假设、Bear/Base/Bull 三情景现金流预测、WACC 与终值、5×5 敏感性表，全部以 Excel 公式写出而非写死数值，交付前用 validate_dcf.py 校验公式错误、终值占比与 g<WACC。"
+    "description_zh": "按投行口径搭建 DCF 股权估值模型：历史财务与驱动假设、Bear/Base/Bull 三情景现金流预测、WACC 与终值、5×5 敏感性表，全部以 Excel 公式写出而非写死数值，交付前用 validate_dcf.py 校验公式错误、终值占比与 g<WACC。",
+    "scope": "cross-school:multi"
   },
   "3-statement-model": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "三表联动模型填充",
-    "description_zh": "在既有 Excel 模板中补全并连通利润表、资产负债表、现金流量表：先映射模板结构再逐块填充，历史数与假设驱动分离，预测一律写公式，每完成一块就给出资产负债表平衡与现金勾稽检查。"
+    "description_zh": "在既有 Excel 模板中补全并连通利润表、资产负债表、现金流量表：先映射模板结构再逐块填充，历史数与假设驱动分离，预测一律写公式，每完成一块就给出资产负债表平衡与现金勾稽检查。",
+    "scope": "cross-school:multi"
   },
   "comps-analysis": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "可比公司分析",
-    "description_zh": "构建可比公司估值表：选样与口径统一、企业价值桥、EV/EBITDA 与 P/E 等倍数、统计分位与离群值标注，输出可逐格复核的 Excel 表和结论。"
+    "description_zh": "构建可比公司估值表：选样与口径统一、企业价值桥、EV/EBITDA 与 P/E 等倍数、统计分位与离群值标注，输出可逐格复核的 Excel 表和结论。",
+    "scope": "cross-school:multi"
   },
   "audit-xls": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "Excel 模型审计",
-    "description_zh": "按选区/单表/整本模型三级范围审计电子表格：公式错误、公式内硬编码、范围偏移、跨表断链、单位与隐藏行；模型级再查资产负债表平衡、留存收益滚动、现金勾稽与 DCF/LBO/并购/三表模型的常见错误，输出带严重度的问题表。"
+    "description_zh": "按选区/单表/整本模型三级范围审计电子表格：公式错误、公式内硬编码、范围偏移、跨表断链、单位与隐藏行；模型级再查资产负债表平衡、留存收益滚动、现金勾稽与 DCF/LBO/并购/三表模型的常见错误，输出带严重度的问题表。",
+    "scope": "cross-school:multi"
   },
   "roll-forward": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "科目滚动表",
-    "description_zh": "为资产负债表科目编制「期初＋本期增加＋计提－冲回－付款±重分类±汇率折算＝期末」的滚动表，每行追到总账口径并注明查询条件，表必须自洽；差额只能作为未解释项暴露，不得轧平。"
+    "description_zh": "为资产负债表科目编制「期初＋本期增加＋计提－冲回－付款±重分类±汇率折算＝期末」的滚动表，每行追到总账口径并注明查询条件，表必须自洽；差额只能作为未解释项暴露，不得轧平。",
+    "scope": "cross-school:multi"
   },
   "unit-economics": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "单位经济分析",
-    "description_zh": "分析订阅与交易类业务的单位经济：ARR 桥（新签/扩张/收缩/流失）、队列留存与净留存、CAC 与 LTV 及回本期、收入集中度、毛利瀑布，用于尽调、定价与增长质量判断。"
+    "description_zh": "分析订阅与交易类业务的单位经济：ARR 桥（新签/扩张/收缩/流失）、队列留存与净留存、CAC 与 LTV 及回本期、收入集中度、毛利瀑布，用于尽调、定价与增长质量判断。",
+    "scope": "cross-school:multi"
   },
   "revenue-recognition": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "收入确认（IFRS 15 / ASC 606）",
-    "description_zh": "按五步法处理收入确认：识别履约义务、确定交易价格（含可变对价与重大融资成分）、按单独售价分摊、判断时点或时段确认，并给出合同资产/负债与分期确认分录、分摊工作底稿。口径为 IFRS 15 / US GAAP ASC 606，不适用于中国大陆 CAS 14 报表。"
+    "description_zh": "按五步法处理收入确认：识别履约义务、确定交易价格（含可变对价与重大融资成分）、按单独售价分摊、判断时点或时段确认，并给出合同资产/负债与分期确认分录、分摊工作底稿。口径为 IFRS 15 / US GAAP ASC 606，不适用于中国大陆 CAS 14 报表。",
+    "scope": "cross-school:multi"
   },
   "lease-accounting": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "租赁会计（IFRS 16 / ASC 842）",
-    "description_zh": "识别租赁与嵌入租赁，用增量借款利率折现计量租赁负债与使用权资产，处理后续折旧与利息、重新计量与变更、短期与低价值豁免，输出起租日摘要与分录。"
+    "description_zh": "识别租赁与嵌入租赁，用增量借款利率折现计量租赁负债与使用权资产，处理后续折旧与利息、重新计量与变更、短期与低价值豁免，输出起租日摘要与分录。",
+    "scope": "cross-school:multi"
   },
   "deferred-tax": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "递延所得税（IAS 12 / ASC 740）",
-    "description_zh": "用资产负债表法计算暂时性差异与递延税资产/负债，评估 DTA 可回收性与估值备抵，编制有效税率到法定税率的桥表，并处理未使用亏损、税收抵免与税率变更。"
+    "description_zh": "用资产负债表法计算暂时性差异与递延税资产/负债，评估 DTA 可回收性与估值备抵，编制有效税率到法定税率的桥表，并处理未使用亏损、税收抵免与税率变更。",
+    "scope": "cross-school:multi"
   },
   "corporate-consolidation": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "合并报表",
-    "description_zh": "合并母子公司报表：判断控制与合并范围、权益法适用、内部交易与存货未实现利润抵销、少数股东权益（含部分商誉口径）、外币报表折算，输出抵销分录与合并要点。"
+    "description_zh": "合并母子公司报表：判断控制与合并范围、权益法适用、内部交易与存货未实现利润抵销、少数股东权益（含部分商誉口径）、外币报表折算，输出抵销分录与合并要点。",
+    "scope": "cross-school:multi"
   },
   "inventory-costing": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "存货成本（IAS 2 / ASC 330）",
-    "description_zh": "存货计价与成本归集：FIFO / 移动加权 / 标准成本的选用与一致应用、正常产能下的固定制造费用分摊、成本与可变现净值孰低及陈旧与减值计提。"
+    "description_zh": "存货计价与成本归集：FIFO / 移动加权 / 标准成本的选用与一致应用、正常产能下的固定制造费用分摊、成本与可变现净值孰低及陈旧与减值计提。",
+    "scope": "cross-school:multi"
   },
   "fixed-asset-accounting": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "固定资产（IAS 16 / IAS 36 / ASC 360）",
-    "description_zh": "固定资产全周期处理：资本化与费用化判断（含后续支出）、折旧方法与起止时点、组件化、处置与减值迹象，以及资产台账的维护与滚动。"
+    "description_zh": "固定资产全周期处理：资本化与费用化判断（含后续支出）、折旧方法与起止时点、组件化、处置与减值迹象，以及资产台账的维护与滚动。",
+    "scope": "cross-school:multi"
   },
   "audit-checklist": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "财务审计清单",
-    "description_zh": "组织内审与外审准备：按存在与发生、完整性、权利与义务、计价与分摊、列报与披露五类认定设计程序，覆盖收入截止性、三单匹配、未记录负债、资产盘点与折旧重算，输出带风险与建议的发现表。"
+    "description_zh": "组织内审与外审准备：按存在与发生、完整性、权利与义务、计价与分摊、列报与披露五类认定设计程序，覆盖收入截止性、三单匹配、未记录负债、资产盘点与折旧重算，输出带风险与建议的发现表。",
+    "scope": "cross-school:multi"
   },
   "variance-analysis": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "标准成本差异分析",
-    "description_zh": "制造业与产品成本差异：材料价差与量差、人工工资率与效率差、固定制造费用耗费差与产量差，定位根因（采购、停机、培训）并给出纠正措施与差异报告。"
+    "description_zh": "制造业与产品成本差异：材料价差与量差、人工工资率与效率差、固定制造费用耗费差与产量差，定位根因（采购、停机、培训）并给出纠正措施与差异报告。",
+    "scope": "cross-school:multi"
   },
   "budget-forecast": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "预算与预测",
-    "description_zh": "搭建预算与滚动预测：识别收入/成本驱动、历史基数与增长率、情景与敏感性、预算对比实际与差异解释，输出可复算的预测表与假设清单。"
+    "description_zh": "搭建预算与滚动预测：识别收入/成本驱动、历史基数与增长率、情景与敏感性、预算对比实际与差异解释，输出可复算的预测表与假设清单。",
+    "scope": "cross-school:multi"
   },
   "working-capital-analysis": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "营运资本分析",
-    "description_zh": "量化营运资本占用：DSO / DIO / DPO 与现金转换周期（季节性业务用 countback）、AR 账龄、每提前一天的现金影响、营运资本 peg 与释放路径，给出可执行改善措施。"
+    "description_zh": "量化营运资本占用：DSO / DIO / DPO 与现金转换周期（季节性业务用 countback）、AR 账龄、每提前一天的现金影响、营运资本 peg 与释放路径，给出可执行改善措施。",
+    "scope": "cross-school:multi"
   },
   "close-management": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "月末关账管理",
-    "description_zh": "编排月结与年结：5 天关账骨架、任务依赖与关键路径、RAG 状态跟踪、阻塞升级与关账后复盘，输出关账日历、关键路径与阻塞日志。"
+    "description_zh": "编排月结与年结：5 天关账骨架、任务依赖与关键路径、RAG 状态跟踪、阻塞升级与关账后复盘，输出关账日历、关键路径与阻塞日志。",
+    "scope": "cross-school:multi"
   },
   "intercompany-accounting": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "内部往来与抵销",
-    "description_zh": "管理集团内部往来：双方同期入账与对账容差、差异定位、转让定价与合同留痕、期末抵销（含存货未实现利润）、净额结算与超龄往来清理。"
+    "description_zh": "管理集团内部往来：双方同期入账与对账容差、差异定位、转让定价与合同留痕、期末抵销（含存货未实现利润）、净额结算与超龄往来清理。",
+    "scope": "cross-school:multi"
   },
   "compensation-benchmarking": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "薪酬对标",
-    "description_zh": "用公开数据与用户提供的调研报告做岗位薪酬对标：选可比岗位与地域、取中位数与四分位、建薪酬带宽与中点、做公平性与偏离分析、给出调薪与 Offer 建议。"
+    "description_zh": "用公开数据与用户提供的调研报告做岗位薪酬对标：选可比岗位与地域、取中位数与四分位、建薪酬带宽与中点、做公平性与偏离分析、给出调薪与 Offer 建议。",
+    "scope": "hdu"
   },
   "interview-kit-builder": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "面试套件",
-    "description_zh": "为岗位搭建结构化面试套件：4–6 项胜任力与行为指标、各轮次问题与追问、评分卡与量级描述、面试官指引与评分校准，降低评价偏差。"
+    "description_zh": "为岗位搭建结构化面试套件：4–6 项胜任力与行为指标、各轮次问题与追问、评分卡与量级描述、面试官指引与评分校准，降低评价偏差。",
+    "scope": "hdu"
   },
   "job-description-writer": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "职位描述撰写",
-    "description_zh": "按结构撰写或改写职位描述：职责（行动+影响）、必要与优先资格、薪酬透明、包容性用语替换表、申请说明与可访问性，输出可直接发布的版本与改写说明。"
+    "description_zh": "按结构撰写或改写职位描述：职责（行动+影响）、必要与优先资格、薪酬透明、包容性用语替换表、申请说明与可访问性，输出可直接发布的版本与改写说明。",
+    "scope": "hdu"
   },
   "seo-content-optimizer": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "SEO 内容优化",
-    "description_zh": "优化网页内容的自然搜索表现：种子词与主题聚类、搜索意图匹配、标题与 meta 描述、内链与结构、内容缺口与更新计划，并给出可量化验收点。"
+    "description_zh": "优化网页内容的自然搜索表现：种子词与主题聚类、搜索意图匹配、标题与 meta 描述、内链与结构、内容缺口与更新计划，并给出可量化验收点。",
+    "scope": "hdu"
   },
   "email-marketing": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "邮件营销",
-    "description_zh": "设计邮件营销：按目标分型（欢迎/培育/挽回/交易）、分群策略、主题行公式与 A/B 测试矩阵、滴灌序列时序、指标基准与合规要素。"
+    "description_zh": "设计邮件营销：按目标分型（欢迎/培育/挽回/交易）、分群策略、主题行公式与 A/B 测试矩阵、滴灌序列时序、指标基准与合规要素。",
+    "scope": "hdu"
   },
   "brand-voice-enforcement": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "品牌口吻约束",
-    "description_zh": "把品牌指南落到成稿：定位品牌指南（会话内/本地文件/用户粘贴）、区分恒定口吻与按渠道变调、逐句改写并解释取舍，输出符合品牌口吻的文案与修改理由。"
+    "description_zh": "把品牌指南落到成稿：定位品牌指南（会话内/本地文件/用户粘贴）、区分恒定口吻与按渠道变调、逐句改写并解释取舍，输出符合品牌口吻的文案与修改理由。",
+    "scope": "hdu"
   },
   "sop-builder": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "SOP 编写",
-    "description_zh": "编写标准作业程序：流程边界与触发、分步操作与责任人、RACI 矩阵、审批链、ASCII 流程与判定点、异常处理、版本与修订记录。"
+    "description_zh": "编写标准作业程序：流程边界与触发、分步操作与责任人、RACI 矩阵、审批链、ASCII 流程与判定点、异常处理、版本与修订记录。",
+    "scope": "hdu"
   },
   "incident-postmortem": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "事故复盘",
-    "description_zh": "组织无责事后复盘：时间线重建、5 Whys 根因分析、瑞士奶酪贡献因素、区分根因与近因、按 0–7 天/1–4 周/1–3 月分层的行动项与责任人。"
+    "description_zh": "组织无责事后复盘：时间线重建、5 Whys 根因分析、瑞士奶酪贡献因素、区分根因与近因、按 0–7 天/1–4 周/1–3 月分层的行动项与责任人。",
+    "scope": "hdu"
   },
   "supplier-scorecard": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "供应商评分卡",
-    "description_zh": "建供应商评分卡：质量 30% / 交付 25% / 成本 20% / 服务 15% / 合规 10% 的加权模型、各档评分锚点、总分计算、趋势跟踪与落后供应商改进计划。"
+    "description_zh": "建供应商评分卡：质量 30% / 交付 25% / 成本 20% / 服务 15% / 合规 10% 的加权模型、各档评分锚点、总分计算、趋势跟踪与落后供应商改进计划。",
+    "scope": "hdu"
   },
   "inventory-forecasting": {
     "category": "business",
     "category_zh": "金融与管理",
     "enabled": true,
     "name_zh": "库存预测与补货参数",
-    "description_zh": "预测需求并设定库存参数：历史趋势与季节调整、回归与需求驱动、安全库存（服务水平×需求波动×提前期）、再订货点、经济订货批量、预测准确度指标与优化决策。"
+    "description_zh": "预测需求并设定库存参数：历史趋势与季节调整、回归与需求驱动、安全库存（服务水平×需求波动×提前期）、再订货点、经济订货批量、预测准确度指标与优化决策。",
+    "scope": "hdu"
   },
   "design-debt-audit": {
     "category": "docs",
     "category_zh": "文档与设计",
     "enabled": true,
     "name_zh": "设计债审计",
-    "description_zh": "盘点产品累积的视觉/结构/无障碍/文档/实现五类设计债，按 严重度×频次/工作量 打分排序，产出可执行的清理计划与长期债登记表。适用改版前的现状摸底与清理排期。"
+    "description_zh": "盘点产品累积的视觉/结构/无障碍/文档/实现五类设计债，按 严重度×频次/工作量 打分排序，产出可执行的清理计划与长期债登记表。适用改版前的现状摸底与清理排期。",
+    "scope": "cross-school:zstu"
   },
   "survey-design": {
     "category": "docs",
     "category_zh": "文档与设计",
     "enabled": true,
     "name_zh": "问卷设计",
-    "description_zh": "设计无偏问卷：题序、问句反例、题型对照表、Likert/NPS/SUS 量表数值（NPS 公式、SUS 均值 68/优秀 80）、样本量（±5%@95% 约 385 份）与分析汇报口径。用于在规模上量化用户态度。"
+    "description_zh": "设计无偏问卷：题序、问句反例、题型对照表、Likert/NPS/SUS 量表数值（NPS 公式、SUS 均值 68/优秀 80）、样本量（±5%@95% 约 385 份）与分析汇报口径。用于在规模上量化用户态度。",
+    "scope": "cross-school:zstu"
   },
   "motion-system": {
     "category": "docs",
     "category_zh": "文档与设计",
     "enabled": true,
     "name_zh": "动效系统",
-    "description_zh": "定义产品级动效 token：时长表（50/100/200/300/400/600ms）、缓动曲线（含 cubic-bezier 数值）、错峰编排规则与 prefers-reduced-motion 处理，并给出可直接使用的 CSS 自定义属性写法。"
+    "description_zh": "定义产品级动效 token：时长表（50/100/200/300/400/600ms）、缓动曲线（含 cubic-bezier 数值）、错峰编排规则与 prefers-reduced-motion 处理，并给出可直接使用的 CSS 自定义属性写法。",
+    "scope": "cross-school:zstu"
   },
   "form-design": {
     "category": "docs",
     "category_zh": "文档与设计",
     "enabled": true,
     "name_zh": "表单设计",
-    "description_zh": "端到端表单设计：单列布局、标签与辅助文本位置、按数据类型选输入控件的对照表、失焦校验与错误就近提示、多步流程与数据保全、ARIA 关联要求。"
+    "description_zh": "端到端表单设计：单列布局、标签与辅助文本位置、按数据类型选输入控件的对照表、失焦校验与错误就近提示、多步流程与数据保全、ARIA 关联要求。",
+    "scope": "cross-school:zstu"
   },
   "heuristic-evaluation": {
     "category": "docs",
     "category_zh": "文档与设计",
     "enabled": true,
     "name_zh": "启发式评估",
-    "description_zh": "按 Nielsen 十项启发式做专家走查：七步流程、问题记录字段（启发式/位置/证据/建议）、0-4 严重度标度与优先级排序。用于不招用户也能先拿到问题清单。"
+    "description_zh": "按 Nielsen 十项启发式做专家走查：七步流程、问题记录字段（启发式/位置/证据/建议）、0-4 严重度标度与优先级排序。用于不招用户也能先拿到问题清单。",
+    "scope": "cross-school:zstu"
   },
   "platform-conventions": {
     "category": "docs",
     "category_zh": "文档与设计",
     "enabled": true,
     "name_zh": "平台设计规范（iOS/Android）",
-    "description_zh": "iOS HIG 与 Material 3 在导航、控件、字体缩放、手势分区、图标与模态上的差异对照表，以及何时分平台实现、何时统一设计、混合方案的取舍与禁忌清单。"
+    "description_zh": "iOS HIG 与 Material 3 在导航、控件、字体缩放、手势分区、图标与模态上的差异对照表，以及何时分平台实现、何时统一设计、混合方案的取舍与禁忌清单。",
+    "scope": "cross-school:zstu"
   },
   "service-blueprint": {
     "category": "docs",
     "category_zh": "文档与设计",
     "enabled": true,
     "name_zh": "服务蓝图",
-    "description_zh": "用五条泳道（实体证据/用户行为/前台/后台/支撑流程）与三条分界线绘制服务交付全貌，含九步绘制流程与四类断点读图法，用于多渠道服务的协调与故障定位。"
+    "description_zh": "用五条泳道（实体证据/用户行为/前台/后台/支撑流程）与三条分界线绘制服务交付全貌，含九步绘制流程与四类断点读图法，用于多渠道服务的协调与故障定位。",
+    "scope": "cross-school:zstu"
   },
   "critique-color": {
     "category": "docs",
     "category_zh": "文档与设计",
     "enabled": true,
     "name_zh": "单屏配色评审",
-    "description_zh": "对单屏截图做色彩评审：按 WCAG 阈值（正文 4.5:1、大字与控件 3:1）逐对量测对比度，检查调色板是否只用 token、语义色是否单靠颜色传达、色盲与强制色彩模式下的稳健性，输出 pass/minor/major 与具体改法。"
+    "description_zh": "对单屏截图做色彩评审：按 WCAG 阈值（正文 4.5:1、大字与控件 3:1）逐对量测对比度，检查调色板是否只用 token、语义色是否单靠颜色传达、色盲与强制色彩模式下的稳健性，输出 pass/minor/major 与具体改法。",
+    "scope": "cross-school:zstu"
   },
   "bim-validation-report": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "BIM 模型校验报告",
-    "description_zh": "用可配置规则校验导出的 BIM 构件表（必填属性、命名、分类码、非零体积、包围盒合法性），输出按严重度与类别汇总的多页 Excel 合规报告，含完整 ValidationEngine 实现。"
+    "description_zh": "用可配置规则校验导出的 BIM 构件表（必填属性、命名、分类码、非零体积、包围盒合法性），输出按严重度与类别汇总的多页 Excel 合规报告，含完整 ValidationEngine 实现。",
+    "scope": "cross-school:zjut"
   },
   "ifc-qto-extraction": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "IFC/Revit 工程量提取（QTO）",
-    "description_zh": "从 IFC/Revit/DWG 导出表提取工程量：按类别/类型/楼层/分区聚合构件数、面积、体积、长度、重量，作为造价算量的输入，含分组与 Excel 导出实现。"
+    "description_zh": "从 IFC/Revit/DWG 导出表提取工程量：按类别/类型/楼层/分区聚合构件数、面积、体积、长度、重量，作为造价算量的输入，含分组与 Excel 导出实现。",
+    "scope": "cross-school:zjut"
   },
   "bim-to-schedule-4d": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "BIM 与进度 4D 关联",
-    "description_zh": "把 BIM 构件与进度活动关联，按日期推导应可见构件集合以支撑 4D 施工顺序模拟，并给出链接覆盖率、未链接构件/活动清单与 Excel 链接表。"
+    "description_zh": "把 BIM 构件与进度活动关联，按日期推导应可见构件集合以支撑 4D 施工顺序模拟，并给出链接覆盖率、未链接构件/活动清单与 Excel 链接表。",
+    "scope": "cross-school:zjut"
   },
   "batch-cad-converter": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "CAD/BIM 批量转换",
-    "description_zh": "批量把 RVT/RFA/IFC/DWG/DGN 通过外部转换器导出为 Excel：逐文件状态、线程池执行、进度回调、失败继续与汇总报表，含转换器路径解析与 PATH 回退。"
+    "description_zh": "批量把 RVT/RFA/IFC/DWG/DGN 通过外部转换器导出为 Excel：逐文件状态、线程池执行、进度回调、失败继续与汇总报表，含转换器路径解析与 PATH 回退。",
+    "scope": "cross-school:zjut"
   },
   "labor-allocation": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "劳动力分配与考勤",
-    "description_zh": "把工种工人分配到项目活动：双重占用冲突检测、出勤与加班记录、按工种/活动的成本汇总，用于现场人力计划与周资源平衡。"
+    "description_zh": "把工种工人分配到项目活动：双重占用冲突检测、出勤与加班记录、按工种/活动的成本汇总，用于现场人力计划与周资源平衡。",
+    "scope": "cross-school:zstu"
   },
   "pattern-making": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "服装打版（纸样与放码）",
-    "description_zh": "按职业打版方法把需求/照片/草图/技术图变成真实纸样：量体与松量、原型与整体服装生成、省道转移、缝份与刀眼与纱向、放码、1:1 SVG/DXF/CLO3D 导出，含纯标准库 Python 几何引擎与自检报告。"
+    "description_zh": "按职业打版方法把需求/照片/草图/技术图变成真实纸样：量体与松量、原型与整体服装生成、省道转移、缝份与刀眼与纱向、放码、1:1 SVG/DXF/CLO3D 导出，含纯标准库 Python 几何引擎与自检报告。",
+    "scope": "cross-school:zstu"
   },
   "ctf-web": {
     "category": "security",
     "category_zh": "安全与取证",
     "enabled": true,
     "name_zh": "CTF Web 漏洞利用",
-    "description_zh": "按 HTTP 应用 / API / 浏览器客户端 / 模板引擎 / 反序列化等攻击面组织的 Web 利用技术库，覆盖认证与会话（JWT、OAuth、SAML）、客户端（XSS、原型污染、CSP 绕过）、服务端（SQLi、SSTI、SSRF、文件上传、反序列化）、已知 CVE 利用与请求侧工程化（requests / 异步探测）。含上游自订的「登录爆破硬性规则」以防止无边界枚举。"
+    "description_zh": "按 HTTP 应用 / API / 浏览器客户端 / 模板引擎 / 反序列化等攻击面组织的 Web 利用技术库，覆盖认证与会话（JWT、OAuth、SAML）、客户端（XSS、原型污染、CSP 绕过）、服务端（SQLi、SSTI、SSRF、文件上传、反序列化）、已知 CVE 利用与请求侧工程化（requests / 异步探测）。含上游自订的「登录爆破硬性规则」以防止无边界枚举。",
+    "scope": "hdu"
   },
   "ctf-pwn": {
     "category": "security",
     "category_zh": "安全与取证",
     "enabled": true,
     "name_zh": "CTF 二进制利用（栈/堆/内核）",
-    "description_zh": "二进制漏洞利用技术库：栈溢出与 ROP、格式化字符串、堆（tcache/unsortedbin/FSOP/house-of-*）、整数与竞争条件、seccomp 沙箱逃逸、SROP、ret2dlresolve、内核与 QEMU 逃逸、以及常见防护（PIE/ASLR/Canary）绕过。附 5 个 pwntools 载荷生成脚本。"
+    "description_zh": "二进制漏洞利用技术库：栈溢出与 ROP、格式化字符串、堆（tcache/unsortedbin/FSOP/house-of-*）、整数与竞争条件、seccomp 沙箱逃逸、SROP、ret2dlresolve、内核与 QEMU 逃逸、以及常见防护（PIE/ASLR/Canary）绕过。附 5 个 pwntools 载荷生成脚本。",
+    "scope": "hdu"
   },
   "ctf-crypto": {
     "category": "security",
     "category_zh": "安全与取证",
     "enabled": true,
     "name_zh": "CTF 密码学攻击",
-    "description_zh": "密码学题目攻击技术库，体量最大：古典密码与编码、RSA 常见打点（小指数、共模、Coppersmith、Wiener、padding oracle）、AES/分组模式与 GCM、椭圆曲线（无效曲线、奇异曲线、smart's attack）、Diffie-Hellman、PRNG 预测、格与 LWE、ZKP 缺陷、以及非常规/自造密码。"
+    "description_zh": "密码学题目攻击技术库，体量最大：古典密码与编码、RSA 常见打点（小指数、共模、Coppersmith、Wiener、padding oracle）、AES/分组模式与 GCM、椭圆曲线（无效曲线、奇异曲线、smart's attack）、Diffie-Hellman、PRNG 预测、格与 LWE、ZKP 缺陷、以及非常规/自造密码。",
+    "scope": "hdu"
   },
   "ctf-forensics": {
     "category": "security",
     "category_zh": "安全与取证",
     "enabled": true,
     "name_zh": "CTF 取证与信号分析",
-    "description_zh": "数字取证与信号分析技术库：磁盘镜像与文件系统恢复、内存转储、Windows 事件日志（.evtx）与日志清除检测、网络流量（PCAP/协议/隧道）、隐写（图像/音频/文档/PDF）、USB 与外围设备采集重建、功率与信号侧信道、3D 打印与硬件类题目。"
+    "description_zh": "数字取证与信号分析技术库：磁盘镜像与文件系统恢复、内存转储、Windows 事件日志（.evtx）与日志清除检测、网络流量（PCAP/协议/隧道）、隐写（图像/音频/文档/PDF）、USB 与外围设备采集重建、功率与信号侧信道、3D 打印与硬件类题目。",
+    "scope": "hdu"
   },
   "ctf-misc": {
     "category": "security",
     "category_zh": "安全与取证",
     "enabled": true,
     "name_zh": "CTF 杂项（编码/沙箱逃逸/杂类）",
-    "description_zh": "杂项题目技术库：编码与 IEEE-754/数据隐藏、DNS 类题目、pyjail/bash jail 逃逸、约束求解与游戏/VM 类题目、音频分析、CTFd 平台与 API 交互（含 Playwright MCP 驱动）、以及 Linux 提权兜底步骤。"
+    "description_zh": "杂项题目技术库：编码与 IEEE-754/数据隐藏、DNS 类题目、pyjail/bash jail 逃逸、约束求解与游戏/VM 类题目、音频分析、CTFd 平台与 API 交互（含 Playwright MCP 驱动）、以及 Linux 提权兜底步骤。",
+    "scope": "hdu"
   },
   "ctf-osint": {
     "category": "security",
     "category_zh": "安全与取证",
     "enabled": true,
     "name_zh": "CTF 开源情报（公开信息检索）",
-    "description_zh": "OSINT 题目技术库：用户名跨平台枚举、Twitter/X 数字 ID 与 Snowflake 时间戳、Tumblr/BlueSky/Discord 接口、图片反查与地理定位（含中国境内源）、EXIF 与元数据、Google dorking、Wayback/CDX、DNS 与 WHOIS（含反向 WHOIS）、Tor relay 与 FEC 记录、坐标/MGRS/Plus Code 与街景比对。"
+    "description_zh": "OSINT 题目技术库：用户名跨平台枚举、Twitter/X 数字 ID 与 Snowflake 时间戳、Tumblr/BlueSky/Discord 接口、图片反查与地理定位（含中国境内源）、EXIF 与元数据、Google dorking、Wayback/CDX、DNS 与 WHOIS（含反向 WHOIS）、Tor relay 与 FEC 记录、坐标/MGRS/Plus Code 与街景比对。",
+    "scope": "hdu"
   },
   "ctf-malware": {
     "category": "security",
     "category_zh": "安全与取证",
     "enabled": true,
     "name_zh": "CTF 恶意样本分析",
-    "description_zh": "恶意代码类题目技术库：混淆脚本（JS/PowerShell/批处理）去混淆、垃圾代码识别、PE 与 .NET 样本分析、自造加密协议与 C2 流量识别、PCAP 侧分析、以及分析工具与 MCP 服务器集成。"
+    "description_zh": "恶意代码类题目技术库：混淆脚本（JS/PowerShell/批处理）去混淆、垃圾代码识别、PE 与 .NET 样本分析、自造加密协议与 C2 流量识别、PCAP 侧分析、以及分析工具与 MCP 服务器集成。",
+    "scope": "hdu"
   },
   "ctf-ai-ml": {
     "category": "security",
     "category_zh": "安全与取证",
     "enabled": true,
     "name_zh": "CTF 机器学习与模型攻击",
-    "description_zh": "AI/ML 类题目技术库：模型权重文件分析（safetensors/pt/onnx）、对抗样本与梯度方法、模型抽取与推理侧信道、LLM 类题目（提示注入、越狱、工具滥用、RAG/记忆污染）以及在受限算力下复现题目的取舍。"
+    "description_zh": "AI/ML 类题目技术库：模型权重文件分析（safetensors/pt/onnx）、对抗样本与梯度方法、模型抽取与推理侧信道、LLM 类题目（提示注入、越狱、工具滥用、RAG/记忆污染）以及在受限算力下复现题目的取舍。",
+    "scope": "hdu"
   },
   "ctf-writeup": {
     "category": "security",
     "category_zh": "安全与取证",
     "enabled": true,
     "name_zh": "CTF Writeup 生成（提交格式）",
-    "description_zh": "把已解出的题目整理成标准化 writeup：元数据 frontmatter（赛事/类别/难度/分值/flag 格式）、单路径解题说明、一段「从题目数据到打印 flag」的完整脚本、以及交付前检查清单（可复现、无敏感数据、长度克制）。无技术库，纯输出规范。"
+    "description_zh": "把已解出的题目整理成标准化 writeup：元数据 frontmatter（赛事/类别/难度/分值/flag 格式）、单路径解题说明、一段「从题目数据到打印 flag」的完整脚本、以及交付前检查清单（可复现、无敏感数据、长度克制）。无技术库，纯输出规范。",
+    "scope": "hdu"
   },
   "solve-challenge": {
     "category": "security",
     "category_zh": "安全与取证",
     "enabled": true,
     "name_zh": "CTF 解题入口（分诊与路由）",
-    "description_zh": "CTF 解题入口技能：环境准备（工具分组安装）、首轮侦察、按文件类型/描述关键词/服务行为三维度判断题目类别、路由到对应专项技能、卡住时的换道策略（多类别组合模式）、flag 格式校验与交卷；并含难度分级与止损规则。"
+    "description_zh": "CTF 解题入口技能：环境准备（工具分组安装）、首轮侦察、按文件类型/描述关键词/服务行为三维度判断题目类别、路由到对应专项技能、卡住时的换道策略（多类别组合模式）、flag 格式校验与交卷；并含难度分级与止损规则。",
+    "scope": "hdu"
   },
   "dwsim": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "DWSIM 化工流程模拟",
-    "description_zh": "用 Python 驱动 DWSIM 搭化工流程：物性方法选择与自动推荐（22 种）、PT/PH 闪蒸与泡露点、精馏/换热/反应/分离等单元操作、flowsheet 收敛排错与报告出图；无 DWSIM 引擎时仍可用其物性方法目录与 21 个常见组分内置物性做选型判断"
+    "description_zh": "用 Python 驱动 DWSIM 搭化工流程：物性方法选择与自动推荐（22 种）、PT/PH 闪蒸与泡露点、精馏/换热/反应/分离等单元操作、flowsheet 收敛排错与报告出图；无 DWSIM 引擎时仍可用其物性方法目录与 21 个常见组分内置物性做选型判断",
+    "scope": "cross-school:zjut"
   },
   "coolprop-db": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "CoolProp 流体物性查询",
-    "description_zh": "用 CoolProp 的 Helmholtz 状态方程查 100+ 纯/伪纯流体的热物性与输运性质：密度、焓熵、比热、粘度、导热系数、表面张力、饱和线与临界点，覆盖水、制冷剂、烃类、低温气体；含物性代码表、输入对适用区间、报错处理与制冷循环示例"
+    "description_zh": "用 CoolProp 的 Helmholtz 状态方程查 100+ 纯/伪纯流体的热物性与输运性质：密度、焓熵、比热、粘度、导热系数、表面张力、饱和线与临界点，覆盖水、制冷剂、烃类、低温气体；含物性代码表、输入对适用区间、报错处理与制冷循环示例",
+    "scope": "cross-school:zjut"
   },
   "thermo-package": {
     "category": "engineering",
     "category_zh": "工程与硬件",
     "enabled": true,
     "name_zh": "thermo 化工热力学物性库",
-    "description_zh": "用 `thermo`/`chemicals` 库算纯组分与混合物的热力学性质：温度相关粘度/密度/导热、蒸气压与潜热、Cp/Cv、焓熵、PR/SRK 立方状态方程与 VLE 闪蒸、流股能量平衡；含 8 个可复跑示例，覆盖温变粘度、混合物相平衡与泵工况修正"
+    "description_zh": "用 `thermo`/`chemicals` 库算纯组分与混合物的热力学性质：温度相关粘度/密度/导热、蒸气压与潜热、Cp/Cv、焓熵、PR/SRK 立方状态方程与 VLE 闪蒸、流股能量平衡；含 8 个可复跑示例，覆盖温变粘度、混合物相平衡与泵工况修正",
+    "scope": "cross-school:zjut"
   }
 }
