@@ -57,11 +57,12 @@ class CVaRPortfolio:
         # 随机生成正定协方差矩阵
         A = self.rng.standard_normal((self.n_assets, self.n_assets))
         cov = A @ A.T + self.n_assets * np.eye(self.n_assets)
-        vols = np.sqrt(np.diag(cov))
-        # 调整波动率到合理范围
-        cov = cov / np.outer(vols, vols) * np.outer(vols, vols)  # 保持相关性
-        for i in range(self.n_assets):
-            cov[i, i] = (self.rng.uniform(0.15, 0.40)) ** 2  # 波动率 15%-40%
+        # 先化成相关系数矩阵再乘目标波动率——直接覆盖对角线会破坏半正定性，
+        # 使 multivariate_normal 报 covariance is not symmetric positive-semidefinite
+        vols_raw = np.sqrt(np.diag(cov))
+        corr = cov / np.outer(vols_raw, vols_raw)
+        vols = self.rng.uniform(0.15, 0.40, self.n_assets)  # 波动率 15%-40%
+        cov = corr * np.outer(vols, vols)
 
         scenarios = self.rng.multivariate_normal(means, cov, self.n_scenarios)
         return scenarios
@@ -124,8 +125,8 @@ class CVaRPortfolio:
         A_ub = np.zeros((n, n_vars))
         for k in range(n):
             A_ub[k, :m] = -scenarios[k, :]  # -(-r_k) = +r_k，但这里 z_k >= loss_k - ζ
-            A_ub[k, m + k] = 1.0  # z_k
-            A_ub[k, -1] = 1.0  # ζ
+            A_ub[k, m + k] = -1.0  # -z_k
+            A_ub[k, -1] = -1.0  # -ζ   约束 z_k >= L_k - ζ  <=>  -z_k + L_k - ζ <= 0
         b_ub = np.zeros(n)
 
         # 约束2: z_k >= 0

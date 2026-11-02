@@ -17,7 +17,8 @@ from typing import List, Optional
 
 class Individual:
     """个体：决策变量 + 目标值"""
-    __slots__ = ('x', 'objectives', 'rank', 'crowding_dist', 'constraint_viol')
+    __slots__ = ('x', 'objectives', 'rank', 'crowding_dist', 'constraint_viol',
+                 'n_dominated', 'dominates_list')
 
     def __init__(self, x: np.ndarray):
         self.x = x
@@ -25,6 +26,9 @@ class Individual:
         self.rank = np.inf
         self.crowding_dist = 0.0
         self.constraint_viol = 0.0
+        # 非支配排序使用的临时字段（必须在 __slots__ 中声明，否则赋值抛 AttributeError）
+        self.n_dominated: int = 0
+        self.dominates_list: list = []
 
     @classmethod
     def make_random(cls, n_var: int = 10, bounds: tuple = (0.0, 1.0)):
