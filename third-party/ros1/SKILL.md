@@ -39,8 +39,11 @@ class RobotNode:
 
 # GOOD: Decomposed nodes
 class PerceptionNode:    # Fuses sensor data → publishes /obstacles
+    ...
 class PlannerNode:       # Subscribes /obstacles → publishes /path
+    ...
 class ControllerNode:    # Subscribes /path → publishes /cmd_vel
+    ...
 ```
 
 **Node Initialization Pattern**:
@@ -239,6 +242,7 @@ class PickPlaceServer:
 ```python
 # BAD: Comparing timestamps from different clocks
 if camera_msg.header.stamp == lidar_msg.header.stamp:  # Almost never true
+    pass  # illustrative: the comparison is the point, not the body
 
 # GOOD: Use message_filters for approximate time sync
 import message_filters

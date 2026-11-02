@@ -273,30 +273,40 @@ const token = fakeEnv.AWSCInner._modules['fy'].getToken({});
 
 ## 5. 运行时捕获方案
 
-### 方案 A: Selenium + CDP 原生事件（推荐，成功率最高）
+### 方案 A: Selenium + CDP 原生事件（观测式，推荐）
+
+用 CDP 只做**观测**：拦截脚本源、记录 VM 初始化与操作序列，不伪造浏览器指纹。
 
 ```python
 from selenium import webdriver
 
 driver = webdriver.Chrome()
 
-# 注入反检测
+# 观测：在文档创建前挂 CDP 监听，记录 VM 脚本源码与 Function 构造调用
+driver.execute_cdp_cmd("Page.enable", {})
+driver.execute_cdp_cmd("Debugger.enable", {})
 driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
     "source": r"""
-        Object.defineProperty(navigator, 'webdriver', {get: () => false});
-        Object.defineProperty(navigator, 'plugins', {get: () => [1,2,3,4,5]});
-        Object.defineProperty(navigator, 'languages', {get: () => ['zh-CN','zh','en']});
+        // 只记录，不改写任何 navigator 属性
+        const _F = Function;
+        window.__vmCapture = [];
+        window.Function = function (...args) {
+            window.__vmCapture.push(args[args.length - 1]);
+            return _F.apply(this, args);
+        };
     """
 })
 
-# 发送 CDP 原生鼠标事件
-driver.execute_cdp_cmd("Input.dispatchMouseEvent", {
-    "type": "mousePressed",
-    "x": 549.5, "y": 441.2,
-    "button": "left", "buttons": 1,
-    "clickCount": 1, "pointerType": "mouse"
-})
+# 记录真实用户操作序列（不合成鼠标事件）：在人工操作期间采集 CDP 事件
+for event in driver.get_log("performance"):
+    pass  # 解析 Network/Input 事件，写入 Evidence
+
+# 分析导出的脚本，按第 3 节 Phase 3–5 提取 opcode 与常量表
 ```
+
+> **边界**：不伪造 `navigator.webdriver` / plugins / languages 等指纹，不合成鼠标轨迹去骗过风控判定。
+> 若目标以指纹比对拒绝了自动化环境，这本身就是要记录的结论（`E-anti-automation`），
+> 而不是用伪装去绕开它。确需交互式复现时，由被测方在授权范围内提供可重复的采集环境。
 
 ### 方案 B: Playwright 无头浏览器
 

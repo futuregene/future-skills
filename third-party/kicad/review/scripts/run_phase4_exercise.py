@@ -31,15 +31,26 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-DEFAULT_FIXTURE_DIR = REPO_ROOT / "tests" / "fixtures" / "phase4-review"
+_REVIEW_SCRIPTS = Path(__file__).resolve().parent
+
+
+def _locate_fixture_dir() -> Path:
+    """`tests/fixtures/phase4-review` under whichever root holds this skill."""
+    for parent in Path(__file__).resolve().parents:
+        candidate = parent / "tests" / "fixtures" / "phase4-review"
+        if candidate.is_dir():
+            return candidate
+    return Path("tests") / "fixtures" / "phase4-review"
+
+
+DEFAULT_FIXTURE_DIR = _locate_fixture_dir()
 ANALYZER_NAMES = ("schematic", "pcb", "thermal", "emc", "cross_analysis")
 
 
 def _run(cmd, cwd=None):
     """Run a shell command, raising on failure with helpful context."""
     print(f"  $ {' '.join(str(c) for c in cmd)}")
-    result = subprocess.run(cmd, cwd=cwd or REPO_ROOT,
+    result = subprocess.run(cmd, cwd=cwd or Path.cwd(),
                              capture_output=True, text=True)
     if result.returncode != 0:
         sys.stdout.write(result.stdout)
@@ -184,7 +195,7 @@ def step_4_merge_and_assert_invariants(fixture_dir: Path):
     print(f"  orphan_annotations:   {len(report.get('orphan_annotations', []))}")
 
     # HI-3 strip-LLM byte-identical (also asserted internally by merge_annotations).
-    sys.path.insert(0, str(REPO_ROOT / "skills" / "kicad" / "review" / "scripts"))
+    sys.path.insert(0, str(_REVIEW_SCRIPTS))
     from merge_annotations import strip_llm_overlays  # type: ignore[import-not-found]
     for name in ANALYZER_NAMES:
         merged_path = merged_dir / f"{name}.json"
@@ -210,7 +221,7 @@ def step_5_dual_mode_consumer_contract(fixture_dir: Path):
     if not merged_dir.exists():
         raise RuntimeError(f"merged dir missing — run step 4 first: {merged_dir}")
 
-    sys.path.insert(0, str(REPO_ROOT / "skills" / "kicad" / "review" / "scripts"))
+    sys.path.insert(0, str(_REVIEW_SCRIPTS))
     from merge_annotations import strip_llm_overlays  # type: ignore[import-not-found]
 
     diffs = []

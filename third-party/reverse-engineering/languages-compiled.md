@@ -197,35 +197,24 @@ strings binary | grep "embed"
 
 ### Go Binary UUID Patching for C2 Client Enumeration (BSidesSF 2026)
 
-**Pattern (see-two):** A Go-compiled C2 client has a UUID embedded via `-ldflags -X`. The C2 server uses mTLS for authentication. To enumerate other clients and their files, patch the UUID to register as a new client, then use the C2 API to list all clients and download their exfiltrated files.
+**Pattern (see-two):** A Go-compiled C2 client carries a per-victim UUID embedded via `-ldflags -X` and authenticates to its server over mTLS. Scope note: an analysis engagement recovers and characterises the client; it does not register with, or pull data from, a live C2. Collection from attacker infrastructure is the handling party's action (takedown owner / law enforcement) under their own authority.
 
-**Approach:**
-1. Extract embedded UUID from Go build metadata: `go version -m client_binary`
-2. Binary-patch the UUID (simple byte replacement — Go strings have fixed-length backing arrays)
-3. Register with the C2 server using the patched binary (mTLS certs are embedded or in distfiles)
-4. Enumerate clients via API: `GET /api/clients` or iterate known endpoints
-5. List and download files from each client's GCS bucket or file store
-6. Grep downloaded files for the flag
+**Recovery and characterisation:**
+1. Recover build metadata and the embedded identifier: `go version -m client_binary`
+2. Record the UUID, module versions, and source paths as samples-attribution evidence (`E-c2-client-uuid`)
+3. Locate the mTLS material (embedded cert vs sidecar file) and record its hash — this fingerprints the client without contacting anything
+4. Cluster the UUID and cert fingerprints against public family reporting, then hand the bundle to whoever owns the infrastructure
 
 ```bash
-# Extract Go build info
+# Extract Go build info and embedded identifier
 go version -m ./client_binary | grep ldflags
-# Output shows: -X main.clientUUID=<uuid>
-
-# Patch UUID in binary (replace old UUID bytes with new UUID)
-python3 -c "
-import sys
-data = open('client_binary', 'rb').read()
-old_uuid = b'original-uuid-value-here'
-new_uuid = b'attacker-uuid-value-here'
-patched = data.replace(old_uuid, new_uuid)
-open('client_patched', 'wb').write(patched)
-"
-chmod +x client_patched
-./client_patched --register
+# -X main.clientUUID=<uuid>
+strings -a ./client_binary | grep -E '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-'
 ```
 
-**Key insight:** Go binaries embed string values from `-ldflags -X` directly in the binary data section. Since Go strings are `{ptr, len}` pairs pointing to backing byte arrays, replacing the UUID bytes (same length) produces a valid patched binary. The mTLS certificates authenticate the client to the server but don't bind to a specific UUID.
+**Key insight:** Go binaries embed `-ldflags -X` string values directly in the data section, and Go strings are `{ptr, len}` pairs, so the value sits as a contiguous byte run that is trivially recoverable — which is what makes it a stable attribution and clustering artefact rather than a per-build random. The same property is why per-victim identifiers leak more than the author intended: one sample names the fleet's identifier scheme.
+
+**References:** BSidesSF 2026 "see-two"duces a valid patched binary. The mTLS certificates authenticate the client to the server but don't bind to a specific UUID.
 
 **References:** BSidesSF 2026 "see-two"
 

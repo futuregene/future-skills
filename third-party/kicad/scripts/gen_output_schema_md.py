@@ -1,7 +1,7 @@
 """Regenerate skills/kicad/references/output-schema.md from envelope dataclasses.
 
 Run:
-    python3 skills/kicad/scripts/gen_output_schema_md.py
+    python3 <skill-path>/scripts/gen_output_schema_md.py
 
 Emits a human-readable reference table derived from the same dataclass
 definitions that drive --schema. No manual duplication.
@@ -13,9 +13,22 @@ import typing
 from dataclasses import MISSING, fields, is_dataclass
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-SCRIPTS = REPO_ROOT / "skills" / "kicad" / "scripts"
-EMC_SCRIPTS = REPO_ROOT / "skills" / "emc" / "scripts"
+def _locate_skill_root(name: str) -> Path:
+    """Locate `<skills-root>/<name>` from this file's ancestors.
+
+    Handles both deployed layouts: `<root>/skills/<name>/...` (what this file
+    originally assumed) and `<root>/skills/third-party/<name>/...`.
+    """
+    for parent in Path(__file__).resolve().parents:
+        for candidate in (parent / name, parent / "skills" / name):
+            if (candidate / "scripts").is_dir():
+                return candidate
+    raise RuntimeError(f"cannot locate the {name} skill directory")
+
+
+KICAD_ROOT = _locate_skill_root("kicad")
+SCRIPTS = KICAD_ROOT / "scripts"
+EMC_SCRIPTS = _locate_skill_root("emc") / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 sys.path.insert(0, str(EMC_SCRIPTS))
 
@@ -221,8 +234,8 @@ def main():
         CrossAnalysisEnvelope,
         intro="Output of `python3 skills/kicad/scripts/cross_analysis.py --schematic ... --pcb ...`.",
     ))
-    out_path = REPO_ROOT / "skills" / "kicad" / "references" / "output-schema.md"
-    out_path.write_text("\n".join(parts))
+    out_path = KICAD_ROOT / "references" / "output-schema.md"
+    out_path.write_text("\n".join(parts), encoding="utf-8")
     print(f"Wrote {out_path}")
 
 

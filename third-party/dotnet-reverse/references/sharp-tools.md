@@ -2,7 +2,7 @@
 
 ## 红队 Sharp* 工具分析
 
-红队工具大量用 C# 写（Sharp* 系列），逆向它们是常见场景：理解检测逻辑、改特征、提取内嵌配置。
+红队工具大量用 C# 写（Sharp* 系列），逆向它们是常见场景：理解检测逻辑、提取内嵌配置、建立可复用的检测特征。
 
 ### 常见 Sharp* 工具速查
 
@@ -23,7 +23,7 @@
 3. 找目标命令的实现类/方法
 4. 看 P/Invoke 段（Interop.* 命名空间）—— native API 调用在这里
 5. 提取内嵌资源（有些工具嵌配置/模板）
-6. 如需改特征（EDR 规避）：改命令字符串、API 调用、字符串常量
+6. 记录可检测特征：命令字符串、banner、P/Invoke 调用序列（供检测侧使用，见下节）
 ```
 
 ### Rubeus 结构示例
@@ -37,7 +37,9 @@ P/Invoke: Rubeus.Interop.Lsa* / Native.cs → native Kerberos API
 关键: LsaCallAuthenticationPackage (KERB_RETRIEVE_TKT_REQUEST)
 ```
 
-改特征（规避）：把命令字符串 `"kerberoast"` 改成自定义名、把 `Rubeus` banner 字符串改掉、改 P/Invoke 调用顺序。
+**检测价值（分析侧结论）**：Rubeus 的 `switch(command)` 命令表、banner 字符串和固定的 `Interop.*` P/Invoke 序列都是稳定的静态特征，可直接写成 YARA / Sigma 规则（命令名簇 + banner + `LsaCallAuthenticationPackage` 调用序列）。家族变体会改名或重排调用，把这三类特征做成"命中任意两类"的组合比单串匹配更稳。
+
+> 边界：本文件做**识别与检测**，不改写红队工具使其规避 EDR。为对抗检测而修改他人工具的特征属于规避行为，不在分析技能的范围内。
 
 ### 内嵌配置提取
 
@@ -150,7 +152,7 @@ brew install --cask dotnet-sdk
 
 - Medium《De-obfuscating and reversing a .NET/C# spyware》— dnSpy + de4dot 实战 info-stealer 脱混淆
 - YouTube《dnSpy Patch .NET EXEs & DLLs》— 手把手 patch + keygen
-- 看雪论坛 .NET 逆向版块 — 搜 ".net 逆向" / "dnSpy" / "ConfuserEx" 有大量实战帖、Nuitka 逆向、免杀讨论
+- 看雪论坛 .NET 逆向版块 — 搜 ".net 逆向" / "dnSpy" / "ConfuserEx" 有大量实战帖、Nuitka 逆向案例
 - Guided Hacking《Top 5 .NET Reverse Engineering Tools》— dnSpy 仍排第一
 - StackExchange / Reverse Engineering — `DynamicMethod` 调试等进阶问题
 

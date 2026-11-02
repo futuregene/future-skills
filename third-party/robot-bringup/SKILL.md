@@ -78,6 +78,11 @@ Requires=robot-hw.target
 
 [Service]
 Type=notify
+# Children of the launch process (the nodes themselves) send READY=1/WATCHDOG=1
+# through sd_notify. systemd defaults to NotifyAccess=main for Type=notify, so those
+# messages would be dropped and the unit would hit TimeoutStartSec / be killed by
+# WatchdogSec. Accept notifications from the whole cgroup.
+NotifyAccess=all
 User=robot
 Group=robot
 WorkingDirectory=/home/robot
@@ -165,6 +170,11 @@ Requires=robot-hw.target
 
 [Service]
 Type=notify
+# Children of the launch process (the nodes themselves) send READY=1/WATCHDOG=1
+# through sd_notify. systemd defaults to NotifyAccess=main for Type=notify, so those
+# messages would be dropped and the unit would hit TimeoutStartSec / be killed by
+# WatchdogSec. Accept notifications from the whole cgroup.
+NotifyAccess=all
 User=robot
 EnvironmentFile=/etc/robot/ros2.env
 ExecStart=/bin/bash -c '\
@@ -194,6 +204,11 @@ PartOf=robot-drivers.service
 
 [Service]
 Type=notify
+# Children of the launch process (the nodes themselves) send READY=1/WATCHDOG=1
+# through sd_notify. systemd defaults to NotifyAccess=main for Type=notify, so those
+# messages would be dropped and the unit would hit TimeoutStartSec / be killed by
+# WatchdogSec. Accept notifications from the whole cgroup.
+NotifyAccess=all
 User=robot
 EnvironmentFile=/etc/robot/ros2.env
 ExecStart=/bin/bash -c '\
@@ -223,6 +238,11 @@ PartOf=robot-perception.service
 
 [Service]
 Type=notify
+# Children of the launch process (the nodes themselves) send READY=1/WATCHDOG=1
+# through sd_notify. systemd defaults to NotifyAccess=main for Type=notify, so those
+# messages would be dropped and the unit would hit TimeoutStartSec / be killed by
+# WatchdogSec. Accept notifications from the whole cgroup.
+NotifyAccess=all
 User=robot
 EnvironmentFile=/etc/robot/ros2.env
 ExecStart=/bin/bash -c '\

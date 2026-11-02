@@ -614,7 +614,7 @@ class HardwareWatchdog:
         os.close(self.fd)
 ```
 
-```bash
+```ini
 # /etc/watchdog.conf
 watchdog-device = /dev/watchdog
 watchdog-timeout = 15
@@ -627,7 +627,7 @@ max-load-1 = 24
 
 ### Read-Only Root Filesystem with Overlay
 
-```bash
+```text
 # /etc/fstab
 /dev/mmcblk0p2  /        ext4  ro,noatime,errors=remount-ro  0 1
 tmpfs           /tmp     tmpfs nosuid,nodev,size=128M         0 0
