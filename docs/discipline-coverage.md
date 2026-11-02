@@ -82,3 +82,21 @@
 6. **中文期刊与学位论文格式**：GB/T 7714 参考文献、学位论文模板与查重前自检。
 
 自研技能请用 `future-skill-creator`，并沿用本仓库的 `SOURCE.md` 约定（自研技能注明"本仓库原创"）。
+
+## 六、踩坑：守卫命令之前先取回 origin/main
+
+不要直接跑 git diff --quiet origin/main dev-<user> 判断一个分叉分支能否收敛。本机实测：
+
+`
+git diff --quiet origin/main dev-huichen
+fatal: Needed a single revision
+`
+
+因为本地根本没有 origin/main 这个 ref（CLI 的浅克隆/单分支配置下常见）。正确顺序是先把它取下来，**不 checkout**：
+
+`ash
+git fetch origin main:main
+git diff --quiet origin/main dev-<user>   # 现在才成立
+`
+
+同理，任何"比较远端与本地分支"的守卫都应在 git fetch 之后写，否则守卫本身先失败，看起来像分支有问题。
