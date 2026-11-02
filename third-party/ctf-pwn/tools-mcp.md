@@ -1,9 +1,9 @@
-# CTF Pwn - MCP Server Integration
+﻿# CTF Pwn - MCP Server Integration
 
 MCP servers accelerate the two halves of a pwn workflow: **understanding** the
 binary (decompile the vulnerable function) and **debugging** the exploit
 (inspect crash state, heap, registers). For static decompilation via IDA/Ghidra
-MCP the authoritative reference is [../ctf-reverse/tools-mcp.md](../ctf-reverse/tools-mcp.md);
+MCP the authoritative reference is [../reverse-engineering/tools-mcp.md](../reverse-engineering/tools-mcp.md);
 this file covers the pwn-specific angle plus **WinDbg MCP** for Windows targets.
 
 ## Table of Contents
@@ -195,14 +195,14 @@ regions for `flag{`, set a hardware read-watchpoint on the flag buffer, or
 chain — but fix symbols first, because a mis-symbolized `!analyze -v` will
 confidently point you at the wrong function. For
 interactive local work x64dbg remains the GUI alternative (see
-[../ctf-reverse/tools-dynamic.md](../ctf-reverse/tools-dynamic.md#x64dbg-windows-debugger)).
+[../reverse-engineering/tools-dynamic.md](../reverse-engineering/tools-dynamic.md#x64dbg-windows-debugger)).
 
 ---
 
 ## IDA / Ghidra MCP for Exploit Development
 
 Use the decompiler MCP servers from
-[../ctf-reverse/tools-mcp.md](../ctf-reverse/tools-mcp.md) to find and understand
+[../reverse-engineering/tools-mcp.md](../reverse-engineering/tools-mcp.md) to find and understand
 the vulnerability before writing the exploit — **pseudocode first, assembly only
 when it fails** (same golden rule).
 

@@ -1,4 +1,4 @@
----
+﻿---
 name: solve-challenge
 description: Solves CTF challenges by performing first-pass triage, identifying the dominant category, and routing execution to the right specialized ctf-* skill. Use when the user gives you a challenge bundle, a remote service, a suspicious file, or only a vague challenge description and you must determine where to start. Do not use it when the category is already clear and a specialized skill can be invoked directly; this is the dispatcher and recon entrypoint, not the deepest reference for category-specific techniques.
 license: MIT
@@ -37,7 +37,7 @@ bash scripts/install_ctf_tools.sh go
 bash scripts/install_ctf_tools.sh manual
 ```
 
-The full package lists now live in [scripts/install_ctf_tools.sh](../scripts/install_ctf_tools.sh).
+The full package lists now live in [scripts/install_ctf_tools.sh](scripts/install_ctf_tools.sh).
 
 ### On-demand (during challenges)
 
