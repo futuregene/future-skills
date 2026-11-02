@@ -424,7 +424,7 @@ async def emergency_stop():
         raise HTTPException(status_code=503, detail="Emergency stop service not available")
     future = ros_node.estop_client.call_async(Trigger.Request())
     # Wait for result with timeout — run in executor to avoid blocking
-    result = await asyncio.get_event_loop().run_in_executor(
+    result = await asyncio.get_running_loop().run_in_executor(
         None, lambda: future.result(timeout=5.0)
     )
     return {"success": result.success, "message": result.message}
@@ -1301,7 +1301,7 @@ ros2 launch rosbridge_server rosbridge_websocket_launch.xml \
 
 **Problem:** Calling `service_client.call(request)` (synchronous) inside an `async def` FastAPI handler blocks the event loop, freezing all other requests until the service responds.
 
-**Fix:** Use `call_async()` and await the future via `asyncio.get_event_loop().run_in_executor()`, or use a dedicated thread pool.
+**Fix:** Use `call_async()` and await the future via `asyncio.get_running_loop().run_in_executor()`, or use a dedicated thread pool.
 
 ```python
 # BAD: Synchronous service call blocks the async event loop
@@ -1314,7 +1314,7 @@ async def navigate(goal: NavGoal):
 @app.post("/api/navigate")
 async def navigate(goal: NavGoal):
     future = nav_client.call_async(goal_request)
-    response = await asyncio.get_event_loop().run_in_executor(
+    response = await asyncio.get_running_loop().run_in_executor(
         None, lambda: future.result(timeout=30.0)
     )
     return {"result": response.result}

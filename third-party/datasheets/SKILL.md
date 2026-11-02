@@ -37,6 +37,17 @@ This skill owns:
 - **No PDF downloading.** That is owned by distributor skills (`digikey`, `mouser`, `lcsc`, `element14`).
 - **No global library.** Each project's extractions live in `<project>/datasheets/extracted/`. There is no shared cross-project cache.
 
+## Prerequisites
+
+- **`pip install jsonschema referencing`** — `scripts/merge_results.py` and
+  `scripts/validate_extraction_result.py` import `jsonschema`
+  (Draft 2020-12, which needs `referencing`) at module level. On an environment
+  without it both exit with `ModuleNotFoundError: No module named 'jsonschema'`
+  before parsing a single argument, which blocks the merge/validate half of the
+  extraction pipeline. Nothing else in the skill needs third-party packages.
+- **poppler-utils** (`pdftotext`, `pdfinfo`) — optional. `scripts/datasheet_page_selector.py`
+  ranks pages with them; without them it returns every page at low confidence.
+
 ## Cache location
 
 ```

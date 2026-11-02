@@ -9,7 +9,7 @@ description: Use for authorized reverse engineering of custom binary protocols, 
 
 1. `NOW`: 读取 `../field-journal/precedent-reverse.md` — 确认授权与常规操作边界
 2. `NOW`: 确认任务是否为**协议/流量/序列化格式**逆向（非纯 Web 参数签名 → 转 `js-reverse/`）
-3. `NOW`: 若有目标网络交互 → `../scripts/case-init.ps1` 完成 scope；`auth` 未 granted 禁止对目标 ACT
+3. `NOW`: 若有目标网络交互 → 先在工作目录建立 case scope（目标主机/端口/时间窗/授权人，落盘为 `scope.md`）；`auth` 未 granted 禁止对目标 ACT（上游 `../scripts/case-init.ps1` 未随技能导入，不要引用不存在的路径）
 4. `NEXT`: 读取 `../tool-index.md`；缺工具 bootstrap（tshark/wireshark 等可能需手动）
 5. `ACT`: 进入工作流 Phase 1，产出帧布局或消息字典草稿
 

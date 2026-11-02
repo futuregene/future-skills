@@ -66,8 +66,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File skills\scripts\bootstrap-rev
   -Capability xquik-mcp -McpHostTarget Codex
 ```
 
-```bash
-bash skills/scripts/bootstrap-reverse.sh xquik-mcp --mcp-host=codex
+```text
+上游 bootstrap 脚本（skills/scripts/bootstrap-reverse.sh）未随本技能导入。
+需要 xquik-mcp 时按 future-mcp 技能的流程手工注册：
+  future mcp add xquik-mcp -- <command> <args>   # 以项目 README 为准
 ```
 
 随后在客户端完成 OAuth。若改用 REST，只从环境或批准的密钥存储读取 `XQUIK_API_KEY`。禁止把密钥写进命令行、配置、报告或证据正文。

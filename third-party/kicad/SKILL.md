@@ -473,10 +473,16 @@ DigiKey is best (direct PDF URLs). element14 is reliable (no bot protection). LC
 **Structured datasheet extraction (for large designs or repeated reviews):** Pre-extract datasheet specs into cached JSON for faster, more consistent pin verification. This is especially valuable for designs with 10+ ICs where re-reading PDFs from scratch each time is slow.
 
 ```bash
-python3 <skill-path>/scripts/datasheet_page_selector.py <pdf_path> --mpn <mpn> --category <category>
+python3 - <<'PY'
+import sys
+sys.path.insert(0, "<datasheets-skill-path>/scripts")  # this module ships with the `datasheets` skill
+from datasheet_page_selector import suggest_pages
+selection = suggest_pages("<pdf_path>", "<mpn>", "<category>")
+print(selection.pages, selection.reasons, selection.confidence)
+PY
 ```
 
-After reading the selected pages and producing an extraction JSON, score and cache it using `datasheet_score` and `datasheet_extract_cache` modules. Extractions are stored in `datasheets/extracted/<MPN>.json` and reused across reviews. The **`datasheets` skill** owns the full extraction pipeline (schema, page selection, scoring rubric, consumer API) — see `skills/datasheets/SKILL.md` and its reference guides.
+After reading the selected pages and producing an extraction JSON, score and cache it using `datasheet_score` and `datasheet_extract_cache` modules. Extractions are stored in `datasheets/extracted/<MPN>.json` and reused across reviews. The **`datasheets` skill** owns the full extraction pipeline (schema, page selection, scoring rubric, consumer API) — see `<datasheets-skill-path>/SKILL.md` and its reference guides.
 
 **What to extract from each datasheet** (note page/section/figure/equation numbers for citations):
 - Pin function table (pin number → name → function)
@@ -689,7 +695,7 @@ For each IC in the design:
    under `analysis/helpers/` that reads the analyzer JSON and prints
    the numbers. Cite script + result as evidence.
 4. Record findings in `analysis/deep_review.json` (shape:
-   `skills/kicad/review/schemas/deep_review.schema.json`). Every
+   `<skill-path>/review/schemas/deep_review.schema.json`). Every
    finding needs an evidence block: at least one design anchor
    (component/net/pin) and at least one source (datasheet quote
    and/or computation).
@@ -699,7 +705,7 @@ Then check interacting pairs: shared rails (sequencing, combined load), bus part
 Validate before reporting:
 
 ```bash
-python3 skills/kicad/review/scripts/deep_review_gate.py \
+python3 <skill-path>/review/scripts/deep_review_gate.py \
     analysis/deep_review.json --analysis-dir analysis/
 ```
 
@@ -714,7 +720,7 @@ report fixed / still-open / new in the Previous Review Delta section:
 ```bash
 cp analysis/deep_review.json analysis/deep_review.prev.json
 # ... run the pass, then the gate ...
-python3 skills/kicad/scripts/diff_analysis.py \
+python3 <skill-path>/scripts/diff_analysis.py \
     analysis/deep_review.prev.json analysis/deep_review.json --text
 ```
 

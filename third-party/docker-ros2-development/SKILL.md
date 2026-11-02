@@ -965,7 +965,8 @@ CMD ["ros2", "launch", "my_pkg", "bringup.launch.py"]
 
 # GOOD: multi-stage build (800 MB)
 FROM ros:humble-ros-base AS build
-RUN apt-get update && apt-get install -y python3-colcon-common-extensions
+RUN apt-get update && apt-get install -y python3-colcon-common-extensions \
+    && rm -rf /var/lib/apt/lists/*
 COPY src/ /ros2_ws/src/
 RUN cd /ros2_ws && . /opt/ros/humble/setup.sh && colcon build
 

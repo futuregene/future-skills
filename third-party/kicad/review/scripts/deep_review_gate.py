@@ -35,9 +35,22 @@ import unicodedata
 from difflib import SequenceMatcher
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+def _locate_skill_scripts(name: str) -> Path:
+    """Locate `<skills-root>/<name>/scripts` from this file's ancestors.
+
+    Handles both deployed layouts: `<root>/skills/<name>/...` (what this file
+    originally assumed) and `<root>/skills/third-party/<name>/...`.
+    """
+    for parent in Path(__file__).resolve().parents:
+        for candidate in (parent / name / "scripts",
+                          parent / "skills" / name / "scripts"):
+            if candidate.is_dir():
+                return candidate
+    raise RuntimeError(f"cannot locate the {name} skill's scripts directory")
+
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-sys.path.insert(0, str(REPO_ROOT / "skills" / "kicad" / "scripts"))
+sys.path.insert(0, str(_locate_skill_scripts("kicad")))
 
 from _mini_jsonschema import iter_errors            # noqa: E402
 from finding_schema import assign_deep_review_ids   # noqa: E402

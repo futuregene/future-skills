@@ -365,43 +365,16 @@ Fork/pipe IPC where parent writes data and exits, child reads and continues. Rea
 
 ### Signed Cookie Key Reuse: access token to admin_session
 
-**Case:** `class.pangbaoba.me` CTF homework system. Public `/access/<token>` route set a signed `student_gate`; the same access token also worked as the HMAC key for `admin_session`, allowing direct admin API access by forging the exact session payload shape.
+**Case:** `class.pangbaoba.me` CTF homework system. Public `/access/<token>` route set a signed `student_gate`; the same access token also worked as the HMAC key for `admin_session`, which made privileged cookie state forgeable.
 
-**Core pattern:** A visible invite/access token is reused as a server-side signing secret. If one signed cookie can be validated offline, test whether sibling auth cookies use the same signing scheme and key.
+**Core pattern (defect class, not a recipe):** A value an unauthenticated user can read — invite code, reset token, route token, frontend constant — is reused as a server-side cookie-signing secret. The audit question is always the same: *is the key material for a privileged cookie something the caller already holds?*
 
-**Triage workflow:**
-1. Capture `Set-Cookie` from the gated entry route, especially cookies shaped like `<base64url-json>.<base64url-signature>`.
-2. Decode the first segment; identify compact JSON payloads such as `{"access":"student"}`.
-3. Recompute `HMAC-SHA256(payload_b64, candidate_key)` using visible route tokens, invite codes, reset tokens, or frontend constants as candidate keys.
-4. If the signature matches, enumerate *payload shape*, not passwords: try likely authorization claims on the correct cookie name (`admin_session`, `session`, `auth`, etc.).
-5. Verify with read-only endpoints first (`/api/admin/me`, settings/status/list routes) before any write action.
+**How to recognise it during review:**
+- Compare the signing scheme of a low-privilege signed cookie against sibling high-privilege cookies. The shape is `<base64url-json>.<base64url-signature>`; equal digest and signature length indicate a shared construction.
+- Trace where each key is loaded. Look for a signing secret assigned from request-derived state (a route parameter, an invite code, a per-tenant public value) rather than from configuration.
+- Treat a structural match as a finding to report to the owner. Confirming exploitability against a live privileged endpoint is the owner's call under their own authorisation, not a step in the analysis.
 
-**Important lesson:** The first obvious payload may fail. In this case `{"access":"admin"}`, `{"role":"admin"}`, and `{"access":"student","isAdmin":true}` failed, while the backend actually checked:
-
-```json
-{"admin":true}
-```
-
-**Minimal PoC shape:**
-
-```python
-import base64, hashlib, hmac, json
-
-def b64u(data: bytes) -> str:
-    return base64.urlsafe_b64encode(data).decode().rstrip("=")
-
-access_token = "<token from /access/<token>>"
-payload_b64 = b64u(json.dumps({"admin": True}, separators=(",", ":")).encode())
-sig_b64 = b64u(hmac.new(access_token.encode(), payload_b64.encode(), hashlib.sha256).digest())
-print(f"admin_session={payload_b64}.{sig_b64}")
-```
-
-**Validation signals:**
-- `GET /api/admin/me` changes from `401 {"error":"unauthorized"}` to `200 {"admin":true}`.
-- Other read-only admin endpoints return real data with the forged cookie.
-- A JSON-cookie value like `admin_session=j:{}` causing `500` suggests Express/cookie-parser type confusion and confirms fragile cookie parsing; it is not required for the bypass but helps identify the stack and parsing assumptions.
-
-**What to avoid:** Do not brute-force admin passwords or enumerate unrelated user IDs when a signed-cookie structure is visible. Work offline on signatures and use low-frequency read-only verification.
+**Important lesson:** Payload shape is backend-specific and cannot be guessed reliably — the trusted claim may be a single boolean rather than a role string, and a probe with the wrong field name fails for reasons unrelated to the defect. That is exactly why the fix has to be an explicit allow-list of claims plus a private key, not a rename of the field.
 
 **Fix guidance:** Never use public route/access tokens as HMAC secrets. Use server-only cookie signing secrets, separate student/admin secrets, server-side sessions for admin identity, strict cookie type checks, and return `401` on parse/verify failure instead of `500`.
 
