@@ -15,6 +15,7 @@ COMMANDS = [
     ["tests/check_references.py"],
     ["tests/check_control_chars.py"],
     ["tests/check_scope.py"],
+    ["tests/stage_check.py", "--self-test"],
     ["tests/check_builtin.py"],
     ["-m", "unittest", "discover", "-s", "tests", "-v"],
     ["-m", "unittest", "discover", "-s", "third-party/future-experimental-design/tests", "-v"],

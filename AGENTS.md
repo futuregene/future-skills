@@ -37,6 +37,15 @@ python tests/run_offline.py
 It checks frontmatter, the registry, code fences and resource pointers, then runs the
 deterministic skill regressions. Success is not evidence of model behavior or live APIs.
 
+**Tools that a dispatched workflow calls by path live in `tests/`, never in a scratch
+directory.** `tests/stage_check.py` validates a worker's staged import; sub-agent verify
+commands point at it. `.future/tmp` is routinely cleaned, so a checker parked there
+disappears mid-run and the worker fails on a missing file rather than on its own output
+(measured 2026-11-02: a batch failed with `stage_check.py: No such file` for exactly this
+reason). The rule: if a dispatch flow names a path, that path must be under version
+control or otherwise immune to cleanup. `stage_check.py --self-test` runs in the offline
+suite so a missing or broken copy is caught before the next dispatch.
+
 ## Editing a skill
 
 - One directory per skill under `builtin/`; `SKILL.md` needs `name` (equal to the directory

@@ -1600,22 +1600,6 @@
     "description_zh": "按结构撰写或改写职位描述：职责（行动+影响）、必要与优先资格、薪酬透明、包容性用语替换表、申请说明与可访问性，输出可直接发布的版本与改写说明。",
     "scope": "hdu"
   },
-  "seo-content-optimizer": {
-    "category": "business",
-    "category_zh": "金融与管理",
-    "enabled": true,
-    "name_zh": "SEO 内容优化",
-    "description_zh": "优化网页内容的自然搜索表现：种子词与主题聚类、搜索意图匹配、标题与 meta 描述、内链与结构、内容缺口与更新计划，并给出可量化验收点。",
-    "scope": "hdu"
-  },
-  "email-marketing": {
-    "category": "business",
-    "category_zh": "金融与管理",
-    "enabled": true,
-    "name_zh": "邮件营销",
-    "description_zh": "设计邮件营销：按目标分型（欢迎/培育/挽回/交易）、分群策略、主题行公式与 A/B 测试矩阵、滴灌序列时序、指标基准与合规要素。",
-    "scope": "hdu"
-  },
   "brand-voice-enforcement": {
     "category": "business",
     "category_zh": "金融与管理",

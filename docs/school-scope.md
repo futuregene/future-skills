@@ -7,7 +7,7 @@
 | scope | 含义 | 数量 |
 | --- | --- | --- |
 | `general` | 学科通用技能，与具体学校无关（原有科研/数据/文档类） | 145 |
-| `hdu` | 按杭州电子科技大学 9 个一级学科博士点选取 | 62 |
+| `hdu` | 按杭州电子科技大学 9 个一级学科博士点选取 | 60 |
 | `cross-school:multi` | 多个学校的经管学科共用（会计/财务口径） | 18 |
 | `cross-school:zjut` | 浙江工业大学口径（化工、动力工程及工程热物理、土木） | 7 |
 | `cross-school:zstu` | 浙江理工大学口径（设计学、纺织、土木工程管理） | 10 |
@@ -27,7 +27,7 @@ python -c "import json;d=json.load(open('skills.json'));print('\n'.join(k for k,
 | 电子科学与技术 / 集成电路（博士点，省一流 A） | `kicad` `spice` `emc` `bom` `datasheets` `jlcpcb` `pcbway` `lcsc` `digikey` `mouser` `element14` | 11 |
 | 控制科学与工程（博士点，机器人方向） | `ros2` `ros1` `robot-bringup` `robot-perception` `robotics-testing` `robotics-security` `robotics-design-patterns` `robotics-software-principles` `docker-ros2-development` `ros2-web-integration` | 10 |
 | 网络空间安全（博士点，省属唯一） | 逆向：`malware-analysis` `ida-reverse` `radare2` `binary-diff` `reverse-engineering` `protocol-reverse` `threat-intelligence` `supply-chain-security` `llm-security` `dotnet-reverse`<br>竞赛：`ctf-web` `ctf-pwn` `ctf-crypto` `ctf-forensics` `ctf-misc` `ctf-osint` `ctf-malware` `ctf-ai-ml` `ctf-writeup` `solve-challenge` | 20 |
-| 管理科学与工程（数字化管理 / 运营） | `sop-builder` `supplier-scorecard` `inventory-forecasting` `incident-postmortem` `job-description-writer` `interview-kit-builder` `compensation-benchmarking` `seo-content-optimizer` `email-marketing` `brand-voice-enforcement` | 10 |
+| 管理科学与工程（数字化管理 / 运营） | `sop-builder` `supplier-scorecard` `inventory-forecasting` `incident-postmortem` `job-description-writer` `interview-kit-builder` `compensation-benchmarking` `brand-voice-enforcement` | 8 |
 | 数学（博士点，数模传统强项） | `math-modeling-solver` `math-modeling-paper` | 2 |
 
 ## 跨校共用：会计与财务（18，`cross-school:multi`）
@@ -73,7 +73,7 @@ python -c "import json;d=json.load(open('skills.json'));print('\n'.join(k for k,
 | --- | --- | --- |
 | RTL 验证与签核 | 集成电路科学与工程 | `signoff-loop`（RTL→GDS 开源链路签核）、`eda-install`（工具链安装自检） |
 | Verilog 规范 | 集成电路 / 电子科学与技术 | `claude-skill-verilog`（编码规范 + Verilator 检查清单） |
-| SDR / 信号 | 信息与通信工程 | `software-defined-radio`（硬件、参数、协议解码，含可运行脚本） |
+| SDR / 信号 | 信息与通信工程 | `software-defined-radio`（硬件、参数、协议解码，含可运行脚本）**出处弱：0 星 / 2 个 commit / 建库当天写完后再无提交；以内容实测收留，若有更可信来源应替换** |
 | MCU 固件 | 电子科学与技术 / 控制 | `stm32f411-blackpill`、`atmega328p-nano`、`nrf52840-promicro`（32 位主流 / 8 位低成本 / 无线 各取一块代表板） |
 
 ### 自研（3，本仓库原创）
