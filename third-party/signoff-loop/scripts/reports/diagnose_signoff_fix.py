@@ -1,0 +1,2558 @@
+#!/usr/bin/env python3
+"""Diagnose DRC/LVS signoff violations and emit an ordered real-layout-fix plan.
+
+Sibling of knowledge/analyze_execution.py (which proposes fixes for *backend*
+stage failures); this module handles *signoff* (DRC/LVS) violations only.
+
+Real-fixes-only policy: strategies apply genuine layout/config changes (antenna
+diode insertion + repair iters, route effort, density/area relief) and NEVER
+relax the DRC rule deck. See references/signoff-fixing.md.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import math
+import os
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+# Lifecycle statuses that BLOCK blind live auto-apply (P1-10, 2026-07-15). 'candidate'
+# is awaiting A/B validation and 'shadow' is A/B-demoted — neither may be executed in a
+# blind live run; only an A/B arm with --rank-first may force them. 'parked' is NOT here:
+# it means the recipe's A/B arms can't diverge (a no-op edit), so the underlying static
+# strategy stays a legitimate, harmless catalog action.
+_LIVE_BLOCKED_LIFECYCLE = frozenset({"candidate", "shadow"})
+_REPAIR_POLICY_ENV = "R2G_REPAIR_ACTION_POLICY_FILE"
+_PIN_EDGE_DRC_RULES = frozenset({"m3.2"})
+_PLATFORM_GEOMETRIC_SCOPE_TRANSFER = frozenset({
+    ("04d38c5a585fd332", "sky130hd", "pin_side_rebalance"),
+})
+# Mechanism-gated class transfer (2026-10-01): a recipe whose catalog entry is ONLY
+# offered when the tool has named the mechanism (Netgen "Top level cell failed pin
+# matching" -> top_pin_mismatch) may use its '*'-class promotion for any design class,
+# because that promotion was won across several classes on independent designs.
+# Key = (symptom_id, platform, strategy); the symptom is the LVS one,
+# sha1(lvs, top_pin_mismatch, {})[:16].
+_MECHANISM_SCOPE_TRANSFER = frozenset({
+    ("a0d6b4c6ae5c8c4c", "sky130hd", "lvs_port_feedthrough_buffer"),
+})
+_SETUP_MARGIN_PLATFORMS = frozenset({"sky130hd"})
+_SETUP_MARGIN_NS = 0.2
+_SETUP_MARGIN_MAX_DEFICIT_NS = 0.2
+
+
+def _effect_fp(strat: dict) -> str | None:
+    """Canonical digest of a strategy's MUTATING effect (config/env/sdc edits + the
+    rerun/recheck stages). Two strategy IDs with byte-identical effects share this
+    fingerprint, so negative evidence against one can suppress its aliases (P1-14,
+    2026-07-15). Returns None for a strategy with no declared effect (e.g. a bare test
+    stub) so an 'empty effect' never collides distinct no-op strategies."""
+    edits = strat.get("config_edits") or {}
+    env = strat.get("env") or strat.get("env_flags") or {}
+    sdc = strat.get("sdc") or strat.get("sdc_edits") or {}
+    if not edits and not env and not sdc:
+        return None
+    payload = json.dumps({"config": edits, "env": env, "sdc": sdc,
+                          "rerun_from": strat.get("rerun_from"),
+                          "recheck": strat.get("recheck")}, sort_keys=True)
+    return hashlib.sha1(payload.encode()).hexdigest()[:16]
+
+try:
+    import fix_model
+except ImportError:                       # script run outside the test sys.path
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import fix_model
+
+try:
+    import symptom                         # symptom-indexed memory (spec 2026-06-09)
+except ImportError:                       # knowledge/ not yet on the path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "knowledge"))
+    import symptom
+
+BLOCK_START = "# >>> r2g signoff-fix (auto) >>>"
+BLOCK_END = "# <<< r2g signoff-fix (auto) <<<"
+KLAYOUT_CPP_CRASH = re.compile(r"sort_circuit|gen_log_entry|segmentation|sigsegv", re.I)
+
+# Platforms that need the installed antenna model (tools/install_nangate45_antenna.sh)
+# plus a *diode-forced* repair config to clear antennas.  On nangate45 the stock tech LEF
+# ships no antenna ratios and the SC LEF has gate areas stripped, so OpenROAD sees nothing
+# to repair; once the model is installed, OpenROAD's default repair fixes antennas with
+# JUMPERS, which the FreePDK45 KLayout signoff deck does NOT credit (it credits diodes).
+# So the strategy disables jumper repair (SKIP_ANTENNA_REPAIR) and forces diode insertion
+# (MAX_REPAIR_ANTENNAS_ITER_DRT).  Validated 2026-06-02 on stream_register (489:1 → clean
+# with 1 diode).  See references/signoff-fixing.md "nangate45 antenna repair".  Density
+# relief stays OFF here (empirically counterproductive: fifo_basic 14→16 at util 10→5).
+DIODE_FORCED_REPAIR_PLATFORMS = {"nangate45"}
+
+
+DIODE_INSERTING_STRATEGIES = frozenset({
+    "antenna_diode_repair", "antenna_diode_iters", "deck_driven_antenna_diode",
+    "deck_driven_antenna_diode_accumulate",
+    # repairs by making repair_antennas insert MORE ANTENNA_X1 diodes, so it is
+    # as dead as the others when the diode is unusable (GRT-0246)
+    "antenna_ratio_overconstrain"})
+
+
+def _inserts_diodes(strategy: dict) -> bool:
+    """Does this strategy put a physical antenna diode in the layout?
+
+    Named membership rather than an id prefix: the strategies that do this are a
+    closed, reviewable set, and a new one that happens not to start with
+    "antenna_diode" must not slip past the unusable-model gate by virtue of its
+    name.
+    """
+    return strategy.get("id") in DIODE_INSERTING_STRATEGIES
+
+
+def _antenna_precondition(platform: str):
+    """Pilot P1-1: check the diode-repair PREREQUISITE before ranking it.
+
+    The 2026-07-21 pilot selected antenna_diode_repair while OpenROAD repeatedly
+    reported GRT-0246 (no usable CORE ANTENNACELL diode: ANTENNADIFFAREA 0.0) —
+    the reroute produced a byte-identical 6_final.def and a ~5,200s full DRC was
+    burned re-grading the unchanged layout. Probe the platform's antenna model
+    (tech-LEF ratio rules + a positive-diff-area diode) via
+    flow/platform_capability.py before offering any diode-inserting strategy.
+
+    Returns (usable, reason): False only on POSITIVE evidence the model is
+    unusable; None (fail-open) when the environment cannot be inspected —
+    blocking on missing introspection would regress working setups.
+    R2G_ANTENNA_PRECHECK=0 disables the probe entirely."""
+    if os.environ.get("R2G_ANTENNA_PRECHECK", "1") == "0":
+        return None, "precheck disabled (R2G_ANTENNA_PRECHECK=0)"
+    try:
+        flow_dir = str(Path(__file__).resolve().parents[1] / "flow")
+        if flow_dir not in sys.path:
+            sys.path.insert(0, flow_dir)
+        import platform_capability
+        return platform_capability.antenna_repair_usable(platform)
+    except Exception as exc:  # noqa: BLE001 — introspection failure must fail open
+        return None, f"precheck unavailable: {exc}"
+
+
+def _explicit_family(name: str, families: dict) -> str | None:
+    """Family from an EXPLICIT families.json mapping/pattern, or None if only the
+    generic split-on-underscore fallback would apply.  Mirrors ingest_run._explicit_family
+    so the recipe READER keys families the same way the WRITER does."""
+    if not name:
+        return None
+    if name in families.get("mappings", {}):
+        return families["mappings"][name]
+    for entry in families.get("patterns", []):
+        if re.search(entry["regex"], name, re.IGNORECASE):
+            return entry["family"]
+    return None
+
+
+def parse_config(text: str) -> dict:
+    """Parse `export VAR = value` / `VAR := value` lines (last assignment wins)."""
+    cfg = {}
+    for line in text.splitlines():
+        m = re.match(r"\s*(?:override\s+)?(?:export\s+)?([A-Z0-9_]+)\s*[:?]?=\s*(.*?)\s*$", line)
+        if m:
+            cfg[m.group(1)] = m.group(2).strip()
+    return cfg
+
+
+def _all_antenna(categories: dict) -> bool:
+    keys = list(categories or {})
+    return bool(keys) and all(k.upper().endswith("_ANTENNA") for k in keys)
+
+
+def _applied(cfg: dict, edits: dict) -> bool:
+    if not edits:
+        return False
+    return all(str(cfg.get(k)) == str(v) for k, v in edits.items())
+
+
+
+def _deck_antenna_inputs_present(proj) -> bool:
+    """Can the deck's verdict be mapped to nets in THIS project?
+
+    Cheap existence check only -- the real mapping runs at apply time. Both
+    inputs are required and neither is substitutable: the lyrdb carries the
+    violation polygons and the DEF is what attributes them to a net.
+    """
+    try:
+        return (any(Path(proj).glob("**/6_drc.lyrdb"))
+                and any(Path(proj).glob("backend/RUN_*/results/6_final.def")))
+    except OSError:
+        return False
+
+
+def _unmaterializable_ids(strategies, proj, cfg) -> list:
+    """Strategies whose inputs this project cannot produce, decided at SELECTION.
+
+    deck-driven diodes need the deck's lyrdb + a DEF; the accumulate rung also
+    needs the net list a first round wrote (it is otherwise identical to r1, and
+    the driver never re-selects a tried id, so without this gate the ladder
+    could not reach it); the ratio rung needs a platform tech LEF that carries
+    a per-layer ratio to tighten.
+    """
+    out = []
+    for s in strategies:
+        m = s.get("materialize")
+        if m == "deck_antenna_diodes":
+            if not _deck_antenna_inputs_present(proj):
+                out.append(s["id"])
+            elif (s["id"] == "deck_driven_antenna_diode_accumulate"
+                  and not (Path(proj) / "signoff_fix" / "antenna_nets.txt").exists()):
+                out.append(s["id"])
+        elif m == "antenna_ratio_lef" and not _antenna_ratio_inputs_present(cfg):
+            out.append(s["id"])
+    return out
+
+
+def _drop_unmaterializable(plan, proj, cfg) -> None:
+    ids = _unmaterializable_ids(plan.get("strategies", []), proj, cfg)
+    if ids:
+        plan["strategies"] = [s for s in plan["strategies"] if s["id"] not in ids]
+        plan["unmaterializable"] = ids
+
+
+def _materialize_deck_antenna_diodes(proj):
+    """Write the hook and its net list into <project>/signoff_fix/.
+
+    The net list comes from the signoff deck's own lyrdb, mapped back through the
+    DEF's per-net routing by scripts/extract/map_antenna_nets.py (8/8 on the
+    design this was developed against). The hook reads the list from beside
+    itself rather than from the environment, because ORFS erases non-stage
+    variables before PRE_GLOBAL_ROUTE_TCL runs.
+
+    Returns (True, summary) or (False, reason). A reason, not an exception: the
+    caller turns it into precondition_failed so the config is left untouched.
+    """
+    here = Path(__file__).resolve().parents[1]
+    hook_src = here / "flow" / "orfs_hooks" / "deck_antenna_diodes.tcl"
+    mapper = here / "extract" / "map_antenna_nets.py"
+    if not hook_src.exists() or not mapper.exists():
+        return False, "deck_antenna_assets_missing"
+    lyrdbs = sorted(proj.glob("**/6_drc.lyrdb"),
+                    key=lambda f: f.stat().st_mtime, reverse=True)
+    defs = sorted(proj.glob("backend/RUN_*/results/6_final.def"),
+                  key=lambda f: f.stat().st_mtime, reverse=True)
+    if not lyrdbs:
+        return False, "no_lyrdb_to_read_the_deck_verdict_from"
+    if not defs:
+        return False, "no_final_def_to_map_polygons_onto"
+    out = proj / "signoff_fix"
+    out.mkdir(parents=True, exist_ok=True)
+    nets_json = out / "antenna_nets.json"
+    try:
+        r = subprocess.run(
+            [sys.executable, "-I", str(mapper), "--lyrdb", str(lyrdbs[0]),
+             "--def", str(defs[0]), "--json-out", str(nets_json)],
+            capture_output=True, text=True, timeout=900)
+    except (OSError, subprocess.SubprocessError) as exc:
+        return False, f"net_mapping_failed:{exc}"
+    if r.returncode != 0 or not nets_json.exists():
+        return False, "net_mapping_produced_nothing"
+    try:
+        nets = json.loads(nets_json.read_text(encoding="utf-8")).get("nets") or []
+    except (OSError, ValueError):
+        return False, "net_mapping_output_unreadable"
+    if not nets:
+        # The deck flagged antenna violations the DEF cannot attribute to a net.
+        # Inserting on a guessed net is how the threshold strategies failed.
+        return False, "deck_violations_mapped_to_zero_nets"
+    # ACCUMULATE across applications (the repair arm's rung r2). A second
+    # application reads the verdict on the FIRST one's layout, so the deck now
+    # flags only the residual nets; a list rebuilt from those alone drops every
+    # diode the first round placed. Measured on the nangate45 repair arm: a
+    # residual-only second round went from 4 violations back to 203, while the
+    # union cleared the rung (r2: 6 more designs dual-clean). So the list only
+    # grows, and a round that maps no NEW net is refused -- re-running the same
+    # list cannot change the layout, and the ladder should move on.
+    prior_f = out / "antenna_nets.txt"
+    prior = []
+    if prior_f.exists():
+        prior = [n for n in prior_f.read_text(encoding="utf-8").split() if n]
+    union = list(dict.fromkeys(prior + nets))
+    if prior and len(union) == len(prior):
+        return False, "deck_flags_no_net_beyond_the_accumulated_list"
+    prior_f.write_text("\n".join(union) + "\n", encoding="utf-8")
+    shutil.copyfile(hook_src, out / "deck_antenna_diodes.tcl")
+    if prior:
+        return True, (f"nets={len(union)} (accumulated: {len(prior)} prior + "
+                      f"{len(union) - len(prior)} new) from {lyrdbs[0].name}")
+    return True, f"nets={len(nets)} from {lyrdbs[0].name}"
+
+
+ANTENNA_RATIO_REPAIR = 10
+
+
+def _platform_tech_lef(cfg):
+    """The platform's TECH_LEF as make would expand it, or None."""
+    flow_dir = _find_flow_dir()
+    plat = cfg.get("PLATFORM") or ""
+    if not flow_dir or not plat:
+        return None
+    pcfg = Path(flow_dir) / "platforms" / plat / "config.mk"
+    try:
+        vals = platform_config_values(pcfg.read_text(encoding="utf-8", errors="ignore"))
+    except OSError:
+        return None
+    tech = (vals.get("TECH_LEF") or "").replace("$(PLATFORM_DIR)", str(pcfg.parent))
+    return tech if tech and "$(" not in tech and Path(tech).is_file() else None
+
+
+def _antenna_ratio_inputs_present(cfg) -> bool:
+    """Selection-time twin of _deck_antenna_inputs_present: is there a per-layer
+    ratio to tighten? The stock nangate45 tech LEF has none (the antenna model
+    comes from tools/install_nangate45_antenna.sh), and offering the rung there
+    spent a driver iteration on a refusal."""
+    tech = _platform_tech_lef(cfg)
+    if not tech:
+        return False
+    try:
+        return "ANTENNAAREARATIO" in Path(tech).read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return False
+
+
+def _materialize_antenna_ratio_lef(proj, cfg):
+    """Write <project>/signoff_fix/antenna_ratio<N>.tech.lef: the platform's tech
+    LEF with every ANTENNAAREARATIO set to ANTENNA_RATIO_REPAIR (rung r3).
+
+    The ROUTER becomes stricter than the rule; the GRADER is untouched (the
+    KLayout deck carries its own 300:1 and never reads this LEF). Fail-closed:
+    nothing is written unless the platform LEF resolves and actually carries
+    per-layer ratios to tighten -- a copy with no ratio in it would be a no-op
+    recorded as evidence against the recipe.
+    """
+    tech = _platform_tech_lef(cfg)
+    if not tech:
+        return False, "platform_tech_lef_unresolved"
+    text = Path(tech).read_text(encoding="utf-8", errors="ignore")
+    new, n = re.subn(r"(ANTENNAAREARATIO\s+)[0-9.]+", rf"\g<1>{ANTENNA_RATIO_REPAIR}", text)
+    if n == 0:
+        return False, "tech_lef_has_no_antenna_area_ratio"
+    out = proj / "signoff_fix"
+    out.mkdir(parents=True, exist_ok=True)
+    (out / f"antenna_ratio{ANTENNA_RATIO_REPAIR}.tech.lef").write_text(new, encoding="utf-8")
+    return True, f"ANTENNAAREARATIO -> {ANTENNA_RATIO_REPAIR} on {n} layer rules of {Path(tech).name}"
+
+
+def _antenna_catalog(cfg: dict) -> list:
+    """Full antenna strategy catalog (real layout fixes; regardless of applied state).
+
+    For platforms in DIODE_FORCED_REPAIR_PLATFORMS (nangate45): a single
+    `antenna_diode_repair` strategy that forces physical antenna-diode insertion (the
+    only repair the FreePDK45 signoff deck credits).  Requires the antenna model to be
+    installed once via tools/install_nangate45_antenna.sh.  Density relief is NOT offered
+    here (counterproductive — enlarging the die lengthens nets and adds antennas).
+
+    All other platforms (sky130, gf180, ihp — which ship a real antenna model): the
+    classic [antenna_diode_iters, antenna_density_relief] pair.
+    """
+    platform = cfg.get("PLATFORM")
+    if platform in DIODE_FORCED_REPAIR_PLATFORMS:
+        return [
+            {"id": "deck_driven_antenna_diode",
+             "rationale": "Insert a diode on each net the SIGNOFF DECK flagged, chosen from "
+                          "the lyrdb's own violation polygons rather than from OpenROAD's "
+                          "antenna model. On nangate45 the two do not compute the same "
+                          "quantity: for one net on metal4 the deck reads 306.47 (metal over "
+                          "ONE minimum gate, agate 0.02625um^2) and check_antennas reads 1.49 "
+                          "(metal over the whole driven cell, split per layer) -- ~200x apart, "
+                          "and `check_antennas -verbose` reports 0 net / 0 pin violations on a "
+                          "layout the deck flags 16 times. Its violating set is EMPTY, so no "
+                          "threshold reaches those nets and repair_antennas has no -net option. "
+                          "Measured: 7/7 subjects went to zero antenna violations, area +0.00 "
+                          "to +0.03%, WNS within +-0.005 and still positive, TNS 0.",
+             "config_edits": {"PRE_GLOBAL_ROUTE_TCL": "{PROJECT}/signoff_fix/deck_antenna_diodes.tcl"},
+             "materialize": "deck_antenna_diodes",
+             "rerun_from": "route", "recheck": "drc", "auto_apply": True},
+            {"id": "deck_driven_antenna_diode_accumulate",
+             "rationale": "Rung r2 of the nangate45 repair arm: the deck-driven diodes again, "
+                          "with the net list ACCUMULATED -- the first round's nets plus whatever "
+                          "the deck still flags on the first round's layout. A residual-only "
+                          "second round dropped the first round's diodes (measured 4 -> 203 "
+                          "violations); the union cleared 6 designs. Its own id because the "
+                          "driver never re-selects a strategy it already tried, and offered only "
+                          "once a first round has written its net list.",
+             "config_edits": {"PRE_GLOBAL_ROUTE_TCL": "{PROJECT}/signoff_fix/deck_antenna_diodes.tcl"},
+             "materialize": "deck_antenna_diodes",
+             "rerun_from": "route", "recheck": "drc", "auto_apply": True},
+            {"id": "antenna_ratio_overconstrain",
+             "rationale": "Rung r3 of the nangate45 repair arm: give the ROUTER's tech LEF "
+                          "ANTENNAAREARATIO 10 (the grader keeps 300). With both at 300 the "
+                          "router reports 4 violating nets where the deck reports 208 on the "
+                          "same layout -- the models disagree inside the computation -- so "
+                          "over-constraining the router makes it repair until the deck's 300:1 "
+                          "holds with margin. The cost is real: validated on C00315 208 -> 0 "
+                          "antenna violations, LVS still matching, worst slack 0.2748 -> 0.2754, "
+                          "+11.9% instances, +3.4% cell area; cleared 10 designs the diode "
+                          "rungs could not. The fallback after the deck-driven diodes, not the "
+                          "plan. TECH_LEF is assigned by the platform config, so it is written "
+                          "as an override and read back.",
+             "config_edits": {"TECH_LEF": "{PROJECT}/signoff_fix/antenna_ratio%d.tech.lef"
+                                          % ANTENNA_RATIO_REPAIR},
+             "override_keys": ["TECH_LEF"],
+             "materialize": "antenna_ratio_lef",
+             # synth, not floorplan: 1_synth.odb (the synth stage's artifact) is
+             # where the tech LEF enters the database, so the new LEF must rebuild
+             # it. A floorplan rerun rebuilt it anyway, and the stage-lineage check
+             # then rightly refused the run (reused synth bytes changed): on C03155
+             # 38 -> 0 violations, rolled back as complete->partial (2026-10-23).
+             "rerun_from": "synth", "recheck": "drc", "auto_apply": True},
+            {"id": "antenna_diode_repair",
+             "rationale": "Force antenna-diode insertion: the FreePDK45 KLayout deck credits "
+                          "diodes, NOT jumpers, so SKIP_ANTENNA_REPAIR=1 disables OpenROAD's "
+                          "global-route jumper repair (which satisfies its own PAR model but "
+                          "leaves the signoff deck flagging) and MAX_REPAIR_ANTENNAS_ITER_DRT "
+                          "drives physical ANTENNA_X1 diode insertion during detailed routing. "
+                          "Requires the antenna model: tools/install_nangate45_antenna.sh (one-time).",
+             "config_edits": {"SKIP_ANTENNA_REPAIR": "1", "MAX_REPAIR_ANTENNAS_ITER_DRT": "10"},
+             "rerun_from": "route", "recheck": "drc", "auto_apply": True},
+        ]
+
+    try:
+        cur_util = int(float(cfg.get("CORE_UTILIZATION", "")))
+    except (TypeError, ValueError):
+        cur_util = None
+    new_util = max(5, cur_util - 5) if cur_util is not None else 20
+
+    return [
+        {"id": "antenna_diode_iters",
+         "rationale": "Raise repair_antennas iterations (GRT+DRT, default 5) so OpenROAD "
+                      "inserts more antenna diodes (auto-discovered ANTENNA_X1, which the "
+                      "nangate45 LEF declares CLASS CORE ANTENNACELL) and jumpers to break "
+                      "long metal.",
+         "config_edits": {"MAX_REPAIR_ANTENNAS_ITER_GRT": "10",
+                          "MAX_REPAIR_ANTENNAS_ITER_DRT": "10"},
+         "rerun_from": "route", "recheck": "drc", "auto_apply": True},
+        {"id": "antenna_density_relief",
+         "rationale": "Lower placement utilization so the router has room to place diodes and "
+                      "spread routes across layers (breaks long single-layer runs). "
+                      "PLACE_DENSITY_LB_ADDON is never touched (hard rule: never < 0.10).",
+         "config_edits": {"CORE_UTILIZATION": str(new_util)},
+         "rerun_from": "floorplan", "recheck": "drc", "auto_apply": True},
+    ]
+
+
+def _antenna_strategies(cfg: dict) -> list:
+    return [s for s in _antenna_catalog(cfg) if not _applied(cfg, s["config_edits"])]
+
+
+# Routing-geometry DRC density relief (validated 2026-06-16). Step/floor on
+# CORE_UTILIZATION; 20->12 cleared eeprom_top sky130hd (4 m3.2 -> 0).
+_UTIL_STEP = 8
+_UTIL_FLOOR = 8
+
+
+def _routing_drc_strategies(cfg: dict, exclude: set) -> list:
+    """Non-antenna routing-geometry DRC (metal/via spacing, off-grid, via
+    enclosure): lower CORE_UTILIZATION so the router gets more room. A REAL
+    layout change (larger die, sparser routes) — the signoff deck is NEVER
+    relaxed. Mirrors antenna_density_relief's lever. Validated 2026-06-16 on
+    eeprom_top sky130hd (4 m3.2 -> 0 at util 20->12). Only when a CORE_UTILIZATION
+    knob exists and sits above the floor; no-op for DIE_AREA-sized or
+    already-sparse designs (honest residual)."""
+    try:
+        cur_util = int(float(cfg.get("CORE_UTILIZATION", "")))
+    except (TypeError, ValueError):
+        return []
+    new_util = max(_UTIL_FLOOR, cur_util - _UTIL_STEP)
+    if new_util >= cur_util:
+        return []
+    strat = {
+        "id": "density_relief",
+        "rationale": ("Lower CORE_UTILIZATION so the router has room to satisfy "
+                      "metal/via spacing and off-grid rules on a congested small "
+                      "die. Real layout change (bigger die); the routing/signoff "
+                      "deck is never relaxed. PLACE_DENSITY_LB_ADDON untouched "
+                      "(hard rule: never < 0.10)."),
+        "config_edits": {"CORE_UTILIZATION": str(new_util)},
+        "rerun_from": "floorplan", "recheck": "drc", "auto_apply": True}
+    if strat["id"] in exclude or _applied(cfg, strat["config_edits"]):
+        return []
+    return [strat]
+
+
+# Detailed-route congestion / DRT-residual / wall-clock-timeout relief (validated
+# 2026-06-17; see references/failure-patterns.md "Routing Congestion" and the
+# route-relief note). SAME CORE_UTILIZATION lever as density_relief, but keyed to a
+# ROUTE-STAGE abort (orfs-fail-route, symptom check=orfs_stage/class=route) which
+# never reaches signoff DRC — so the A/B loop was structurally blind to it until
+# this strategy + fix_signoff.sh --check route wired backend aborts into the loop.
+def _route_strategies(cfg: dict, exclude: set, *, to_floor: bool = False) -> list:
+    """Route-stage abort relief: lower CORE_UTILIZATION so detailed routing has
+    room to converge — congested / timeout routes (substitution-permutation crypto,
+    dense interconnect) leave DRT grinding stubborn tiles until the wall-clock kills
+    it. A REAL layout change (bigger die, sparser routes); the router/signoff deck
+    is NEVER relaxed; PLACE_DENSITY_LB_ADDON untouched (hard rule: never < 0.10).
+    Reruns from floorplan so the enlarged die re-places + re-routes. Only when a
+    CORE_UTILIZATION knob exists above the floor; no-op for DIE_AREA-sized designs
+    (honest residual -> operator enlarges DIE_AREA, a v2 lever).
+
+    to_floor (2026-06-18): for a route TIMEOUT, drop straight to the floor in ONE
+    reflow instead of shaving a single _UTIL_STEP. A timeout means detailed routing
+    cannot converge at this density within the wall-clock budget; each incremental
+    step burns another full timeout, and fix_one ABORTS after the first rerun that
+    times out (rc=124) — so a single step was the design's only shot, escalating it
+    prematurely (wbscope_avalon, verilog_ethernet_arp: timed out at util 12/17 after
+    one step, never reaching the floor). Max room in one reflow is the right lever.
+    A route that COMPLETED with violations keeps the gentle one-step relief (area is
+    preserved and the violation count guides further iteration)."""
+    try:
+        cur_util = int(float(cfg.get("CORE_UTILIZATION", "")))
+    except (TypeError, ValueError):
+        return []
+    new_util = _UTIL_FLOOR if to_floor else max(_UTIL_FLOOR, cur_util - _UTIL_STEP)
+    if new_util >= cur_util:
+        return []
+    strat = {
+        "id": "route_relief",
+        "rationale": ("Lower CORE_UTILIZATION so detailed routing has room to "
+                      "converge and finish within the wall-clock budget on a "
+                      "congested die. Real layout change (bigger die); the "
+                      "router/signoff deck is never relaxed."),
+        "config_edits": {"CORE_UTILIZATION": str(new_util)},
+        "rerun_from": "floorplan", "recheck": "route", "auto_apply": True}
+    if strat["id"] in exclude or _applied(cfg, strat["config_edits"]):
+        return []
+    return [strat]
+
+
+def _route_plan(route: dict, cfg: dict, exclude: set) -> dict:
+    """Backend-abort plan for a route-stage failure (orfs-fail-route). Sibling of
+    _drc_plan but for a stage that aborts BEFORE signoff. 'unknown' here means the
+    route.json carries no route-stage outcome (the abort was earlier) -> no fix."""
+    status = route.get("status", "unknown")
+    plan = {"check": "route", "status": status,
+            "violation_count": route.get("total_violations"),
+            "dominant_category": "route", "strategies": [], "residual_reason": None}
+    if status in ("clean", "skipped"):
+        return plan
+    if status == "unknown":
+        plan["residual_reason"] = "no route-stage outcome to fix (abort earlier than route)"
+        return plan
+    if status in ("fail", "timeout", "residual"):
+        # A pure timeout (route never completed) -> jump CORE_UTILIZATION to the
+        # floor in one reflow; a route that completed WITH violations keeps the
+        # gentle one-step relief. See _route_strategies (2026-06-18).
+        strategies = _route_strategies(cfg, exclude, to_floor=(status == "timeout"))
+        plan["strategies"] = strategies
+        if not strategies:
+            plan["status"] = "residual"
+            if "CORE_UTILIZATION" not in cfg:
+                plan["residual_reason"] = (
+                    "route congestion but no CORE_UTILIZATION knob to relieve "
+                    "(DIE_AREA-sized); enlarge DIE_AREA manually (v2 lever).")
+            else:
+                plan["residual_reason"] = (
+                    f"route congestion: density relief exhausted (CORE_UTILIZATION "
+                    f"at floor {_UTIL_FLOOR}); honest residual.")
+        return plan
+    plan["residual_reason"] = f"route status '{status}' not actionable in v1"
+    return plan
+
+
+def _drc_plan(drc: dict, cfg: dict, exclude: set) -> dict:
+    status = drc.get("status", "unknown")
+    cats = drc.get("categories") or {}
+    dominant = max(cats, key=lambda k: cats[k].get("count") or 0) if cats else None
+    plan = {"check": "drc", "status": status, "violation_count": drc.get("total_violations"),
+            "dominant_category": dominant, "strategies": [], "residual_reason": None}
+    # 'clean_beol' = BEOL-only run with 0 violations (FEOL+ANTENNA skipped); no
+    # routing-DRC fix is available or warranted — treat as clean for fix purposes.
+    if status in ("clean", "clean_beol", "skipped"):
+        return plan
+    if status in ("stuck", "timeout"):
+        plan["residual_reason"] = f"drc_{status}_tooling_out_of_v1_scope"
+        return plan
+    if status in ("fail", "failed"):
+        if _all_antenna(cats):
+            strategies = [s for s in _antenna_strategies(cfg) if s["id"] not in exclude]
+            # Pilot P1-1 precondition: drop diode-inserting strategies when the
+            # platform's antenna model is PROVABLY unusable (GRT-0246 class) —
+            # they cannot change the layout, so ranking them burns a reroute
+            # plus a full signoff DRC per attempt. Density relief (a genuine
+            # layout change) survives; unknown probe results fail OPEN.
+            usable, precheck_why = _antenna_precondition(cfg.get("PLATFORM") or "")
+            if usable is False:
+                # Filter on WHAT THE STRATEGY DOES, not on how its id is spelled.
+                # The old `startswith("antenna_diode")` test let
+                # deck_driven_antenna_diode through, and that one inserts the same
+                # ANTENNA_X1 the probe just reported unusable -- it would have
+                # burned a reflow and a full DRC re-grading an unchanged layout,
+                # which is the exact 2026-07-21 incident this probe exists to stop.
+                strategies = [s for s in strategies
+                              if not _inserts_diodes(s)]
+                plan["antenna_model_unusable"] = precheck_why
+            plan["strategies"] = strategies
+            if not strategies:
+                plan["status"] = "residual"
+                platform = cfg.get("PLATFORM")
+                if usable is False:
+                    plan["residual_reason"] = (
+                        f"antenna_model_unusable: {precheck_why} — diode-forced repair "
+                        "would be a no-op (pilot P1-1: unchanged layout + wasted full "
+                        "DRC); install/repair the platform antenna model, then retry")
+                elif platform in DIODE_FORCED_REPAIR_PLATFORMS:
+                    plan["residual_reason"] = (
+                        "nangate45 antenna: diode-forced repair (antenna_diode_repair) applied; "
+                        "the bulk cleared but a few nets remain. Two causes: (1) the antenna model "
+                        "is not installed (run tools/install_nangate45_antenna.sh) — check_antennas "
+                        "would find 0; or (2) an irreducible modeling gap — OpenROAD's per-net PAR "
+                        "sums gate areas over fanout, so a high-fanout net driving one tiny gate "
+                        "reads << KLayout's per-gate ratio and OpenROAD won't repair it. A tighter "
+                        "install (--ratio 200) clears single-gate borderline nets but not the "
+                        "multi-gate ones; those are an honest residual. Deck never relaxed."
+                    )
+                else:
+                    plan["residual_reason"] = "antenna: all real-fix strategies exhausted"
+        else:
+            non_antenna = sorted(k for k in cats if not k.upper().endswith("_ANTENNA"))
+            strategies = _routing_drc_strategies(cfg, exclude)
+            plan["strategies"] = strategies
+            if not strategies:
+                plan["status"] = "residual"
+                if "CORE_UTILIZATION" not in cfg:
+                    plan["residual_reason"] = (
+                        "non-antenna DRC class (" + ", ".join(non_antenna) +
+                        "): no CORE_UTILIZATION knob to relieve density (DIE_AREA-sized).")
+                else:
+                    plan["residual_reason"] = (
+                        "routing-geometry DRC (" + ", ".join(non_antenna) +
+                        "): density relief exhausted (CORE_UTILIZATION at floor "
+                        f"{_UTIL_FLOOR}); honest residual.")
+        return plan
+    plan["residual_reason"] = "drc status unknown — no report yet"
+    return plan
+
+
+FEEDTHROUGH_HOOK = (Path(__file__).resolve().parents[1] / "flow" / "orfs_hooks"
+                    / "buffer_port_feedthroughs.tcl")
+_PIN_MATCH_FAIL = re.compile(r"Top level cell failed pin matching", re.I)
+
+
+def _port_feedthrough_strategy(lvs: dict, cfg: dict) -> dict | None:
+    """Netgen 'Top level cell failed pin matching' with an otherwise matching netlist
+    is the port-alias case (failure-patterns "sky130 LVS" cause 5): a net that carries
+    2+ top-level ports (`assign out = in`, or outputs tied to one constant) cannot be
+    expressed in SPICE. The existing buffer_port_feedthroughs.tcl hook splits those
+    nets after the last remove_buffers; the repair wires it in and re-places. New
+    recipe -> A/B-gated (2026-10-01; found on the AIC Fmax cohort: 8 LVS residuals)."""
+    if cfg.get("POST_GLOBAL_PLACE_TCL"):
+        return None                         # a hook is already wired (maybe this one)
+    mclass = lvs.get("mismatch_class")
+    if mclass and mclass != "top_pin_mismatch":
+        return None                         # e.g. a geometry-proven pin-vs-PDN short
+    if mclass == "top_pin_mismatch" and FEEDTHROUGH_HOOK.exists():
+        return _feedthrough_recipe()
+    info = lvs.get("log_info") or {}
+    text = " ".join(str(x) for x in (info.get("errors") or []))
+    rpt = info.get("report_file") or lvs.get("report_file")
+    if rpt:
+        try:
+            text += Path(rpt).read_text(encoding="utf-8", errors="ignore")[-20000:]
+        except OSError:
+            pass
+    if not _PIN_MATCH_FAIL.search(text) or not FEEDTHROUGH_HOOK.exists():
+        return None
+    return _feedthrough_recipe()
+
+
+def _feedthrough_recipe() -> dict:
+    return {"id": "lvs_port_feedthrough_buffer",
+            "rationale": "Netgen reports 'Top level cell failed pin matching': a net carries "
+                         "2+ top-level ports (port-to-port assign or shared tie-off), which "
+                         "SPICE cannot express. Wire buffer_port_feedthroughs.tcl as "
+                         "POST_GLOBAL_PLACE_TCL and re-place so every such port gets its own net.",
+            "config_edits": {"POST_GLOBAL_PLACE_TCL": str(FEEDTHROUGH_HOOK)},
+            "rerun_from": "place", "recheck": "lvs", "auto_apply": True,
+            "requires_ab_promotion": True}
+
+
+def _lvs_plan(lvs: dict, cfg: dict, exclude: set) -> dict:
+    status = lvs.get("status", "unknown")
+    plan = {"check": "lvs", "status": status, "violation_count": lvs.get("mismatch_count"),
+            "dominant_category": None, "strategies": [], "residual_reason": None}
+    if status in ("clean", "skipped"):
+        return plan
+    if status == "crash":
+        plan["status"] = "residual"
+        plan["residual_reason"] = "klayout_cpp_crash_needs_upgrade (>=0.30.10)"
+        return plan
+    if status == "incomplete":
+        plan["status"] = "residual"
+        plan["residual_reason"] = (
+            "lvs incomplete: extracted but no verdict/lvsdb — likely crash/kill mid-run; "
+            "not auto-retried (would re-crash)"
+        )
+        return plan
+    if status == "unknown":
+        s = {"id": "lvs_resolve_unknown",
+             "rationale": "Re-extract / inspect the LVS log to resolve the ambiguous status "
+                          "to clean or fail before attempting any fix.",
+             "config_edits": {}, "rerun_from": None, "recheck": "lvs", "auto_apply": True}
+        if s["id"] not in exclude:
+            plan["strategies"].append(s)
+        return plan
+    if status in ("mismatch", "fail", "failed"):
+        feedthrough = _port_feedthrough_strategy(lvs, cfg)
+        if feedthrough is not None:
+            if feedthrough["id"] not in exclude:
+                plan["strategies"].append(feedthrough)
+            return plan
+    if status in ("fail", "failed"):
+        errors = " ".join((lvs.get("log_info") or {}).get("errors", []))
+        if KLAYOUT_CPP_CRASH.search(errors):
+            plan["residual_reason"] = "klayout_cpp_crash_needs_upgrade (>=0.30.10)"
+            return plan
+        blob = (cfg.get("VERILOG_FILES", "") + " " + cfg.get("CDL_FILE", "")
+                + " " + cfg.get("ADDITIONAL_LEFS", "")).lower()
+        if "fakeram" in blob:
+            s = {"id": "lvs_macro_cdl",
+                 "rationale": "Macro design: point CDL_FILE at a combined CDL (std cells + "
+                              "fakeram stubs) via `override export` so KLayout sees macro subckts.",
+                 "config_edits": {}, "rerun_from": None, "recheck": "lvs", "auto_apply": False,
+                 "operator_note": "Generate combined.cdl and add `override export CDL_FILE = "
+                                  "<combined.cdl>`; see failure-patterns.md 'LVS CDL_FILE Override'."}
+            if s["id"] not in exclude:
+                plan["strategies"].append(s)
+        else:
+            # Use extract_lvs.py's lvsdb mismatch classification for an honest,
+            # specific residual instead of a generic "operator review".  See
+            # references/failure-patterns.md "LVS symmetric-matcher residual".
+            mismatch_class = lvs.get("mismatch_class")
+            if mismatch_class == "symmetric_matcher":
+                plan["status"] = "residual"
+                plan["residual_reason"] = (
+                    "lvs_symmetric_matcher_residual: KLayout-0.30.7 mis-pairs interchangeable "
+                    "instances in symmetric logic (0 net deltas, only same-cell swaps in "
+                    "ambiguous groups). Layout is correct; not flow-fixable (raising "
+                    "max_depth/max_branch_complexity does NOT help). Needs newer KLayout."
+                )
+            elif mismatch_class == "real_connectivity":
+                plan["residual_reason"] = (
+                    "lvs_real_connectivity_mismatch: a layout net genuinely does not match the "
+                    "schematic (\"not matching any net\"). Real layout defect — inspect the "
+                    "GDS/DEF at the named net; not auto-fixable."
+                )
+            else:
+                plan["residual_reason"] = ("lvs mismatch with no auto-fix in v1; likely rule-deck "
+                                           "(.lylvs) issue — operator review required")
+        return plan
+    plan["residual_reason"] = f"lvs status '{status}' not actionable in v1"
+    return plan
+
+
+def _rank_plan_strategies(plan: dict, recipes: dict | None,
+                          pooled: dict | None = None) -> dict:
+    """Reorder plan['strategies'] by fix_model and attach the full ranking.
+    `pooled` (symptom-indexed memory, spec 2026-06-09) is the cross-platform prior
+    used for strategies the local recipe has no data for; None preserves legacy
+    behavior (build_plan's internal call passes None)."""
+    if not plan.get("strategies"):
+        return plan
+    static_order = [s["id"] for s in plan["strategies"]]
+    ranking = fix_model.rank_strategies(recipes, static_order, pooled=pooled)
+    by_id = {s["id"]: s for s in plan["strategies"]}
+    plan["strategies"] = [by_id[r["strategy"]] for r in ranking if r["strategy"] in by_id]
+    plan["ranking"] = ranking
+    return plan
+
+
+def explain_ranking(plan: dict) -> list[str]:
+    """Human rationale for WHY each recipe ranked (--explain, spec 2026-06-18).
+    One line per ranked strategy: id, evidence (successes/attempts + wins),
+    cross-platform corroboration (N platforms), A/B provenance, and which boost
+    fired. Serves the 'transfer' mission — the engineer sees a fix is trusted
+    because it carried across platforms, not one fluke. Read-only; no DB."""
+    lines: list[str] = []
+    for pos, r in enumerate(plan.get("ranking") or [], start=1):
+        succ, att = r.get("successes", 0), r.get("attempts", 0)
+        wins, pc = r.get("wins", 0), int(r.get("platform_count", 0) or 0)
+        win_str = f", {wins} partial-win(s)" if wins else ""
+        if pc >= 2:
+            corro = (f"corroborated across {pc} platforms -> tiebreak lift")
+        elif pc == 1:
+            corro = "1 platform (single-platform evidence)"
+        else:
+            corro = "0 platforms (untried / single-design fluke)"
+        line = (f"#{pos} {r['strategy']}: score={r['score']:.3f}  "
+                f"evidence={succ}/{att}{win_str}  {corro}  "
+                f"provenance={r.get('provenance', 'cold-start')}")
+        mos = r.get("mean_outcome_score")
+        if mos is not None:
+            line += f"  outcome_score={mos:.3f}"
+        lines.append(line)
+    return lines
+
+
+# Fmax mode: period_relax may repeat (post-route repair is noisy -- one loosening can
+# land on a worse placement), but the cumulative loosening is capped relative to the
+# search winner so the "Fmax" never silently degrades into an arbitrary slow clock.
+FMAX_RELAX_CAP = 1.20
+
+
+def _timing_plan(tcheck: dict, cfg: dict, exclude: set,
+                 routing_clean: bool = False, fmax_mode: bool = False,
+                 fmax_winner: float | None = None) -> dict:
+    tier = tcheck.get("tier", "unknown")
+    wns = tcheck.get("wns_ns")
+    plan = {"check": "timing", "status": tier, "violation_count": None,
+            "dominant_category": tier, "strategies": [], "residual_reason": None}
+    if tier in ("clean", "unknown", None):
+        return plan
+    try:
+        cur_util = int(float(cfg.get("CORE_UTILIZATION", "")))
+    except (TypeError, ValueError):
+        cur_util = 30
+    strategies = []
+    # Three independent Sky130HD development witnesses closed small post-route
+    # setup misses (4.5--18 ps) with ORFS's timing-optimization margin while the
+    # registered clock period stayed byte-identical. Keep this deliberately
+    # narrow: it is not a substitute for RTL pipelining or a clock relaxation,
+    # and it must win a formal A/B trial before live use.
+    try:
+        setup_margin = float(cfg.get("SETUP_SLACK_MARGIN", "0"))
+    except (TypeError, ValueError):
+        setup_margin = 0.0
+    if (cfg.get("PLATFORM") in _SETUP_MARGIN_PLATFORMS
+            and routing_clean
+            and isinstance(wns, (int, float))
+            and math.isfinite(float(wns))
+            and -_SETUP_MARGIN_MAX_DEFICIT_NS <= float(wns) < 0
+            and setup_margin < _SETUP_MARGIN_NS):
+        strategies.append(
+            {"id": "setup_slack_margin",
+             "rationale": (
+                 f"Small post-route setup miss (WNS={float(wns):.6g} ns) on "
+                 "Sky130HD with clean routing: ask ORFS repair_timing for 0.2 ns "
+                 "of setup headroom without changing the registered clock period. "
+                 "Only applicable within the validated 0.2 ns deficit band."
+             ),
+             "config_edits": {"SETUP_SLACK_MARGIN": str(_SETUP_MARGIN_NS)},
+             "sdc_edits": {}, "rerun_from": "floorplan", "recheck": "timing",
+             "auto_apply": True, "requires_ab_promotion": True})
+    # Fixed-target timing development candidates. These are deliberately
+    # independent effects and remain inert in blind runs until the exact
+    # (symptom, design-class, platform, strategy) lifecycle key is promoted.
+    # Keep them visible for every routed negative-WNS task so the A/B trainer
+    # can evaluate them instead of stopping merely because the miss falls
+    # outside the narrow setup_slack_margin band.
+    if (cfg.get("PLATFORM") in _SETUP_MARGIN_PLATFORMS
+            and routing_clean
+            and isinstance(wns, (int, float))
+            and math.isfinite(float(wns))
+            and float(wns) < 0):
+        if str(cfg.get("ABC_CLOCK_PERIOD_IN_PS", "")).strip() != "8000":
+            strategies.append(
+                {"id": "abc_overdrive_8ns",
+                 "rationale": "Use an 8 ns internal ABC mapping target while "
+                              "retaining the registered 10 ns signoff clock.",
+                 "config_edits": {"ABC_CLOCK_PERIOD_IN_PS": "8000"},
+                 "sdc_edits": {}, "rerun_from": "synth", "recheck": "timing",
+                 "auto_apply": True, "requires_ab_promotion": True})
+        if str(cfg.get("ENABLE_PLACE_REPAIR_TIMING", "")).strip() != "1":
+            strategies.append(
+                {"id": "early_place_timing_repair",
+                 "rationale": "Enable ORFS placement-parasitic timing repair "
+                              "without changing the registered clock or footprint.",
+                 "config_edits": {"ENABLE_PLACE_REPAIR_TIMING": "1"},
+                 "sdc_edits": {}, "rerun_from": "floorplan", "recheck": "timing",
+                 "auto_apply": True, "requires_ab_promotion": True})
+        if str(cfg.get("SYNTH_HIERARCHICAL", "0")).strip() != "1":
+            strategies.append(
+                {"id": "hierarchical_synthesis_mapping",
+                 "rationale": "Evaluate hierarchical synthesis as an isolated "
+                              "mapping effect under the fixed signoff task.",
+                 "config_edits": {"SYNTH_HIERARCHICAL": "1"},
+                 "sdc_edits": {}, "rerun_from": "synth", "recheck": "timing",
+                 "auto_apply": True, "requires_ab_promotion": True})
+    import setup_scope
+    scope_evidence = setup_scope.evidence(cfg, tcheck, routing_clean)
+    if scope_evidence and any(str(cfg.get(k, '0')).strip() != v
+                              for k, v in setup_scope.EDITS.items()):
+        strategies.append({
+            'id': setup_scope.STRATEGY,
+            'rationale': 'Test hierarchy plus placement timing repair on routed Sky130HD '
+                         'area-mapped setup misses within 3 ns; no RTL or clock changes.',
+            'config_edits': dict(setup_scope.EDITS), 'sdc_edits': {},
+            'rerun_from': 'synth', 'recheck': 'timing', 'auto_apply': True,
+            'requires_ab_promotion': True, 'setup_scope_evidence': scope_evidence,
+        })
+    # Fmax-mode projects (an ok reports/fmax_search.json) OWN their clock: the
+    # searched winner is a placement proxy, so a minor post-route miss is closed by
+    # loosening the period (recorded as a relaxation chain, failure-patterns P0-2b),
+    # not by an area change. Fixed-period tasks (e.g. Experiment 2's registered
+    # 10 ns) never relax on minor — that would change the task. (2026-09-29 AIC
+    # cohort: shake128 stalled at minor after utilization_reduce.)
+    relax_tiers = ("moderate", "severe", "minor") if fmax_mode else ("moderate", "severe")
+    if tier in relax_tiers and wns is not None:
+        period = tcheck.get("clock_period_ns")
+        if period:
+            # Absorb the negative slack then add 5% margin (proven iccad2015
+            # period_relax recipe: 3 att / 2 succ, 97.5% WNS reduction).
+            relaxed = round((float(period) - float(wns)) * 1.05, 3)
+            # The FIRST relax is unchanged (any tier that relaxes, any size); only a
+            # REPEAT -- possible in Fmax mode once period_relax was tried -- is
+            # bounded by the cumulative cap.
+            cap = (float(fmax_winner) * FMAX_RELAX_CAP
+                   if fmax_mode and fmax_winner else None)
+            repeat = "period_relax" in exclude
+            if not repeat or (cap is not None and relaxed <= cap):
+                strategies.append(
+                    {"id": "period_relax",
+                     "rationale": f"Relax clock period {period} -> {relaxed} ns to "
+                                  "absorb WNS with 5% margin (validated recipe).",
+                     "config_edits": {}, "sdc_edits": {"CLOCK_PERIOD": str(relaxed)},
+                     "rerun_from": "synth", "recheck": "timing", "auto_apply": True,
+                     # Fmax mode: may be re-applied after a noisy re-run (2026-09-30
+                     # AIC v2: chacha20's one relax re-placed worse, 40 -> 101
+                     # violators, and the loop then spent its iterations on area).
+                     "repeatable": cap is not None})
+    strategies.append(
+        {"id": "utilization_reduce",
+         "rationale": "Lower CORE_UTILIZATION to give placement/CTS slack "
+                      "headroom (never touches PLACE_DENSITY_LB_ADDON).",
+         "config_edits": {"CORE_UTILIZATION": str(max(5, cur_util - 5))},
+         "sdc_edits": {}, "rerun_from": "floorplan", "recheck": "timing",
+         "auto_apply": True})
+    # Win 6 (backend-aware synthesis retune): a POST-ROUTE timing miss WITH clean
+    # routing means the synth-time estimate was wrong, not the floorplan. Re-pick
+    # the ABC mapping strategy (ABC_AREA off -> timing-driven) and flatten
+    # (SYNTH_HIERARCHICAL off) so ABC optimizes across the full netlist, then
+    # re-synthesize via the already-paved rerun_from:"synth" path; the re-run feeds
+    # real routed WNS back as outcome_score (Win 1). Enters as SHADOW
+    # (requires_ab_promotion): never auto-applied in a blind live run — only the
+    # A/B arm (--rank-first) exercises it until it wins an LCB-gated trial (Win 2),
+    # then the learned-recipe ranking surfaces it. Not auto-merged into
+    # failure-patterns.md (human-review-queue invariant). See orfs-playbook.md.
+    if routing_clean and tier in ("moderate", "severe"):
+        # Development candidate, not a live repair: two independent Sky130HD crypto
+        # subjects previously closed 100 MHz post-route setup misses when the ABC
+        # objective changed from the default timing mapping to its area-biased mode.
+        # The mechanism may reduce physical congestion even though it is not a
+        # generally valid timing optimization, so only an A/B arm may force it.
+        # A blind run must never select this candidate before two-family promotion.
+        if str(cfg.get("ABC_AREA", "0")).strip() != "1":
+            strategies.append(
+                {"id": "abc_area_physical_mapping",
+                 "rationale": "Evaluate area-biased ABC mapping as an A/B-gated "
+                              "physical timing candidate after a clean-route setup "
+                              "miss; keep the registered clock and all signoff "
+                              "checks unchanged.",
+                 "config_edits": {"ABC_AREA": "1"},
+                 "sdc_edits": {}, "rerun_from": "synth", "recheck": "timing",
+                 "auto_apply": True, "requires_ab_promotion": True})
+        strategies.append(
+            {"id": "backend_aware_synth_retune",
+             "rationale": "Post-route timing miss with clean routing: re-pick the "
+                          "ABC map strategy (ABC_AREA=0 -> timing-driven) and "
+                          "flatten (SYNTH_HIERARCHICAL=0) for cross-boundary "
+                          "optimization, then re-synthesize. Closes the loop on "
+                          "real routed WNS, not the synth-time estimate "
+                          "(MCP4EDA / PostEDA-Bench). A/B-gated before live use.",
+             "config_edits": {"ABC_AREA": "0", "SYNTH_HIERARCHICAL": "0"},
+             "sdc_edits": {}, "rerun_from": "synth", "recheck": "timing",
+             "auto_apply": True, "requires_ab_promotion": True})
+    plan["strategies"] = [s for s in strategies
+                          if s["id"] not in exclude or s.get("repeatable")]
+    return plan
+
+
+def _fmax_winner(proj) -> float | None:
+    """The Fmax search winner period when the project's clock is owned by an ok
+    search, else None (fixed-period task)."""
+    try:
+        rep = json.loads((Path(proj) / "reports" / "fmax_search.json").read_text())
+    except (OSError, ValueError):
+        return None
+    w = rep.get("winner") if rep.get("status") == "ok" else None
+    try:
+        return float(w["period"]) if isinstance(w, dict) else None
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def _is_fmax_mode(proj) -> bool:
+    """True when the project's clock is owned by an Fmax search (ok winner)."""
+    return _fmax_winner(proj) is not None
+
+
+def build_plan(drc: dict, lvs: dict, cfg: dict, *, check: str = "drc",
+               exclude=(), recipes: dict | None = None,
+               tcheck: dict | None = None, route: dict | None = None,
+               fmax_mode: bool = False, fmax_winner: float | None = None) -> dict:
+    """Pure: (drc.json, lvs.json, parsed config.mk) -> ordered fix plan dict.
+    When `recipes` (a Tier-3 fix_recipes entry for this check/violation_class)
+    is given, strategies are re-ranked by empirical clearance (fix_model)."""
+    excl = set(exclude or ())
+    if check == "timing":
+        # A timing-only A/B arm has a fresh ORFS route.json but intentionally no
+        # inherited signoff reports, and it does not run the full DRC deck before
+        # diagnosis. Prefer that explicit backend route verdict; only fall back to
+        # strict DRC when route evidence is absent. An explicit dirty route must
+        # override a stale clean DRC report.
+        route_status = (route or {}).get("status")
+        if route_status not in (None, "", "unknown"):
+            routing_clean = route_status == "clean"
+        else:
+            routing_clean = (drc or {}).get("status") in ("clean", "clean_beol")
+        plan = _timing_plan(tcheck or {}, cfg, excl, routing_clean=routing_clean,
+                            fmax_mode=fmax_mode, fmax_winner=fmax_winner)
+    elif check == "drc":
+        plan = _drc_plan(drc or {}, cfg, excl)
+    elif check == "route":
+        plan = _route_plan(route or {}, cfg, excl)
+    else:
+        plan = _lvs_plan(lvs or {}, cfg, excl)
+    return _rank_plan_strategies(plan, recipes)
+
+
+def _lifecycle_allows_auto_apply(plan: dict, strategy: dict) -> bool:
+    """Use the same freshly annotated lifecycle evidence at selection and apply.
+
+    An untested learner row must not disable an existing cold-start strategy.
+    Explicit promotion requirements and unreadable stores still fail closed;
+    preregistered attempts remain attempts, never lifecycle promotions.
+    """
+    if plan.get("lifecycle_gate_ok") is False:
+        return False
+    candidate_attempt = strategy.get("candidate_attempt_authorized") is True
+    status = strategy.get("lifecycle_status")
+    if (strategy.get("requires_ab_promotion") and status != "promoted"
+            and not candidate_attempt):
+        return False
+    return not (status in _LIVE_BLOCKED_LIFECYCLE
+                and not candidate_attempt
+                and not (status == "candidate"
+                         and strategy.get("lifecycle_untested_candidate")))
+
+
+def _live_auto_strategy(plan: dict, rank_first: str | None = None) -> dict | None:
+    """The strategy a LIVE run should auto-apply: the first auto_apply strategy,
+    SKIPPING an A/B-gated recipe until its exact lifecycle row is promoted, unless
+    the caller forced it via --rank-first (the A/B arm-B path). This keeps a new
+    strategy out of blind live runs while allowing a validated one to become useful.
+
+    Two further gates (2026-07-04, negative-evidence consumption):
+    - lifecycle_status == 'shadow' (A/B-demoted): the demotion previously only
+      stripped the strategy's learned boost from the INDEXED recipe path — via the
+      static catalog / pooled prior / fallback paths it could still sort first and
+      be auto-applied, making the demote verdict toothless. Gated HERE it holds on
+      every path. ('parked' = merely unvalidatable — stays applicable.)
+    - dead_here (>= R2G_FIX_DEAD_AFTER terminal failures of THIS strategy on THIS
+      design+check with zero clears, annotated by _annotate_live_gates): a human
+      engineer does not re-try the exact fix that failed twice on the same design;
+      the loop re-abandoned one (design, symptom, strategy) triple 112 times.
+      R2G_FIX_RETRY_DEAD=1 restores the old always-retry behavior.
+    --rank-first bypasses ALL gates by design: an A/B arm B must be able to force
+    exactly the strategy under test."""
+    strategies = plan.get("strategies", [])
+    # A/B arm B explicitly forces a strategy: honor it (it may be a shadow recipe).
+    if rank_first:
+        forced = next((s for s in strategies
+                       if s["id"] == rank_first and s.get("auto_apply")), None)
+        if forced is not None:
+            return forced
+    # P0-15 (2026-07-15): if the lifecycle store was UNREADABLE at annotation time we
+    # cannot prove any static/cold-start strategy is safe to auto-apply — fail CLOSED
+    # (no blind auto-apply) rather than silently falling back to un-gated selection.
+    # Absent key (a caller that never annotated) keeps the prior behavior.
+    if plan.get("lifecycle_gate_ok") is False:
+        return None
+    retry_dead = os.environ.get("R2G_FIX_RETRY_DEAD", "0") == "1"
+    for s in strategies:
+        if not s.get("auto_apply"):
+            continue
+        if not _lifecycle_allows_auto_apply(plan, s):
+            continue
+        if s.get("dead_here") and not retry_dead:
+            continue        # repeatedly failed on THIS design+check, never cleared
+        return s
+    return None
+
+
+def _find_flow_dir() -> str | None:
+    """Delegate to flow/platform_capability.find_flow_dir -- one ORFS resolver for
+    the whole skill (explicit > $FLOW_DIR > $ORFS_ROOT/flow > common roots).
+    A second, slightly-different copy is how a path bug gets fixed in one place
+    and stays live in the other."""
+    try:
+        flow_dir = str(Path(__file__).resolve().parents[1] / "flow")
+        if flow_dir not in sys.path:
+            sys.path.insert(0, flow_dir)
+        import platform_capability
+        return platform_capability.find_flow_dir()
+    except Exception:
+        return None
+
+
+def assigned_keys_from_text(text: str) -> set:
+    """Variables a makefile text CLOBBERS: the plain `=` / `:=` assignments.
+
+    Separated from the file read so the semantics are testable without depending
+    on whichever ORFS checkout happens to be on the box -- find_flow_dir()
+    consults only the environment, so two machines (or a test run with the env
+    scrubbed) can legitimately resolve different platform configs.
+
+    `?=` defers to a value the design already set and `+=` appends to it; only a
+    plain assignment replaces it, and only a replaced variable needs `override`
+    on the design side. A variable assigned twice -- once deferred, once plainly
+    -- still clobbers, so ANY plain assignment puts the key in the set.
+    """
+    keys = set()
+    for line in text.splitlines():
+        m = re.match(r"\s*(?:override\s+)?(?:export\s+)?"
+                     r"([A-Z0-9_]+)\s*(\+|\?|:)?=", line)
+        if m and m.group(2) in (None, ":"):
+            keys.add(m.group(1))
+    return keys
+
+
+def platform_config_values(text: str) -> dict:
+    """Effective VALUE of each variable a platform config sets, as make would see it.
+
+    Needed because the design config cannot read the platform's value: a harvested
+    or freshly-materialized design has no DONT_USE_CELLS line at all, so a naive
+    "append to what the config says" produces an edit that sets the variable to the
+    new cell ALONE -- and combined with `override` that DISCARDS the platform's own
+    ban. On gf180 that would un-ban every `*_1` cell while fixing one master: a
+    worse defect than the silent no-op it replaced. Caught 2026-10-16 by running the
+    real CLI on a real harvested project, where `surviving_siblings` wrongly listed
+    `aoi221_1` as available.
+
+    Handles backslash line continuations (sky130hd's DONT_USE_CELLS spans eight
+    lines) and accumulates `+=` onto whatever came before, which is what make does.
+    `?=` only takes effect when the variable is not already set.
+    """
+    joined, buf = [], ""
+    for line in text.splitlines():
+        stripped = line.rstrip()
+        if stripped.endswith("\\"):
+            buf += stripped[:-1] + " "
+            continue
+        joined.append(buf + stripped)
+        buf = ""
+    if buf:
+        joined.append(buf)
+    values: dict = {}
+    for line in joined:
+        m = re.match(r"\s*(?:override\s+)?(?:export\s+)?"
+                     r"([A-Z0-9_]+)\s*(\+|\?|:)?=\s*(.*?)\s*$", line)
+        if not m:
+            continue
+        key, op, val = m.group(1), m.group(2), m.group(3)
+        if op == "+":
+            values[key] = (values.get(key, "") + " " + val).strip()
+        elif op == "?":
+            values.setdefault(key, val)
+        else:
+            values[key] = val
+    return values
+
+
+def platform_dont_use_cells(platform: str) -> list:
+    """The platform's own DONT_USE_CELLS patterns, in order, or []."""
+    flow_dir = _find_flow_dir()
+    if not platform or not flow_dir:
+        return []
+    cfg = Path(flow_dir) / "platforms" / platform / "config.mk"
+    try:
+        text = cfg.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return []
+    return platform_config_values(text).get("DONT_USE_CELLS", "").split()
+
+
+def platform_assigned_keys(platform: str) -> set:
+    """Variables the PLATFORM config assigns with a plain `=` / `:=`.
+
+    These are the keys a design-config `export` CANNOT set, because
+    scripts/variables.mk includes the platform config AFTER the design config
+    (flow/Makefile includes DESIGN_CONFIG first, variables.mk second), so the
+    platform's own assignment wins and the design-side edit is a SILENT NO-OP.
+    `?=` and `+=` are excluded: the former defers to whatever the design already
+    set, the latter appends to it -- neither clobbers.
+
+    Measured 2026-10-15 with a two-line Makefile reproducing the include order:
+    a plain `export DONT_USE_CELLS = *_1 MYCELL` in the design config read back
+    `[*_1]` (origin=file, the platform's value); `override export` read back
+    `[*_1 MYCELL]` (origin=override). gf180 and nangate45 both assign
+    DONT_USE_CELLS with a plain `=`, so a DONT_USE edit without `override` does
+    nothing at all on either.
+
+    Returns an empty set when the platform config cannot be located -- callers
+    then emit a plain `export`, which is the pre-existing behaviour.
+    """
+    if not platform:
+        return set()
+    flow_dir = _find_flow_dir()
+    if not flow_dir:
+        return set()
+    cfg = Path(flow_dir) / "platforms" / platform / "config.mk"
+    try:
+        return assigned_keys_from_text(cfg.read_text(encoding="utf-8",
+                                                     errors="ignore"))
+    except OSError:
+        return set()
+
+
+def apply_edits(config_text: str, edits: dict, override_keys=()) -> str:
+    """Stack `edits` onto the marked auto-block (idempotent; a key already in the block
+    is overridden in place, every other accepted fix is KEPT).
+
+    The block holds the ACCEPTED fixes only -- a rejected attempt is rolled back from
+    the snapshot before the next apply -- so replacing it wholesale silently undid
+    earlier repairs: an LVS feedthrough hook dropped by the timing fix that followed
+    (2026-10-01 AIC v2.2, failure-patterns P0-2e).
+
+    A key in `override_keys` is written `override export` -- see
+    platform_assigned_keys(): without it, an edit to a variable the platform config
+    also assigns is silently discarded. The list is TARGETED, never blanket:
+    `override` also defeats make's COMMAND-LINE variables, and run_orfs.sh passes
+    DESIGN_CONFIG and FLOW_VARIANT that way."""
+    out, skip, kept = [], False, {}
+    for ln in config_text.splitlines():
+        s = ln.strip()
+        if s == BLOCK_START:
+            skip = True
+            continue
+        if s == BLOCK_END:
+            skip = False
+            continue
+        if skip:
+            # Tolerate both spellings when re-reading the block, or an `override
+            # export` edit would be dropped on the next stacked apply.
+            m = re.match(r"(?:override\s+)?export\s+([A-Z0-9_]+)\s*=\s*(.*)$", s)
+            if m:
+                kept[m.group(1)] = m.group(2).strip()
+            continue
+        out.append(ln)
+    kept.update({k: v for k, v in edits.items()})
+    over = set(override_keys)
+    body = "\n".join(out).rstrip("\n")
+    block = ([BLOCK_START]
+             + [f"{'override ' if k in over else ''}export {k} = {v}"
+                for k, v in kept.items()]
+             + [BLOCK_END])
+    prefix = (body + "\n\n") if body else ""
+    return prefix + "\n".join(block) + "\n"
+
+
+def _load_repair_action_policy() -> tuple[dict | None, str | None]:
+    """Read an optional operator/evaluator-owned repair action contract.
+
+    No configured contract preserves the normal autonomous workflow.  Once a
+    path is explicitly configured, unreadable or malformed content fails
+    closed: the Agent must not mutate a protected task under guessed bounds.
+    """
+    raw = os.environ.get(_REPAIR_POLICY_ENV)
+    if not raw:
+        return None, None
+    path = Path(raw)
+    try:
+        policy = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return {}, f"unreadable repair action policy {path}: {type(exc).__name__}: {exc}"
+    if not isinstance(policy, dict):
+        return {}, f"repair action policy {path} is not a JSON object"
+    if policy.get("schema_version") != "r2g-repair-action-policy-1.0":
+        return {}, f"unsupported repair action policy schema in {path}"
+    for field in ("allowed_numeric_knobs", "allowed_string_knobs", "allowed_sdc_edits"):
+        if not isinstance(policy.get(field, {}), dict):
+            return {}, f"repair action policy field {field} is not an object"
+    for knob, bounds in policy.get("allowed_numeric_knobs", {}).items():
+        if not isinstance(bounds, dict):
+            return {}, f"numeric bounds for {knob} are not an object"
+        parsed = {}
+        for key in ("minimum", "maximum"):
+            if bounds.get(key) is None:
+                continue
+            try:
+                parsed[key] = float(bounds[key])
+            except (TypeError, ValueError):
+                return {}, f"numeric bound {knob}.{key} is not a number"
+            if not math.isfinite(parsed[key]):
+                return {}, f"numeric bound {knob}.{key} is not finite"
+        if parsed.get("minimum", -math.inf) > parsed.get("maximum", math.inf):
+            return {}, f"numeric bounds for {knob} are inverted"
+    for field in ("allowed_string_knobs", "allowed_sdc_edits"):
+        for knob, values in policy.get(field, {}).items():
+            if not isinstance(values, list):
+                return {}, f"allowed values for {field}.{knob} are not a list"
+    return policy, None
+
+
+def _strategy_policy_failure(strategy: dict, policy: dict) -> str | None:
+    numeric = policy.get("allowed_numeric_knobs") or {}
+    strings = policy.get("allowed_string_knobs") or {}
+    for knob, value in (strategy.get("config_edits") or {}).items():
+        if knob in numeric:
+            bounds = numeric[knob] or {}
+            try:
+                number = float(value)
+            except (TypeError, ValueError):
+                return f"{knob}={value!r} is not numeric"
+            if not math.isfinite(number):
+                return f"{knob}={value!r} is not finite"
+            if bounds.get("minimum") is not None and number < float(bounds["minimum"]):
+                return f"{knob}={number:g} is below minimum {bounds['minimum']}"
+            if bounds.get("maximum") is not None and number > float(bounds["maximum"]):
+                return f"{knob}={number:g} is above maximum {bounds['maximum']}"
+            continue
+        if knob in strings:
+            allowed = strings[knob]
+            if not isinstance(allowed, list) or str(value) not in {str(item) for item in allowed}:
+                return f"{knob}={value!r} is outside the allowed value set"
+            continue
+        return f"config knob {knob} is not allowed by the repair action policy"
+    sdc_edits = strategy.get("sdc_edits") or strategy.get("sdc") or {}
+    allowed_sdc = policy.get("allowed_sdc_edits") or {}
+    for knob, value in sdc_edits.items():
+        allowed = allowed_sdc.get(knob)
+        if not isinstance(allowed, list) or str(value) not in {str(item) for item in allowed}:
+            return f"SDC edit {knob}={value!r} is not allowed by the repair action policy"
+    if (strategy.get("env") or strategy.get("env_flags")):
+        return "environment edits are not allowed by the repair action policy"
+    return None
+
+
+def _apply_repair_action_policy(plan: dict) -> dict:
+    policy, error = _load_repair_action_policy()
+    if policy is None:
+        return plan
+    original = list(plan.get("strategies") or [])
+    rejected = []
+    kept = []
+    for strategy in original:
+        reason = error or _strategy_policy_failure(strategy, policy)
+        if reason:
+            rejected.append({"strategy": strategy.get("id"), "reason": reason})
+        else:
+            kept.append(strategy)
+    plan["strategies"] = kept
+    plan["action_policy_gate_ok"] = error is None
+    plan["action_policy_rejections"] = rejected
+    if original and not kept:
+        plan["status"] = "residual"
+        plan["residual_reason"] = (
+            "repair action policy blocked every applicable strategy"
+            + (f": {error}" if error else "")
+        )
+    return plan
+
+
+def _candidate_attempt_authorized(policy: dict | None, *, check: str,
+                                  platform: str, strategy: dict,
+                                  lifecycle_status: str | None) -> dict | None:
+    """Return the matching operator-owned candidate-attempt entry, if any.
+
+    This is intentionally separate from lifecycle promotion.  It lets a frozen
+    experiment execute one pre-registered, action-policy-safe candidate without
+    claiming that the candidate was promoted.  Exact negative lifecycle evidence
+    remains authoritative, and the effect fingerprint prevents strategy-name
+    aliasing from widening the authorized action.
+    """
+    if lifecycle_status not in (None, "candidate") or not isinstance(policy, dict):
+        return None
+    candidate_policy = policy.get("candidate_attempt_policy")
+    if not isinstance(candidate_policy, dict):
+        return None
+    if candidate_policy.get("mode") != "single_preregistered_attempt":
+        return None
+    entries = candidate_policy.get("entries")
+    if not isinstance(entries, list):
+        return None
+    edits = strategy.get("config_edits") or {}
+    if strategy.get("sdc_edits") or strategy.get("env") or strategy.get("env_flags"):
+        return None
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        if (entry.get("check") == check
+                and entry.get("platform") == platform
+                and entry.get("strategy") == strategy.get("id")
+                and entry.get("effect_fingerprint") == edits):
+            return entry
+    return None
+
+
+def _latest_final_def(project: Path) -> Path | None:
+    candidates = []
+    for pattern in ("RUN_*/results/6_final.def", "RUN_*/final/6_final.def"):
+        for path in (project / "backend").glob(pattern):
+            try:
+                candidates.append((path.stat().st_mtime_ns, path))
+            except OSError:
+                continue
+    return max(candidates, default=(0, None), key=lambda item: item[0])[1]
+
+
+def _def_die_bounds_microns(path: Path | None) -> tuple[float, float, float, float] | None:
+    if path is None:
+        return None
+    try:
+        text = path.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return None
+    units = re.search(r"UNITS\s+DISTANCE\s+MICRONS\s+(\d+)\s*;", text)
+    die = re.search(
+        r"DIEAREA\s*\(\s*(-?\d+)\s+(-?\d+)\s*\)\s*"
+        r"\(\s*(-?\d+)\s+(-?\d+)\s*\)\s*;", text)
+    if not units or not die or int(units.group(1)) <= 0:
+        return None
+    scale = float(units.group(1))
+    return tuple(float(die.group(i)) / scale for i in range(1, 5))
+
+
+def _edge_localized_pin_strategy(project: Path, drc: dict, cfg: dict) -> dict | None:
+    """Return an A/B-gated pin repair for a uniquely edge-localized m3.2 cluster."""
+    if cfg.get("PLATFORM") != "sky130hd" or cfg.get("PLACE_PINS_ARGS"):
+        return None
+    categories = drc.get("categories") or {}
+    dominant = max(categories, key=lambda key: categories[key].get("count") or 0,
+                   default="")
+    normalized_rule = dominant.strip("'\"").lower()
+    if normalized_rule not in _PIN_EDGE_DRC_RULES:
+        return None
+    bounds = _def_die_bounds_microns(_latest_final_def(project))
+    if bounds is None:
+        return None
+    try:
+        dashboard_dir = str(Path(__file__).resolve().parents[1] / "dashboard")
+        if dashboard_dir not in sys.path:
+            sys.path.insert(0, dashboard_dir)
+        import render_drc_violation
+        violations = render_drc_violation.parse_lyrdb_violations(
+            project / "drc" / "6_drc.lyrdb")
+    except Exception:
+        return None
+    selected = [v for v in violations
+                if str(v.get("category", "")).strip("'\"").lower() == normalized_rule]
+    if len(selected) < 2:
+        return None
+    x0, y0, x1, y1 = bounds
+    margin = max(2.0, 0.02 * max(x1 - x0, y1 - y0))
+    edge_counts = {
+        "left": sum(v["bbox"][0] <= x0 + margin for v in selected),
+        "right": sum(v["bbox"][2] >= x1 - margin for v in selected),
+        "bottom": sum(v["bbox"][1] <= y0 + margin for v in selected),
+        "top": sum(v["bbox"][3] >= y1 - margin for v in selected),
+    }
+    ranked = sorted(edge_counts.items(), key=lambda item: (-item[1], item[0]))
+    side, count = ranked[0]
+    if count / len(selected) < 0.8 or (len(ranked) > 1 and ranked[1][1] == count):
+        return None
+    return {
+        "id": "pin_side_rebalance",
+        "rationale": (
+            f"{count}/{len(selected)} {dominant} violations are concentrated at the "
+            f"{side} die edge. Exclude that side from automatic IO-pin placement, "
+            "then rerun from floorplan without changing die area, clock, or the DRC deck."
+        ),
+        "config_edits": {"PLACE_PINS_ARGS": f"-exclude {side}:*"},
+        "rerun_from": "floorplan",
+        "recheck": "drc",
+        "auto_apply": True,
+        "requires_ab_promotion": True,
+        "geometry_evidence": {
+            "rule": dominant,
+            "side": side,
+            "edge_count": count,
+            "coordinate_count": len(selected),
+            "edge_fraction": round(count / len(selected), 4),
+            "die_bounds_um": list(bounds),
+        },
+    }
+
+
+def _pin_pdn_clearance_strategy(project: Path, drc: dict, cfg: dict) -> dict | None:
+    """Offer only a witnessed pin/PDN gap; normal A/B promotion is required."""
+    if (cfg.get('PLATFORM')!='sky130hd' or drc.get('status')=='clean'
+            or cfg.get('PRE_IO_PLACEMENT_TCL') or cfg.get('PLACE_PINS_ARGS')
+            or cfg.get('IO_PLACER_H') not in (None,'','met3')):
+        return None
+    final_def=_latest_final_def(project)
+    if final_def is None and (project/'6_final.def').is_file():final_def=project/'6_final.def'
+    report=next((p for p in (project/'drc/6_drc.lyrdb',project/'6_drc.lyrdb') if p.is_file()),None)
+    if final_def is None or report is None:return None
+    try:
+        extract_dir=str(Path(__file__).resolve().parents[1]/'extract')
+        if extract_dir not in sys.path:sys.path.insert(0,extract_dir)
+        from diagnose_pin_pdn_spacing import diagnose
+        evidence=diagnose(final_def,report)
+    except (OSError,ValueError):
+        return None
+    if evidence is None:return None
+    hook=Path(__file__).resolve().parents[1]/'flow/orfs_hooks/pin_pdn_clearance.tcl'
+    default_keys={'DESIGN_NAME','PLATFORM','SDC_FILE','VERILOG_FILES','VERILOG_INCLUDE_DIRS',
+                  'VERILOG_DEFINES','ABC_AREA','SYNTH_MEMORY_MAX_BITS','CORE_UTILIZATION',
+                  'DIE_AREA','CORE_AREA','IO_PLACER_H'}
+    return {
+        'id':'pin_pdn_clearance',
+        'rationale':('Current met3 DRC markers coincide with edge IO pins within '
+                     'the PDN spacing limit. Exclude only PDN obstacle intervals '
+                     'during IO placement, preserving RTL, die, PDN and constraints.'),
+        'config_edits':{'PRE_IO_PLACEMENT_TCL':str(hook)},
+        'rerun_from':'floorplan','recheck':'drc','auto_apply':True,
+        'requires_ab_promotion':True,'geometry_evidence':evidence,
+        'pdn_scope_evidence':{'generated_default_pdn_config':not bool(set(cfg)-default_keys)},
+    }
+
+
+def _attach_port_feedthrough_evidence(plan: dict, project: Path, cfg: dict) -> None:
+    if cfg.get('PLATFORM')!='sky130hd':return
+    strategies=[s for s in plan.get('strategies',[]) if s.get('id')=='lvs_port_feedthrough_buffer']
+    if not strategies:return
+    definition=_latest_final_def(project)
+    if definition is None and (project/'6_final.def').is_file():definition=project/'6_final.def'
+    if definition is None:return
+    mapped=definition.with_name('6_final.v')
+    if not mapped.is_file():
+        # run_orfs also keeps a final/ DEF snapshot without a Verilog copy.
+        # Use the mapped netlist from the SAME run only when its results/ DEF
+        # is byte-identical, so topology evidence cannot cross backend runs.
+        results=definition.parent.parent/'results'
+        companion=results/'6_final.def'
+        if not companion.is_file() or companion.read_bytes()!=definition.read_bytes():return
+        mapped=results/'6_final.v'
+        if not mapped.is_file():return
+    try:
+        extract=str(Path(__file__).resolve().parents[1]/'extract')
+        if extract not in sys.path:sys.path.insert(0,extract)
+        from diagnose_port_feedthroughs import diagnose
+        evidence=diagnose(definition,mapped)
+    except (OSError,ValueError):
+        return
+    if evidence is not None:
+        for strategy in strategies:strategy['port_feedthrough_evidence']=evidence
+
+
+def _drc_geometry_inputs(project: Path, cfg: dict):
+    """(lyrdb, def, [lef]) for a geometric DRC diagnosis, or (None, None, []).
+
+    Both project layouts are accepted: a live ORFS project (drc/6_drc.lyrdb +
+    backend/RUN_*/results/6_final.def) and a HARVESTED one, where the signoff
+    artifacts sit flat at the project root. The corpus is the flat shape, so a
+    discovery that only knew the live shape would read every harvested design as
+    "no geometry" and silently decline to diagnose the whole population.
+    """
+    lyrdb = next((p for p in (project / "drc" / "6_drc.lyrdb",
+                              project / "6_drc.lyrdb") if p.is_file()), None)
+    if lyrdb is None:
+        found = sorted(project.glob("**/6_drc.lyrdb"),
+                       key=lambda f: f.stat().st_mtime, reverse=True)
+        lyrdb = found[0] if found else None
+    final_def = _latest_final_def(project)
+    if final_def is None and (project / "6_final.def").is_file():
+        final_def = project / "6_final.def"
+    lefs = []
+    flow_dir = _find_flow_dir()
+    platform = cfg.get("PLATFORM") or ""
+    if flow_dir and platform:
+        lefs = [str(p) for p in
+                sorted((Path(flow_dir) / "platforms" / platform / "lef").glob("*.lef"))]
+    for extra in (cfg.get("ADDITIONAL_LEFS") or "").split():
+        if Path(extra).is_file():
+            lefs.append(extra)
+    return lyrdb, final_def, lefs
+
+
+def _cell_master_drc_strategy(project: Path, drc: dict, cfg: dict) -> dict | None:
+    """Ban the one CELL MASTER whose own layout is failing the DRC deck.
+
+    A DRC class the ROUTER cannot have created -- gf180's CO.6a is the
+    poly/diffusion-to-M1 contact rule, and the router never makes a CO -- is not a
+    congestion problem: no density relief, pin rebalancing or route effort touches
+    it, because the offending geometry is inside the standard cell, shipped by the
+    PDK. It repeats once per placed instance, which is why it looks like a
+    corpus-wide epidemic and behaves like a single defect.
+
+    The decision is GEOMETRIC, not a platform/rule allowlist
+    (extract/attribute_drc_to_cells.py): every violation is mapped into the
+    orientation-normalized frame of the instance that contains it, and the fix is
+    offered only when one master owns >=80% of them at ONE cell-frame offset, and
+    only when a same-function sibling survives the ban so synthesis still has a
+    cell to map onto.
+
+    Measured 2026-10-15 on gf180: 545 of the 583 DRC-dirty designs carrying
+    violation coordinates attributed to gf180mcu_fd_sc_mcu9t5v0__aoi221_2 at
+    cell-frame (6.6675, 4.2) -- the SAME master, rule and offset in all 545, over
+    7163 violations; 532 of them have CO.6a as their ONLY rule. The remaining 38
+    are metal/antenna classes (M4.2a, M3.2a, M4.1, ANT.16) and the gate correctly
+    declines them -- their violations sit outside every cell. A/B on 12 subjects:
+    arm A 47 CO.6a violations, arm B 0, for <=1.3% cells and <=2.3% area, and md5's
+    timing IMPROVED (WNS -0.22 -> -0.16, TNS -1.36 -> -0.73).
+
+    The edit MUST be `override export` (platform_assigned_keys): gf180 and
+    nangate45 both assign DONT_USE_CELLS with a plain `=` in a platform config that
+    variables.mk includes AFTER the design config, so a plain `export` here is a
+    measured silent no-op.
+    """
+    lyrdb, final_def, lefs = _drc_geometry_inputs(project, cfg)
+    if lyrdb is None or final_def is None or not lefs:
+        return None
+    try:
+        extract_dir = str(Path(__file__).resolve().parents[1] / "extract")
+        if extract_dir not in sys.path:
+            sys.path.insert(0, extract_dir)
+        dashboard_dir = str(Path(__file__).resolve().parents[1] / "dashboard")
+        if dashboard_dir not in sys.path:
+            sys.path.insert(0, dashboard_dir)
+        import attribute_drc_to_cells as attrib
+        import render_drc_violation
+        violations = render_drc_violation.parse_lyrdb_violations(lyrdb)
+        if not violations:
+            return None
+        counts: dict = {}
+        for vio in violations:
+            key = str(vio.get("category", "")).strip("'\"")
+            counts[key] = counts.get(key, 0) + 1
+        rule = max(counts, key=lambda k: counts[k])
+        selected = [v for v in violations
+                    if str(v.get("category", "")).strip("'\"").lower() == rule.lower()]
+        sizes, size_conflicts = attrib.parse_lef_macro_sizes(lefs)
+        components, _ = attrib.parse_def_components(
+            final_def.read_text(encoding="utf-8", errors="ignore"))
+        # The EFFECTIVE ban list is the platform's plus the design's, because the
+        # edit is written `override export` and therefore REPLACES the platform's
+        # value outright. Dropping it here un-bans every cell the platform banned.
+        current = platform_dont_use_cells(cfg.get("PLATFORM") or "")
+        for pat in (cfg.get("DONT_USE_CELLS") or "").split():
+            if pat not in current:
+                current.append(pat)
+        evidence = attrib.attribute(selected, components, sizes,
+                                    dont_use_patterns=current)
+    except Exception as exc:                 # fail-soft: no strategy, never a crash
+        print(f"WARNING: cell-master DRC attribution failed "
+              f"({type(exc).__name__}: {exc})", file=sys.stderr)
+        return None
+    if not evidence.get("eligible"):
+        return None
+    master = evidence["dominant_master"]
+    if master in current:
+        return None                           # already banned; nothing to add
+    stats = evidence["per_master"][master]
+    return {
+        "id": "dont_use_violating_master",
+        "rationale": (
+            f"{stats['count']}/{evidence['violations']} {rule} violations sit INSIDE "
+            f"instances of {master}, all at cell-frame offset "
+            f"{stats['offset_median_um']} (spread {stats['offset_spread_um']} um) -- "
+            f"one master's own PDK layout failing the rule, repeated per instance, "
+            f"not routing congestion. Ban that master so synthesis maps onto its "
+            f"surviving sibling(s) {', '.join(evidence['surviving_siblings'])}; the "
+            f"DRC deck is NEVER relaxed. Measured on gf180 CO.6a: 47 -> 0 across 12 "
+            f"designs for <=1.3% cells / <=2.3% area, timing unchanged or better."),
+        "config_edits": {"DONT_USE_CELLS": " ".join(current + [master])},
+        "override_keys": ["DONT_USE_CELLS"],
+        "rerun_from": "synth",
+        "recheck": "drc",
+        "auto_apply": True,
+        "geometry_evidence": {
+            "rule": rule,
+            "master": master,
+            "instances_owning_violations": stats["count"],
+            "coordinate_count": evidence["violations"],
+            "attributed_fraction": evidence["attributed_fraction"],
+            "master_fraction": evidence["master_fraction"],
+            "cell_frame_offset_um": stats["offset_median_um"],
+            "cell_frame_spread_um": stats["offset_spread_um"],
+            "orientations": stats["orientations"],
+            "surviving_siblings": evidence["surviving_siblings"],
+            "lef_size_conflicts": size_conflicts,
+        },
+    }
+
+
+def _load(path: Path) -> dict:
+    """Parse a reports/*.json — a corrupt file (crash mid-write, disk full) must
+    degrade to {} with a WARNING, not kill the diagnosis (2026-07-04)."""
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        print(f"WARNING: unreadable report {path}: {exc}; treating as empty",
+              file=sys.stderr)
+        return {}
+
+
+def _load_heuristics(hp: Path):
+    """Parse heuristics.json, degrading to None (cold start) on a corrupt or
+    unreadable file instead of crashing the whole diagnosis — the fixer then
+    ranks by static catalog order, exactly like a fresh clone (2026-07-04; the
+    config-seeding path in suggest_config already degraded this way, the fix
+    path did not)."""
+    try:
+        return json.loads(hp.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        print(f"WARNING: unreadable heuristics {hp}: {exc}; cold-start ranking",
+              file=sys.stderr)
+        return None
+
+
+def _load_recipes(proj: Path, *, check: str, drc: dict, lvs: dict,
+                  heuristics: Path | None = None) -> dict | None:
+    """Look up the Tier-3 fix_recipes entry for this design's family/platform and
+    the current violation_class. Returns None (cold start) if absent."""
+    hp = heuristics or (Path(__file__).resolve().parents[1] / "knowledge" / "heuristics.json")
+    if not hp.exists():
+        return None
+    cfg = parse_config((proj / "constraints" / "config.mk").read_text(encoding="utf-8")
+                       if (proj / "constraints" / "config.mk").exists() else "")
+    design_name = cfg.get("DESIGN_NAME", "")
+    # Key the family the SAME way the WRITER does (live ingest _project_family /
+    # backfill): an EXPLICIT DESIGN_NAME mapping/pattern wins, else infer from the
+    # project-DIR basename (which carries the source-repo prefix DESIGN_NAME drops).
+    # Mismatch otherwise hides learned recipes — see CANONICAL FAMILY RULE.
+    try:
+        import knowledge_db
+        families = knowledge_db.load_families()
+        fam = (_explicit_family(design_name, families)
+               or knowledge_db.infer_family(proj.name, families))
+    except Exception:
+        # knowledge_db unavailable: degrade to the writer's primary path (dir
+        # basename split), which is where most harvested designs land.
+        fam = (proj.name or design_name or "").split("_", 1)[0].lower()
+    plat = cfg.get("PLATFORM", "asap7")
+    data = _load_heuristics(hp)
+    if data is None:
+        return None
+    entry = (data.get("families", {}).get(fam, {})
+             .get("platforms", {}).get(plat, {}).get("fix_recipes"))
+    if not entry:
+        return None
+    by_check = entry.get(check, {})
+    if check == "drc":
+        cats = drc.get("categories") or {}
+        vclass = max(cats, key=lambda k: cats[k].get("count") or 0) if cats else None
+        recipe = by_check.get(vclass)
+        if recipe is None and vclass:
+            # DRC coarse-bucket fallback: backfill stores historical DRC recipes
+            # under coarse buckets ('antenna'/'beol'), so an exact-category miss
+            # (e.g. METAL3_ANTENNA) would hide that evidence.  Only used when the
+            # exact-category recipe is absent.
+            coarse = "antenna" if vclass.upper().endswith("_ANTENNA") else "beol"
+            recipe = by_check.get(coarse)
+        return recipe
+    vclass = lvs.get("mismatch_class")
+    return by_check.get(vclass)
+
+
+def _platform_count(strat: dict) -> int:
+    """Distinct platforms this strategy is CORROBORATED on = number of
+    by_platform entries with successes>0 (spec 2026-06-18, the 'transfer'
+    mission). Falls back to len(platforms_seen) when by_platform is absent (the
+    Decision-8 indexed buckets carry only the symptom-level list). 0 when
+    unknown — a single-design fluke never earns the corroboration tiebreak."""
+    bp = strat.get("by_platform")
+    if bp:
+        return sum(1 for v in bp.values() if int(v.get("successes", 0) or 0) > 0)
+    return len(strat.get("platforms_seen") or [])
+
+
+def load_symptom_recipe(*, check: str, platform: str, drc: dict, lvs: dict,
+                        tcheck: dict | None = None,
+                        heuristics: Path | None = None):
+    """Return (recipe_entry, pooled_prior) for the current symptom, indexed by
+    symptom_id (NOT family). recipe_entry = the current platform's by_platform
+    stats (same-platform evidence preferred); pooled_prior = the cross-platform
+    pooled stats for untried strategies, excluding platform_specific ones
+    (symptom-indexed memory, spec 2026-06-09)."""
+    # NOTE: parents[2] = the skill root (signoff-loop); knowledge/ is its child.
+    hp = heuristics or (Path(__file__).resolve().parents[2] / "knowledge" / "heuristics.json")
+    if not hp.exists():
+        return None, {}
+    data = _load_heuristics(hp)
+    if data is None:
+        return None, {}
+    symptoms = data.get("symptoms") or {}
+    if check == "drc":
+        cats = drc.get("categories") or {}
+        vclass = max(cats, key=lambda k: cats[k].get("count") or 0) if cats else None
+        report = drc
+    elif check == "lvs":
+        vclass, report = lvs.get("mismatch_class"), lvs
+    elif check == "timing":
+        report = tcheck or {}
+        vclass = report.get("tier")
+    else:
+        vclass, report = None, {}
+    sig = symptom.canonical_signature(check, vclass, symptom.predicates_for(check, report))
+    bucket = symptoms.get(symptom.symptom_id(sig))
+    if not bucket:
+        return None, {}
+    strategies = bucket.get("strategies") or {}
+    # Same-platform recipe: the by_platform slice for THIS platform.
+    recipe = {"strategies": {}, "n_sessions": bucket.get("n_sessions", 0)}
+    for stratid, s in strategies.items():
+        bp = (s.get("by_platform") or {}).get(platform)
+        if bp:
+            # Annotate with the distinct-platform corroboration count so the
+            # ranker's cross-platform tiebreaker (spec 2026-06-18, 'transfer')
+            # can favour a fix proven across N platforms over a one-design fluke.
+            recipe["strategies"][stratid] = {
+                **bp, "platform_count": _platform_count(s)}
+    # Pooled prior: cross-platform totals, minus platform_specific strategies.
+    pooled = {stratid: {**{k: s.get(k, 0) for k in ("attempts", "successes", "wins", "failures")},
+                        "platform_count": _platform_count(s)}
+              for stratid, s in strategies.items() if not s.get("platform_specific")}
+    return (recipe if recipe["strategies"] else None), pooled
+
+
+def load_indexed_recipe(*, check: str, platform: str, design_class: str,
+                        drc: dict, lvs: dict, tcheck: dict | None = None,
+                        heuristics: Path | None = None):
+    """Decision-8 lookup with relaxation: recipes[sid][design_class][platform]
+    -> recipes[sid]['*'][platform] (pooled class) -> recipes[sid]['*']['*']
+    (pooled platform). Returns (recipe_entry|None, pooled_prior, match_level).
+    pooled_prior is always the global rollup (recipes[sid]['*']['*'])."""
+    hp = heuristics or (Path(__file__).resolve().parents[2]
+                        / "knowledge" / "heuristics.json")
+    if not hp.exists():
+        return None, {}, "none"
+    data = _load_heuristics(hp)
+    if data is None:
+        return None, {}, "none"
+    recipes = data.get("recipes") or {}
+    if check == "drc":
+        cats = drc.get("categories") or {}
+        vclass = max(cats, key=lambda k: cats[k].get("count") or 0) if cats else None
+        report = drc
+    elif check == "lvs":
+        vclass, report = lvs.get("mismatch_class"), lvs
+    elif check == "timing":
+        report = tcheck or {}
+        vclass = report.get("tier")
+    elif check == "route":
+        check, vclass, report = "orfs_stage", "route", {}
+    else:
+        vclass, report = None, {}
+    sig = symptom.canonical_signature(check, vclass,
+                                      symptom.predicates_for(check, report))
+    bucket = recipes.get(symptom.symptom_id(sig)) or {}
+    # Cross-platform corroboration (spec 2026-06-18, 'transfer'): count the
+    # DISTINCT concrete platforms (the '*' wildcard is the rollup, not a real
+    # platform) on which each strategy cleared at least once, across all design
+    # classes. The ranker uses this only as a tiebreaker.
+    plat_count: dict[str, set] = {}
+    for dclass, by_plat in bucket.items():
+        for plat, node in (by_plat or {}).items():
+            if plat == "*":
+                continue
+            for sid, v in (node.get("strategies") or {}).items():
+                if int(v.get("successes", 0) or 0) > 0:
+                    plat_count.setdefault(sid, set()).add(plat)
+    glob = (bucket.get("*") or {}).get("*") or {}
+    pooled = {s: {**{k: v.get(k, 0) for k in ("attempts", "successes",
+                                              "wins", "failures")},
+                  "platform_count": len(plat_count.get(s) or ())}
+              for s, v in (glob.get("strategies") or {}).items()}
+    for dclass, plat, level in ((design_class, platform, "exact"),
+                                ("*", platform, "pooled_class"),
+                                ("*", "*", "pooled_platform")):
+        node = (bucket.get(dclass) or {}).get(plat)
+        if node and node.get("strategies"):
+            # Annotate the matched node's strategies with the corroboration count
+            # so rank_strategies' local path also sees the cross-platform signal.
+            strat_pc = {sid: {**v, "platform_count": len(plat_count.get(sid) or ())}
+                        for sid, v in node["strategies"].items()}
+            node = {**node, "strategies": strat_pc}
+            return node, pooled, level
+    return None, pooled, "none"
+
+
+def _current_vclass(check: str, drc: dict, lvs: dict,
+                    tcheck: dict | None = None) -> str | None:
+    """The dominant violation_class for the current symptom (same rule as
+    load_symptom_recipe): DRC dominant category, else LVS mismatch_class."""
+    if check == "drc":
+        cats = drc.get("categories") or {}
+        return max(cats, key=lambda k: cats[k].get("count") or 0) if cats else None
+    if check == "lvs":
+        return lvs.get("mismatch_class")
+    if check == "timing":
+        return (tcheck or {}).get("tier")
+    return None
+
+
+def _annotate_live_gates(plan: dict, proj: Path, *, check: str,
+                         sid: str | None = None, design_class: str = "",
+                         platform: str = "", db_path=None) -> dict:
+    """Annotate plan strategies with the two negative-evidence gates
+    _live_auto_strategy consumes (2026-07-04):
+
+    - dead_here: count of terminal failures (no_change/regression) of this
+      strategy on THIS design+check with ZERO clears, from fix_events — the
+      cross-run memory the fixer lacked (the same dead fix was re-tried up to
+      112 times across sessions). Threshold R2G_FIX_DEAD_AFTER (default 2).
+    - lifecycle_status: the recipe_status verdict for this symptom key, so an
+      A/B-demoted ('shadow') strategy is gated on EVERY lookup path, not only
+      the indexed-recipe one filter_promoted covers.
+
+    A lifecycle-store failure is fail-closed for live auto-apply. Diagnosis still
+    returns a visible plan, but `_live_auto_strategy` will not execute it blindly."""
+    try:
+        import knowledge_db
+        conn = (knowledge_db.connect(db_path) if db_path
+                else knowledge_db.connect())
+        knowledge_db.ensure_schema(conn)
+    except Exception as exc:
+        print(f"WARNING: negative-evidence gates unavailable "
+              f"({type(exc).__name__}: {exc})", file=sys.stderr)
+        # P0-15: the store was UNREADABLE — mark the gate unavailable so the live
+        # selector fails CLOSED rather than silently proceeding with un-gated static
+        # selection (which could execute a candidate/demoted strategy).
+        plan["lifecycle_gate_ok"] = False
+        return plan
+    try:
+        try:
+            dead_after = max(1, int(os.environ.get("R2G_FIX_DEAD_AFTER", "2")))
+        except ValueError:
+            dead_after = 2
+        # fix_events stores the project_path as the fixer received it; match both
+        # the raw and resolved spellings.
+        paths = sorted({str(proj), str(proj.resolve())})
+        ph = ",".join("?" * len(paths))
+        # P1-12 (2026-07-15): key dead-evidence by SYMPTOM when known — a strategy that
+        # failed on DRC symptom A must NOT be blacklisted for a DIFFERENT DRC symptom B
+        # on the same project (the old (project, check, strategy) key over-generalized).
+        sym_sql = " AND symptom_id=?" if sid else ""
+        sym_params = (sid,) if sid else ()
+        rows = conn.execute(
+            f"SELECT strategy, "
+            f"SUM(CASE WHEN verdict IN ('no_change','regression') THEN 1 ELSE 0 END), "
+            f"SUM(CASE WHEN verdict IN ('cleared','win') THEN 1 ELSE 0 END) "
+            f"FROM fix_events WHERE project_path IN ({ph}) AND check_type=?{sym_sql} "
+            f"GROUP BY strategy", (*paths, check, *sym_params)).fetchall()
+        dead = {s: int(nf or 0) for s, nf, ns in rows
+                if s and s != "none" and int(ns or 0) == 0
+                and int(nf or 0) >= dead_after}
+        # P1-14 (2026-07-15): dead evidence is by EFFECT, not just strategy name — an
+        # alias strategy with byte-identical config/env/sdc edits inherits the dead flag,
+        # so the loop can't retry the same ineffective action under a new id. Effects are
+        # taken from the plan (both aliases are catalog entries), so the digests match.
+        plan_strats = plan.get("strategies", [])
+        fp_of = {s["id"]: _effect_fp(s) for s in plan_strats}
+        dead_effects = {fp_of[s] for s in dead if fp_of.get(s)}
+        statuses = {}
+        action_policy, action_policy_error = _load_repair_action_policy()
+        if sid:
+            import recipe_lifecycle
+            for s in plan_strats:
+                # Preserve the pre-existing static route_relief contract. Only
+                # new route recipes enter lifecycle gating in this change.
+                if check == "route" and s["id"] == "route_relief" and not s.get("requires_ab_promotion"):
+                    continue
+                statuses[s["id"]] = _lifecycle_status_with_scope_transfer(
+                    conn, recipe_lifecycle, symptom_id=sid,
+                    design_class=design_class, platform=platform, strategy=s)
+                # A cold-start catalog strategy (no requires_ab_promotion) is live with
+                # no lifecycle row. Its own success makes learn() enqueue an untested
+                # 'learner_diff' candidate, which then blocked it for every later
+                # design of that symptom+class: one success switched the fix off
+                # wherever no A/B runs (the agent; 9 of 13 antenna designs that the
+                # r2g arm cleared stopped at no_auto_strategy, 2026-10-24). Such a
+                # row carries no verdict, so it must not veto what cold start allows;
+                # shadow/parked and A/B-judged candidates still block.
+                if (statuses[s["id"]][0] == "candidate" and not s.get("requires_ab_promotion")
+                        and _untested_learner_candidate(
+                            conn, recipe_lifecycle, symptom_id=sid, design_class=design_class,
+                            platform=platform, strategy=s["id"])):
+                    s["lifecycle_untested_candidate"] = True
+        for s in plan_strats:
+            fp = fp_of.get(s["id"])
+            if s["id"] in dead:
+                s["dead_here"] = dead[s["id"]]
+            elif fp and fp in dead_effects:
+                s["dead_here"] = dead_after      # alias of a dead-by-effect strategy
+                s["dead_by_effect"] = True
+            status, match_level = statuses.get(s["id"], (None, None))
+            if status:
+                s["lifecycle_status"] = status
+                s["lifecycle_match_level"] = match_level
+            authorization = None
+            if action_policy_error is None:
+                authorization = _candidate_attempt_authorized(
+                    action_policy, check=check, platform=platform, strategy=s,
+                    lifecycle_status=status)
+            if authorization is not None:
+                s["candidate_attempt_authorized"] = True
+                s["candidate_attempt_policy_id"] = authorization.get("policy_id")
+        plan["lifecycle_gate_ok"] = True          # store read OK: gates are authoritative
+    except Exception as exc:
+        print(f"WARNING: negative-evidence gates unavailable "
+              f"({type(exc).__name__}: {exc})", file=sys.stderr)
+        plan["lifecycle_gate_ok"] = False         # partial/failed read -> fail closed
+    finally:
+        conn.close()
+    return plan
+
+
+def _has_pin_edge_geometry(strategy: dict) -> bool:
+    geometry = strategy.get("geometry_evidence") or {}
+    count = geometry.get("edge_count")
+    fraction = geometry.get("edge_fraction")
+    return (
+        str(geometry.get("rule", "")).strip("'\"") in _PIN_EDGE_DRC_RULES
+        and geometry.get("side") in {"left", "right", "top", "bottom"}
+        and isinstance(count, int) and not isinstance(count, bool) and count >= 2
+        and isinstance(fraction, (int, float)) and not isinstance(fraction, bool)
+        and 0.8 <= float(fraction) <= 1.0
+        and (strategy.get("config_edits") or {}).get("PLACE_PINS_ARGS")
+        == f"-exclude {geometry.get('side')}:*"
+    )
+
+
+def _prioritize_geometric_pin_strategy(plan: dict) -> None:
+    """Prefer a validated localized repair; never authorize a candidate here."""
+    context = plan.get("routing_context") or {}
+    if plan.get("lifecycle_gate_ok") is not True or plan.get("action_policy_gate_ok") is False:
+        return
+    strategies = plan.get("strategies", [])
+    # Prefer the narrower, physically validated PDN interval exclusion over
+    # static whole-side rebalancing. This changes ordering, never authorization.
+    for index, strategy in enumerate(strategies):
+        evidence = strategy.get("geometry_evidence") or {}
+        count = evidence.get("marker_count")
+        covered = evidence.get("covered_marker_count")
+        hook = Path(__file__).resolve().parents[1] / 'flow/orfs_hooks/pin_pdn_clearance.tcl'
+        if (context.get('platform') == 'sky130hd'
+                and strategy.get('id') == 'pin_pdn_clearance'
+                and strategy.get('lifecycle_status') == 'promoted'
+                and strategy.get('config_edits') == {'PRE_IO_PLACEMENT_TCL': str(hook)}
+                and evidence.get('rule') == 'm3.2'
+                and type(count) is int and count >= 2
+                and type(covered) is int and 0.8 * count <= covered <= count
+                and evidence.get('witnesses')
+                and evidence.get('def_sha256') and evidence.get('report_sha256')
+                and _live_auto_strategy({**plan, 'strategies': [strategy]}) is strategy):
+            plan['strategies'] = [strategy] + strategies[:index] + strategies[index + 1:]
+            plan['geometric_priority'] = {
+                'strategy': strategy['id'], 'reason': 'promoted_pin_pdn_spacing_repair',
+                'covered_marker_count': covered, 'marker_count': count,
+            }
+            return
+    for index, strategy in enumerate(strategies):
+        key = (context.get("symptom_id"), context.get("platform"), strategy.get("id"))
+        if (key in _PLATFORM_GEOMETRIC_SCOPE_TRANSFER
+                and strategy.get("lifecycle_status") == "promoted"
+                and _has_pin_edge_geometry(strategy)
+                and _live_auto_strategy({**plan, "strategies": [strategy]}) is strategy):
+            plan["strategies"] = [strategy] + strategies[:index] + strategies[index + 1:]
+            plan["geometric_priority"] = {
+                "strategy": strategy["id"], "reason": "promoted_edge_localized_repair",
+                "side": strategy["geometry_evidence"]["side"],
+            }
+            return
+
+
+def _untested_learner_candidate(conn, recipe_lifecycle, *, symptom_id, design_class,
+                                platform, strategy) -> bool:
+    """True when the exact row is a learner auto-enqueued candidate with no A/B trial."""
+    row = conn.execute(
+        "SELECT status, provenance FROM recipe_status WHERE symptom_id=? AND "
+        "design_class=? AND platform=? AND strategy=?",
+        (symptom_id, design_class, platform, strategy)).fetchone()
+    if not row or row[0] != "candidate" or row[1] not in recipe_lifecycle._AUTO_LEARNER_PROVENANCE:
+        return False
+    try:
+        n = conn.execute(
+            "SELECT COUNT(*) FROM ab_trials WHERE symptom_id=? AND design_class=? AND "
+            "platform=? AND strategy=?", (symptom_id, design_class, platform, strategy)).fetchone()[0]
+    except Exception:
+        return False                       # unknown trial history -> keep the strict rule
+    return n == 0
+
+
+def _lifecycle_status_with_scope_transfer(conn, recipe_lifecycle, *,
+                                          symptom_id: str,
+                                          design_class: str,
+                                          platform: str,
+                                          strategy: dict) -> tuple[str | None, str | None]:
+    """Resolve an exact lifecycle row, then one narrowly approved scope transfer.
+
+    Transfers are restricted to diagnosed mechanisms with validated scope
+    evidence, including pin geometry and bounded standard-cell area relief. An exact
+    lifecycle row wins, including shadow/parked/demoted and A/B-judged candidates;
+    the one exception is a learner auto-enqueued candidate with no A/B trial, which
+    carries no verdict and so does not veto a promoted wildcard of this mechanism.
+    """
+    strategy_id = strategy.get("id", "")
+    exact = recipe_lifecycle.get_status(
+        conn, symptom_id=symptom_id, design_class=design_class,
+        platform=platform, strategy=strategy_id, default=None)
+    if exact and not (exact == "candidate" and _untested_learner_candidate(
+            conn, recipe_lifecycle, symptom_id=symptom_id, design_class=design_class,
+            platform=platform, strategy=strategy_id)):
+        return exact, "exact"
+    if exact:
+        # An exact row that is only an auto-enqueued, never-A/B-tested learner
+        # candidate carries no verdict for this class -- it must not veto the
+        # approved geometric scope transfer of a PROMOTED wildcard recipe (2026-09-30
+        # AIC v2: pcie_7x / matmul, right-edge m3.2 at a tighter clock, were blocked
+        # by a 'learner_diff' candidate for their bus_heavy class). Shadow, parked,
+        # demoted or A/B-judged candidates still win.
+        transfer_key = (symptom_id, platform, strategy_id)
+        if transfer_key in _PLATFORM_GEOMETRIC_SCOPE_TRANSFER and _has_pin_edge_geometry(strategy):
+            wild = recipe_lifecycle.get_status(
+                conn, symptom_id=symptom_id, design_class="*", platform=platform,
+                strategy=strategy_id, default=None)
+            if wild == "promoted":
+                return wild, "platform_geometric_over_untested_candidate"
+        if transfer_key in _MECHANISM_SCOPE_TRANSFER:
+            wild = recipe_lifecycle.get_status(
+                conn, symptom_id=symptom_id, design_class="*", platform=platform,
+                strategy=strategy_id, default=None)
+            if wild == "promoted":
+                return wild, "mechanism_over_untested_candidate"
+        import pin_pdn_scope
+        if (symptom_id == pin_pdn_scope.KEY['symptom_id'] and platform == 'sky130hd'
+                and pin_pdn_scope.validated(conn, recipe_lifecycle, strategy)):
+            return 'promoted', 'validated_pdn_over_untested_candidate'
+        import port_feedthrough_scope
+        if (symptom_id == port_feedthrough_scope.KEY['symptom_id'] and platform == 'sky130hd'
+                and port_feedthrough_scope.validated(conn, recipe_lifecycle, strategy)):
+            return 'promoted', 'validated_port_feedthrough_over_untested_candidate'
+        import fixed_area_scope
+        if (symptom_id == fixed_area_scope.KEY['symptom_id'] and platform == 'sky130hd'
+                and fixed_area_scope.validated(conn, recipe_lifecycle, strategy)):
+            return 'promoted', 'validated_fixed_area_over_untested_candidate'
+        return exact, "exact"
+
+    import pin_pdn_scope
+    if (symptom_id == pin_pdn_scope.KEY['symptom_id'] and platform == 'sky130hd'
+            and pin_pdn_scope.validated(conn, recipe_lifecycle, strategy)):
+        return 'promoted', 'validated_pin_pdn_geometry'
+
+    import port_feedthrough_scope
+    if (symptom_id == port_feedthrough_scope.KEY['symptom_id'] and platform == 'sky130hd'
+            and port_feedthrough_scope.validated(conn, recipe_lifecycle, strategy)):
+        return 'promoted', 'validated_port_feedthrough_geometry'
+
+    import fixed_area_scope
+    if (symptom_id == fixed_area_scope.KEY['symptom_id'] and platform == 'sky130hd'
+            and fixed_area_scope.validated(conn, recipe_lifecycle, strategy)):
+        return 'promoted', 'validated_fixed_area_geometry'
+
+    import setup_scope
+    if platform == 'sky130hd' and setup_scope.matches(strategy):
+        status = recipe_lifecycle.get_status(conn, default=None, **setup_scope.KEY)
+        return (status, 'validated_setup_scope') if status else (None, None)
+
+    transfer_key = (symptom_id, platform, strategy_id)
+    if transfer_key in _MECHANISM_SCOPE_TRANSFER:
+        wild = recipe_lifecycle.get_status(
+            conn, symptom_id=symptom_id, design_class="*", platform=platform,
+            strategy=strategy_id, default=None)
+        return (wild, "mechanism_class_transfer") if wild else (None, None)
+    transfer_allowed = (
+        transfer_key in _PLATFORM_GEOMETRIC_SCOPE_TRANSFER
+        and _has_pin_edge_geometry(strategy)
+    )
+    if not transfer_allowed:
+        return None, None
+
+    transferred = recipe_lifecycle.get_status(
+        conn, symptom_id=symptom_id, design_class="*", platform=platform,
+        strategy=strategy_id, default=None)
+    return ((transferred, "platform_geometric") if transferred
+            else (None, None))
+
+
+def attach_lessons(plan: dict, *, check: str, vclass: str | None, platform: str) -> dict:
+    """Attach matching ACTIVE prose lessons so the agent sees the human rationale
+    in-context at the fix-decision point (symptom-indexed memory, spec 2026-06-09)."""
+    try:
+        import search_failures
+        plan["lessons"] = search_failures.lessons_for_symptom(
+            check=check, vclass=vclass, platform=platform)
+    except Exception:
+        plan["lessons"] = []
+    return plan
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description="Diagnose DRC/LVS violations → real-fix plan.")
+    ap.add_argument("project_dir")
+    ap.add_argument("--check", choices=["drc", "lvs", "timing", "route"], default="drc")
+    ap.add_argument("--apply", metavar="STRATEGY_ID", help="write the strategy's edits into config.mk")
+    ap.add_argument("--next", action="store_true", help="print one tab-separated action line for the driver")
+    ap.add_argument("--list", action="store_true",
+                    help="print the full priority-ranked candidate list as JSON")
+    ap.add_argument("--explain", action="store_true",
+                    help="print a human rationale for WHY each recipe ranked "
+                         "(evidence, cross-platform corroboration, provenance)")
+    ap.add_argument("--exclude", default="", help="comma-separated strategy ids to skip")
+    ap.add_argument("--rank-first", default=None,
+                    help="force this strategy id to the head of the ranked plan (A/B arm B)")
+    args = ap.parse_args(argv)
+    heuristics_path = Path(
+        os.environ.get("R2G_HEURISTICS_PATH")
+        or (Path(__file__).resolve().parents[2] / "knowledge" / "heuristics.json")
+    )
+
+    proj = Path(args.project_dir)
+    drc = _load(proj / "reports" / "drc.json")
+    lvs = _load(proj / "reports" / "lvs.json")
+    tcheck = _load(proj / "reports" / "timing_check.json")
+    route = _load(proj / "reports" / "route.json")
+    cfg_path = proj / "constraints" / "config.mk"
+    cfg_text = cfg_path.read_text(encoding="utf-8") if cfg_path.exists() else ""
+    cfg = parse_config(cfg_text)
+    exclude = [x for x in args.exclude.split(",") if x]
+    # Symptom-first lookup (spec 2026-06-09): prefer the symptom-indexed recipe +
+    # pooled cross-platform prior; fall back to the legacy family/platform recipe.
+    plat = cfg.get("PLATFORM", "asap7")
+    # Decision-8 indexed lookup first (engineer-loop §5.7): exact (symptom,
+    # design_class, platform) -> pooled class -> pooled platform; only PROMOTED
+    # recipes rank live. Falls back to the symptom/family path when absent.
+    try:
+        import suggest_config as _sc
+        design_class = _sc.detect_design_class(proj, cfg)
+    except Exception:
+        design_class = "unknown/unknown"
+    # Share ingest_run's canonical backend-route key for learned ranking.
+    recipes = pooled = None
+    idx_recipe, idx_pooled, idx_level = load_indexed_recipe(
+        check=args.check, platform=plat, design_class=design_class,
+        drc=drc, lvs=lvs, tcheck=tcheck, heuristics=heuristics_path)
+    # The symptom key for this diagnosis: shared by the lifecycle
+    # filter below and the negative-evidence gates (_annotate_live_gates).
+    _sid = None
+    if args.check in ("drc", "lvs", "timing"):
+        _vc = _current_vclass(args.check, drc, lvs, tcheck)
+        _report = {"drc": drc, "lvs": lvs, "timing": tcheck}.get(args.check) or {}
+        _sid = symptom.symptom_id(symptom.canonical_signature(
+            args.check, _vc, symptom.predicates_for(args.check, _report)))
+    if args.check == "route":
+        _sid = symptom.symptom_id(symptom.canonical_signature(
+            "orfs_stage", "route", symptom.predicates_for("orfs_stage", {})))
+    if idx_recipe is not None:
+        recipes, pooled = idx_recipe, idx_pooled
+        try:
+            import knowledge_db
+            import recipe_lifecycle
+            _kc = knowledge_db.connect()
+            knowledge_db.ensure_schema(_kc)
+            recipes = recipe_lifecycle.filter_promoted(
+                _kc, recipes, symptom_id=_sid, design_class=design_class,
+                platform=plat)
+            _kc.close()
+        except Exception as exc:
+            # Fail CLOSED, visibly (2026-07-04): an unreadable lifecycle (DB locked
+            # mid-campaign) must not hand unvalidated/demoted recipes a promoted-
+            # equivalent ranking — the old silent `pass` degraded toward MORE trust.
+            # Cold-start (static catalog order) is the safe floor; the fix proceeds.
+            print(f"WARNING: recipe-lifecycle filter unavailable "
+                  f"({type(exc).__name__}: {exc}); using cold-start ranking",
+                  file=sys.stderr)
+            recipes, pooled = None, {}
+    elif args.check != "route":
+        sym_recipe, pooled = load_symptom_recipe(
+            check=args.check, platform=plat, drc=drc, lvs=lvs, tcheck=tcheck,
+            heuristics=heuristics_path)
+        recipes = sym_recipe if sym_recipe is not None else _load_recipes(
+            proj, check=args.check, drc=drc, lvs=lvs,
+            heuristics=heuristics_path)
+    if args.check == "route" and idx_recipe is None:
+        recipes, pooled = None, {}
+    plan = build_plan(drc, lvs, cfg, check=args.check, exclude=exclude, recipes=recipes,
+                      tcheck=tcheck, route=route, fmax_mode=_is_fmax_mode(proj),
+                      fmax_winner=_fmax_winner(proj))
+    if args.check == 'lvs':
+        _attach_port_feedthrough_evidence(plan,proj,cfg)
+    if args.check == "route" and "fixed_area_route_relief" not in exclude:
+        from fixed_area_recipe import candidate as fixed_area_candidate
+        area_strategy = fixed_area_candidate(proj, route, cfg)
+        if area_strategy is not None:
+            plan.setdefault("strategies", []).append(area_strategy)
+            plan["status"] = route.get("status", "fail")
+            plan["residual_reason"] = None
+    if args.check == "drc" and "pin_pdn_clearance" not in exclude:
+        pdn_strategy = _pin_pdn_clearance_strategy(proj, drc, cfg)
+        if pdn_strategy is not None:
+            plan.setdefault("strategies", []).append(pdn_strategy)
+            if plan.get("status") == "residual":
+                plan["status"] = drc.get("status", "fail")
+                plan["residual_reason"] = None
+    if args.check == "drc" and "pin_side_rebalance" not in exclude:
+        pin_strategy = _edge_localized_pin_strategy(proj, drc, cfg)
+        if pin_strategy is not None:
+            plan.setdefault("strategies", []).append(pin_strategy)
+            if plan.get("status") == "residual":
+                plan["status"] = drc.get("status", "fail")
+                plan["residual_reason"] = None
+    if args.check == "drc" and "dont_use_violating_master" not in exclude:
+        # Offered FIRST among the DRC strategies it coexists with: when the
+        # violations are provably inside one cell master, every other DRC lever
+        # (density relief, pin rebalance, route effort) is re-running the flow to
+        # move geometry that is not the problem -- the master is still placed and
+        # still violates. Measured cost of getting this order wrong: a full
+        # route+DRC regrade per wrong strategy, on 532 designs.
+        master_strategy = _cell_master_drc_strategy(proj, drc, cfg)
+        if master_strategy is not None:
+            plan.setdefault("strategies", []).insert(0, master_strategy)
+            if plan.get("status") == "residual":
+                plan["status"] = drc.get("status", "fail")
+                plan["residual_reason"] = None
+    _apply_repair_action_policy(plan)
+    _rank_plan_strategies(plan, recipes, pooled=pooled)
+    attach_lessons(plan, check=args.check,
+                   vclass=_current_vclass(args.check, drc, lvs, tcheck), platform=plat)
+    # Drop a strategy whose inputs this project cannot produce, at SELECTION time.
+    # The apply-time precondition already refuses to write anything, but by then
+    # the driver has spent an iteration on it: measured as iter=2
+    # strategy=deck_driven_antenna_diode verdict=apply_failed, which consumed the
+    # attempt budget and kept the run from ever reaching its residual verdict.
+    # Offering a strategy that provably cannot run is the same waste the
+    # antenna-model precheck exists to prevent, one layer up.
+    _drop_unmaterializable(plan, proj, cfg)
+
+    _annotate_live_gates(plan, proj, check=args.check, sid=_sid,
+                         design_class=design_class, platform=plat)
+    plan["routing_context"] = {
+        "symptom_id": _sid,
+        "design_class": design_class,
+        "platform": plat,
+    }
+    _prioritize_geometric_pin_strategy(plan)
+
+    if args.rank_first:
+        head = [s for s in plan["strategies"] if s["id"] == args.rank_first]
+        rest = [s for s in plan["strategies"] if s["id"] != args.rank_first]
+        plan["strategies"] = head + rest
+
+    if args.apply:
+        strat = next((s for s in plan["strategies"] if s["id"] == args.apply), None)
+        if strat is None:
+            # Strategy may be filtered out because it was already applied (idempotent
+            # re-apply). Search the full unfiltered catalog to distinguish "already
+            # applied" from "unknown id".
+            full_catalog = _antenna_catalog(cfg) if args.check == "drc" else []
+            strat = next((s for s in full_catalog if s["id"] == args.apply), None)
+            if strat is None:
+                print(f"ERROR: strategy '{args.apply}' not in current plan", file=sys.stderr)
+                return 2
+        if not strat.get("auto_apply", False):
+            print(f"ERROR: '{args.apply}' is operator-only: {strat.get('operator_note','')}", file=sys.stderr)
+            return 3
+        policy, policy_error = _load_repair_action_policy()
+        policy_failure = policy_error or (
+            _strategy_policy_failure(strat, policy) if policy is not None else None)
+        if policy_failure:
+            print(json.dumps({"status": "action_policy_blocked", "applied": None,
+                              "strategy": strat["id"], "reason": policy_failure}))
+            print(f"ERROR: '{strat['id']}' is blocked by the repair action policy: "
+                  f"{policy_failure}", file=sys.stderr)
+            return 6
+        # Lifecycle re-validation AT APPLY TIME (2026-07-16 agent-logic issue 6):
+        # selection (--next) and apply are separate PROCESS invocations, so a recipe
+        # demoted between them still applied — the safety system's withdrawal had no
+        # effect on this branch (it looked the strategy up by id and wrote directly).
+        # The gate re-reads the CURRENT lifecycle in THIS process, closing the race
+        # to microseconds. --rank-first naming this exact strategy bypasses by
+        # design (the A/B arm-B path MUST force the candidate under test). A
+        # fallback-catalog strat (already-applied idempotent re-apply) was never
+        # annotated at :991 — annotate it here through the same fail-closed path.
+        if args.rank_first != strat["id"]:
+            gate_plan = plan
+            if "lifecycle_status" not in strat and strat not in plan.get("strategies", []):
+                gate_plan = _annotate_live_gates(
+                    {"strategies": [strat]}, proj, check=args.check, sid=_sid,
+                    design_class=design_class, platform=plat)
+            if not _lifecycle_allows_auto_apply(gate_plan, strat):
+                print(json.dumps({
+                    "status": "lifecycle_blocked", "applied": None,
+                    "strategy": strat["id"],
+                    "lifecycle_status": strat.get("lifecycle_status"),
+                    "lifecycle_gate_ok": gate_plan.get("lifecycle_gate_ok", True)}))
+                print(f"ERROR: '{strat['id']}' is lifecycle-blocked "
+                      f"(status={strat.get('lifecycle_status')}, "
+                      f"gate_ok={gate_plan.get('lifecycle_gate_ok', True)}); an A/B "
+                      f"arm may force it with --rank-first", file=sys.stderr)
+                return 5
+        # Verified-effect apply (2026-07-16 agent-logic issue 9): rc=0 used to mean
+        # only "a strategy was identified" — a missing constraint.sdc (or an SDC with
+        # no matchable period) silently skipped the edit, fix_signoff then reran a
+        # full backend stage on a ZERO-EFFECT intervention and recorded the unchanged
+        # failure as negative evidence AGAINST a recipe that was never applied.
+        # Contract now: rc=0 ONLY when every DECLARED edit verifiably landed;
+        # rc=4 ("precondition_failed" / "no_effect") otherwise, with nothing written
+        # on a failed precondition (fix_signoff.sh aborts the iteration on rc!=0).
+        sdc_edits = strat.get("sdc_edits") or {}
+        sdc_path = proj / "constraints" / "constraint.sdc"
+        sdc_new_p = str(sdc_edits["CLOCK_PERIOD"]) if sdc_edits.get("CLOCK_PERIOD") else None
+        _SDC_VAR_RE = re.compile(r"(set\s+clk_period\s+)([\d.]+)")
+        _SDC_LIT_RE = re.compile(r"((?:create_clock|set)\b[^\n]*-period\s+)([\d.]+)")
+        if sdc_new_p is not None:
+            # Precondition: the target file AND a rewritable period must exist BEFORE
+            # any write, so a failed apply never leaves a half-applied strategy.
+            if not sdc_path.exists():
+                print(json.dumps({"status": "precondition_failed", "applied": None,
+                                  "strategy": strat["id"],
+                                  "unmet": [f"sdc_missing:{sdc_path}"]}))
+                return 4
+            sdc_text0 = sdc_path.read_text(encoding="utf-8")
+            if not _SDC_VAR_RE.search(sdc_text0) and not _SDC_LIT_RE.search(sdc_text0):
+                # Neither the templated `set clk_period N` var nor a literal
+                # `-period N` (harvested/promoted RTL brings its own SDC style).
+                print(json.dumps({"status": "precondition_failed", "applied": None,
+                                  "strategy": strat["id"],
+                                  "unmet": ["sdc_no_rewritable_period"]}))
+                return 4
+        # Strategies that need more than a knob materialize their inputs here,
+        # because build_plan is pure (JSON + config in, plan out) and cannot read
+        # the lyrdb. Fail-closed on the same rc=4 contract as the SDC edits: if
+        # the deck's verdict cannot be mapped to a net, NOTHING is written, so a
+        # zero-effect apply is never recorded as evidence against the recipe.
+        if strat.get("materialize") == "deck_antenna_diodes":
+            ok, info = _materialize_deck_antenna_diodes(proj)
+            if not ok:
+                print(json.dumps({"status": "precondition_failed", "applied": None,
+                                  "strategy": strat["id"], "unmet": [info]}))
+                return 4
+            strat = dict(strat)
+            strat["config_edits"] = {k: v.replace("{PROJECT}", str(proj))
+                                     for k, v in strat["config_edits"].items()}
+            strat["materialized"] = info
+        elif strat.get("materialize") == "antenna_ratio_lef":
+            ok, info = _materialize_antenna_ratio_lef(proj, cfg)
+            if not ok:
+                print(json.dumps({"status": "precondition_failed", "applied": None,
+                                  "strategy": strat["id"], "unmet": [info]}))
+                return 4
+            strat = dict(strat)
+            strat["config_edits"] = {k: v.replace("{PROJECT}", str(proj))
+                                     for k, v in strat["config_edits"].items()}
+            strat["materialized"] = info
+
+        if strat["config_edits"]:
+            # Only keys the PLATFORM config also assigns get `override` -- a blanket
+            # override would also defeat make's command-line variables, and
+            # run_orfs.sh passes DESIGN_CONFIG/FLOW_VARIANT that way.
+            _declared = set(strat.get("override_keys") or ())
+            _needs_override = _declared & platform_assigned_keys(cfg.get("PLATFORM") or "")
+            if _declared - _needs_override:
+                print(f"NOTE: {sorted(_declared - _needs_override)} written as a plain "
+                      f"export -- platform {cfg.get('PLATFORM')} does not clobber them",
+                      file=sys.stderr)
+            cfg_path.write_text(
+                apply_edits(cfg_text, strat["config_edits"],
+                            override_keys=_needs_override), encoding="utf-8")
+        if sdc_new_p is not None:
+            sdc_text = sdc_path.read_text(encoding="utf-8")
+            _m_old = _SDC_VAR_RE.search(sdc_text) or _SDC_LIT_RE.search(sdc_text)
+            sdc_old_p = _m_old.group(2) if _m_old else None
+            if _SDC_VAR_RE.search(sdc_text):
+                sdc_text = _SDC_VAR_RE.sub(lambda m: m.group(1) + sdc_new_p, sdc_text)
+            else:
+                sdc_text = _SDC_LIT_RE.sub(lambda m: m.group(1) + sdc_new_p, sdc_text)
+            sdc_path.write_text(sdc_text, encoding="utf-8")
+            try:                                   # journal — never breaks apply
+                import os as _os
+                import subprocess as _sp
+                _kdir = Path(__file__).resolve().parents[2] / "knowledge"
+                _ja = [sys.executable, str(_kdir / "journal_db.py"), "action",
+                       "--project", str(proj.resolve()), "--actor", "loop",
+                       "--type", "sdc_edit", "--payload",
+                       json.dumps({"knob": "CLOCK_PERIOD", "new": sdc_new_p,
+                                   "strategy": strat["id"]})]
+                _jdb = _os.environ.get("R2G_JOURNAL_DB")
+                if _jdb:
+                    _ja += ["--db", _jdb]
+                _sp.run(_ja, check=False)
+            except Exception:
+                pass
+            # Fmax-mode projects: bind the loosening into fmax_search.json so the
+            # signoff manifest can trace the stamped period back to the search
+            # winner (no-op when the project never ran an Fmax search).
+            try:
+                if sdc_old_p is not None and float(sdc_new_p) > float(sdc_old_p):
+                    import fmax_search as _fs
+                    _fs.record_period_relax(proj, float(sdc_old_p), float(sdc_new_p),
+                                            strat["id"])
+            except Exception as _exc:             # fail-closed: manifest will disqualify
+                print(f"WARN: Fmax relaxation not recorded ({_exc})", file=sys.stderr)
+        # Post-apply effect verification: re-read every touched file and confirm each
+        # declared edit is REALLY there. A declared-but-unlanded edit (write raced,
+        # regex drifted, block clobbered) must not report rc=0.
+        #
+        # The `override` prefix is OPTIONAL here, matching what apply_edits writes
+        # and what parse_config reads. Without it (2026-10-16) a correctly-landed
+        # `override export DONT_USE_CELLS = ...` reported
+        # status=no_effect / config_edit_not_landed, so fix_signoff.sh would treat
+        # the apply as failed and never rerun the flow -- the recipe would be
+        # permanently inert in the autonomous driver while the config file plainly
+        # carried the edit. Found by running the real CLI end to end, not by a test:
+        # every unit test wrote plain `export`.
+        unmet = []
+        if strat["config_edits"]:
+            cfg_after = cfg_path.read_text(encoding="utf-8") if cfg_path.exists() else ""
+            for k, v in strat["config_edits"].items():
+                if not re.search(rf"(?m)^\s*(?:override\s+)?export\s+"
+                                 rf"{re.escape(str(k))}\s*=\s*"
+                                 rf"{re.escape(str(v))}\s*$", cfg_after):
+                    unmet.append(f"config_edit_not_landed:{k}")
+        if sdc_new_p is not None:
+            sdc_after = sdc_path.read_text(encoding="utf-8") if sdc_path.exists() else ""
+            m = _SDC_VAR_RE.search(sdc_after) or _SDC_LIT_RE.search(sdc_after)
+            if not m or m.group(2) != sdc_new_p:
+                unmet.append("sdc_edit_not_landed:CLOCK_PERIOD")
+        if unmet:
+            print(json.dumps({"status": "no_effect", "applied": None,
+                              "strategy": strat["id"], "unmet": unmet}))
+            return 4
+        if not strat["config_edits"] and sdc_new_p is None:
+            # A strategy that DECLARES no config/sdc edits (lvs_resolve_unknown:
+            # recheck-only by design, NONDIVERGENT for A/B) is not a failed apply —
+            # but the caller must be able to tell it wrote nothing, so it can never
+            # masquerade as a material intervention in the journal/fix evidence.
+            print(json.dumps({"status": "applied_no_op", "applied": strat["id"],
+                              "config_edits": {}}))
+            return 0
+        out = {"status": "applied", "applied": strat["id"],
+               "config_edits": strat["config_edits"]}
+        if sdc_edits:
+            out["sdc_edits"] = sdc_edits
+        print(json.dumps(out))
+        return 0
+
+    if args.explain:
+        # Human rationale for the ranking: WHY each recipe ranked, with the
+        # cross-platform corroboration boost called out (spec 2026-06-18).
+        rationale = explain_ranking(plan)
+        plan["explain"] = rationale
+        if rationale:
+            for ln in rationale:
+                print(ln)
+        else:
+            print(f"NO RANKED STRATEGIES\t{plan.get('status')}\t"
+                  f"{plan.get('residual_reason') or 'n/a'}")
+        return 0
+
+    if args.list:
+        # Print the FULL plan (ranking + attached lessons + strategies), so
+        # consumers get the priority-ranked candidates AND the matching prose
+        # rationale in one JSON object (spec 2026-06-09 §4.4).
+        print(json.dumps(plan, indent=2))
+        return 0
+
+    if args.next:
+        auto = _live_auto_strategy(plan, rank_first=args.rank_first)
+        if auto is None:
+            reason = plan.get("residual_reason") or "no_auto_strategy"
+            print(f"STOP\t{plan['status']}\t{reason}")
+        else:
+            print(f"{auto['id']}\t{auto.get('rerun_from') or ''}\t{auto['recheck']}")
+        return 0
+
+    print(json.dumps(plan, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

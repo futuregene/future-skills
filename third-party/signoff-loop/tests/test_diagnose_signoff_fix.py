@@ -1,0 +1,793 @@
+"""Tests for diagnose_signoff_fix.py: signoff (DRC/LVS) violation→fix-plan logic."""
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+import diagnose_signoff_fix as d
+
+MOD = Path(__file__).resolve().parents[1] / "scripts" / "reports" / "diagnose_signoff_fix.py"
+
+
+def _drc(status, count=0, cats=None):
+    return {"status": status, "total_violations": count, "categories": cats or {}}
+
+
+def _antenna_cats(n=7, layer="METAL7_ANTENNA"):
+    return {layer: {"count": n, "description": ""}}
+
+
+def test_clean_drc_yields_no_strategies():
+    plan = d.build_plan(_drc("clean"), {}, {}, check="drc")
+    assert plan["status"] == "clean"
+    assert plan["strategies"] == []
+
+
+def test_antenna_fail_yields_two_ordered_strategies_sky130hd():
+    """Non-inert platform (sky130hd) gets both antenna strategies."""
+    cfg = {"CORE_UTILIZATION": "10", "PLATFORM": "sky130hd"}
+    plan = d.build_plan(_drc("fail", 7, _antenna_cats()), {}, cfg, check="drc")
+    ids = [s["id"] for s in plan["strategies"]]
+    assert ids == ["antenna_diode_iters", "antenna_density_relief"]
+    assert plan["dominant_category"] == "METAL7_ANTENNA"
+    # density relief computes a concrete lowered utilization
+    relief = plan["strategies"][1]["config_edits"]
+    assert relief["CORE_UTILIZATION"] == "5"
+
+
+def test_antenna_fail_nangate45_offers_diode_repair(monkeypatch):
+    """nangate45: now offers the diode-forced repair strategy (validated 2026-06-02).
+    The FreePDK45 deck credits diodes not jumpers, so the strategy disables jumper repair
+    and forces diode insertion via the DRT repair iterations."""
+    monkeypatch.setattr(d, "_antenna_precondition",
+                        lambda platform: (True, "test fixture"))
+    cfg = {"CORE_UTILIZATION": "10", "PLATFORM": "nangate45"}
+    plan = d.build_plan(_drc("fail", 7, _antenna_cats()), {}, cfg, check="drc")
+    ids = [s["id"] for s in plan["strategies"]]
+    # deck_driven_antenna_diode ranks FIRST on nangate45: antenna_diode_repair was
+    # measured to be a structural no-op there (check_antennas reports 0 violating
+    # nets on layouts the deck flags, so no threshold reaches them), while the
+    # deck-driven insertion took 7/7 subjects to zero. The old strategy stays as a
+    # fallback rather than being deleted -- it is the one that works wherever the
+    # two tools' criteria DO agree.
+    # antenna_ratio_overconstrain (rung r3 of the repair arm: router tech LEF at
+    # ANTENNAAREARATIO 10, grader untouched) sits between them -- it cleared 10
+    # designs the deck-driven diodes could not, where antenna_diode_repair is the
+    # measured no-op above.
+    # deck_driven_antenna_diode_accumulate (rung r2) follows r1 in the catalog;
+    # the CLI drops it at selection until r1 has written its net list.
+    assert ids == ["deck_driven_antenna_diode", "deck_driven_antenna_diode_accumulate",
+                   "antenna_ratio_overconstrain", "antenna_diode_repair"]
+    deck, accum, ratio, forced = plan["strategies"]
+    assert accum["config_edits"] == deck["config_edits"]
+    assert accum["materialize"] == "deck_antenna_diodes"
+    assert ratio["config_edits"] == {
+        "TECH_LEF": "{PROJECT}/signoff_fix/antenna_ratio10.tech.lef"}
+    assert ratio["override_keys"] == ["TECH_LEF"]
+    assert ratio["materialize"] == "antenna_ratio_lef"
+    assert ratio["rerun_from"] == "synth"    # 1_synth.odb carries the tech
+    # The deck-driven one carries a hook path with a {PROJECT} placeholder, because
+    # build_plan is pure and the real path is only known at apply time.
+    assert deck["config_edits"] == {
+        "PRE_GLOBAL_ROUTE_TCL": "{PROJECT}/signoff_fix/deck_antenna_diodes.tcl"}
+    assert deck["materialize"] == "deck_antenna_diodes"
+    assert forced["config_edits"] == {"SKIP_ANTENNA_REPAIR": "1",
+                                      "MAX_REPAIR_ANTENNAS_ITER_DRT": "10"}
+    s = deck
+    assert s["auto_apply"] is True
+    assert s["rerun_from"] == "route"
+    assert plan["dominant_category"] == "METAL7_ANTENNA"
+
+
+def _routing_cats():
+    return {"'m3.2'": {"count": 4, "description": ""},
+            "via_OFFGRID": {"count": 1, "description": ""}}
+
+
+def test_routing_drc_fail_offers_density_relief():
+    """Non-antenna metal/via routing-geometry DRC: lower CORE_UTILIZATION (real
+    layout change, deck never relaxed). Validated 2026-06-16 (eeprom_top sky130hd
+    4 m3.2 -> 0 at util 20->12)."""
+    cfg = {"CORE_UTILIZATION": "20", "PLATFORM": "sky130hd"}
+    plan = d.build_plan(_drc("fail", 5, _routing_cats()), {}, cfg, check="drc")
+    ids = [s["id"] for s in plan["strategies"]]
+    assert ids == ["density_relief"]
+    s = plan["strategies"][0]
+    assert s["config_edits"] == {"CORE_UTILIZATION": "12"}   # 20 - step(8)
+    assert s["rerun_from"] == "floorplan"
+    assert s["auto_apply"] is True
+
+
+def test_density_relief_excluded_yields_no_strategy():
+    """Arm A of the A/B trial excludes density_relief -> no strategy (the control
+    that should stay dirty)."""
+    cfg = {"CORE_UTILIZATION": "20", "PLATFORM": "sky130hd"}
+    plan = d.build_plan(_drc("fail", 5, _routing_cats()), {}, cfg,
+                        check="drc", exclude={"density_relief"})
+    assert plan["strategies"] == []
+    assert plan["status"] == "residual"
+
+
+def test_routing_drc_at_util_floor_is_honest_residual():
+    cfg = {"CORE_UTILIZATION": "8", "PLATFORM": "sky130hd"}
+    plan = d.build_plan(_drc("fail", 5, _routing_cats()), {}, cfg, check="drc")
+    assert plan["strategies"] == []
+    assert plan["status"] == "residual"
+    assert "floor" in plan["residual_reason"]
+
+
+def test_routing_drc_without_util_knob_is_honest_residual():
+    """DIE_AREA-sized design has no CORE_UTILIZATION lever to relieve density."""
+    cfg = {"DIE_AREA": "0 0 120 120", "PLATFORM": "sky130hd"}
+    plan = d.build_plan(_drc("fail", 5, _routing_cats()), {}, cfg, check="drc")
+    assert plan["strategies"] == []
+    assert plan["status"] == "residual"
+    assert "no CORE_UTILIZATION knob" in plan["residual_reason"]
+
+
+def test_applied_strategy_is_filtered_out():
+    cfg = {"MAX_REPAIR_ANTENNAS_ITER_GRT": "10",
+           "MAX_REPAIR_ANTENNAS_ITER_DRT": "10", "CORE_UTILIZATION": "10",
+           "PLATFORM": "sky130hd"}
+    plan = d.build_plan(_drc("fail", 7, _antenna_cats()), {}, cfg, check="drc")
+    ids = [s["id"] for s in plan["strategies"]]
+    assert "antenna_diode_iters" not in ids
+    assert ids[0] == "antenna_density_relief"
+
+
+def test_exhausted_antenna_is_residual():
+    cfg = {"MAX_REPAIR_ANTENNAS_ITER_GRT": "10",
+           "MAX_REPAIR_ANTENNAS_ITER_DRT": "10", "CORE_UTILIZATION": "5",
+           "PLATFORM": "sky130hd"}
+    plan = d.build_plan(_drc("fail", 7, _antenna_cats()), {}, cfg, check="drc")
+    assert plan["status"] == "residual"
+    assert plan["strategies"] == []
+
+
+def test_non_antenna_drc_is_unhandled_residual():
+    plan = d.build_plan(_drc("fail", 3, {"M2.SP.1": {"count": 3}}), {}, {}, check="drc")
+    assert "non-antenna" in plan["residual_reason"]
+    assert plan["strategies"] == []
+
+
+def test_stuck_drc_is_out_of_scope():
+    plan = d.build_plan(_drc("stuck"), {}, {}, check="drc")
+    assert plan["strategies"] == []
+    assert "out_of_v1_scope" in plan["residual_reason"]
+
+
+def test_lvs_unknown_yields_resolve_strategy():
+    plan = d.build_plan({}, {"status": "unknown", "mismatch_count": None}, {}, check="lvs")
+    assert [s["id"] for s in plan["strategies"]] == ["lvs_resolve_unknown"]
+
+
+def test_lvs_cpp_crash_is_residual():
+    lvs = {"status": "fail", "log_info": {"errors": ["...sort_circuit::gen_log_entry SIGSEGV"]}}
+    plan = d.build_plan({}, lvs, {}, check="lvs")
+    assert plan["strategies"] == []
+    assert "klayout_cpp_crash" in plan["residual_reason"]
+
+
+def test_lvs_macro_emits_operator_only_strategy():
+    lvs = {"status": "fail", "log_info": {"errors": ["Netlists don't match"]}}
+    cfg = {"VERILOG_FILES": "/x/fakeram45_64x32.v /x/top.v"}
+    plan = d.build_plan({}, lvs, cfg, check="lvs")
+    s = plan["strategies"][0]
+    assert s["id"] == "lvs_macro_cdl"
+    assert s["auto_apply"] is False
+    assert "operator_note" in s
+
+
+# --- FIX #1: LVS crash / incomplete → residual ---
+
+def test_lvs_status_crash_yields_residual():
+    """status='crash' (from extract_lvs) → residual, klayout_cpp_crash reason, no strategies."""
+    plan = d.build_plan({}, {"status": "crash"}, {}, check="lvs")
+    assert plan["status"] == "residual"
+    assert plan["strategies"] == []
+    assert "klayout_cpp_crash" in plan["residual_reason"]
+
+
+# --- LVS mismatch_class → precise honest residual (2026-06-02 triage) ---
+
+def test_lvs_symmetric_matcher_residual():
+    """mismatch_class=symmetric_matcher → honest residual, no doomed re-run strategy."""
+    lvs = {"status": "fail", "log_info": {"errors": ["Netlists don't match"]},
+           "mismatch_class": "symmetric_matcher"}
+    plan = d.build_plan({}, lvs, {}, check="lvs")
+    assert plan["status"] == "residual"
+    assert plan["strategies"] == []
+    assert "lvs_symmetric_matcher_residual" in plan["residual_reason"]
+
+
+def test_lvs_real_connectivity_residual():
+    """mismatch_class=real_connectivity → flagged as a real defect, not benign."""
+    lvs = {"status": "fail", "log_info": {"errors": ["Netlists don't match"]},
+           "mismatch_class": "real_connectivity"}
+    plan = d.build_plan({}, lvs, {}, check="lvs")
+    assert "lvs_real_connectivity_mismatch" in plan["residual_reason"]
+
+
+def test_lvs_generic_mismatch_still_operator_review():
+    """No mismatch_class (e.g. no lvsdb) → unchanged generic operator-review residual."""
+    lvs = {"status": "fail", "log_info": {"errors": ["Netlists don't match"]}}
+    plan = d.build_plan({}, lvs, {}, check="lvs")
+    assert "operator review" in plan["residual_reason"]
+
+
+def test_lvs_status_incomplete_yields_residual():
+    """status='incomplete' (from extract_lvs) → residual, lvs incomplete reason, no strategies."""
+    plan = d.build_plan({}, {"status": "incomplete"}, {}, check="lvs")
+    assert plan["status"] == "residual"
+    assert plan["strategies"] == []
+    assert "lvs incomplete" in plan["residual_reason"]
+    assert "no verdict" in plan["residual_reason"]
+
+
+def test_lvs_status_unknown_still_yields_resolve_strategy():
+    """Truly unknown status (uninformative log) still emits lvs_resolve_unknown (re-extract)."""
+    plan = d.build_plan({}, {"status": "unknown", "mismatch_count": None}, {}, check="lvs")
+    assert plan["strategies"] != []
+    assert plan["strategies"][0]["id"] == "lvs_resolve_unknown"
+
+
+# --- FIX #4b: nangate45 antenna immediately residual ---
+
+def test_antenna_fail_nangate45_residual_only_after_strategy_applied():
+    """nangate45 antenna → residual ONLY once antenna_diode_repair is already applied
+    (config carries both edits). The residual reason then points at install/escalation."""
+    cfg = {"PLATFORM": "nangate45", "SKIP_ANTENNA_REPAIR": "1",
+           "MAX_REPAIR_ANTENNAS_ITER_DRT": "10"}
+    plan = d.build_plan(_drc("fail", 3, _antenna_cats()), {}, cfg, check="drc")
+    assert plan["status"] == "residual"
+    assert plan["strategies"] == []
+    assert "diode-forced repair" in plan["residual_reason"]
+    assert "install_nangate45_antenna.sh" in plan["residual_reason"]
+    # Must NOT use the generic exhausted message
+    assert "all real-fix strategies exhausted" not in plan["residual_reason"]
+
+
+def test_antenna_fail_sky130hd_still_yields_both_strategies():
+    """sky130hd (non-inert platform) still gets both antenna strategies unchanged."""
+    cfg = {"CORE_UTILIZATION": "30", "PLATFORM": "sky130hd"}
+    plan = d.build_plan(_drc("fail", 5, _antenna_cats()), {}, cfg, check="drc")
+    ids = [s["id"] for s in plan["strategies"]]
+    assert ids == ["antenna_diode_iters", "antenna_density_relief"]
+
+
+def test_apply_edits_round_trip():
+    cfg = "export DESIGN_NAME = t\nexport CORE_UTILIZATION = 10\n"
+    edits = {"MAX_REPAIR_ANTENNAS_ITER_DRT": "10", "MAX_REPAIR_ANTENNAS_ITER_GRT": "10"}
+    once = d.apply_edits(cfg, edits)
+    twice = d.apply_edits(once, edits)  # re-apply must not duplicate the block
+    assert twice.count(d.BLOCK_START) == 1
+    assert twice.count(d.BLOCK_END) == 1
+    # original non-block lines are preserved (exactly once)
+    assert twice.count("export DESIGN_NAME = t") == 1
+    assert twice.count("export CORE_UTILIZATION = 10") == 1
+    # re-parsing the result yields the edited values
+    parsed = d.parse_config(twice)
+    assert parsed["MAX_REPAIR_ANTENNAS_ITER_DRT"] == "10"
+    assert parsed["MAX_REPAIR_ANTENNAS_ITER_GRT"] == "10"
+    assert parsed["DESIGN_NAME"] == "t"
+
+
+def test_parse_config_handles_assignment_forms():
+    text = (
+        "# a comment line\n"
+        "export A = 1\n"
+        "B := 2\n"
+        "C ?= 3\n"
+        "override export D = 4\n"
+        "export A = 9\n"  # later assignment of the same var wins
+    )
+    cfg = d.parse_config(text)
+    assert cfg["A"] == "9"
+    assert cfg["B"] == "2"
+    assert cfg["C"] == "3"
+    assert cfg["D"] == "4"
+    # comment line is not parsed as a variable
+    assert "#" not in "".join(cfg.keys())
+
+
+def _mk_project(tmp_path, drc=None, lvs=None, config="export DESIGN_NAME = t\nexport CORE_UTILIZATION = 10\n"):
+    p = tmp_path / "proj"
+    (p / "reports").mkdir(parents=True)
+    (p / "constraints").mkdir(parents=True)
+    if drc is not None:
+        (p / "reports" / "drc.json").write_text(json.dumps(drc))
+    if lvs is not None:
+        (p / "reports" / "lvs.json").write_text(json.dumps(lvs))
+    (p / "constraints" / "config.mk").write_text(config)
+    return p
+
+
+def test_apply_writes_idempotent_block(tmp_path):
+    p = _mk_project(tmp_path, drc={"status": "fail", "total_violations": 7,
+                                   "categories": {"METAL7_ANTENNA": {"count": 7}}})
+    cfg = p / "constraints" / "config.mk"
+    for _ in range(2):  # apply twice → block must not duplicate
+        subprocess.run([sys.executable, str(MOD), str(p), "--check", "drc",
+                        "--apply", "antenna_diode_iters"], check=True)
+    text = cfg.read_text()
+    assert text.count("# >>> r2g signoff-fix (auto) >>>") == 1
+    assert "export MAX_REPAIR_ANTENNAS_ITER_GRT = 10" in text
+    assert text.count("export DESIGN_NAME = t") == 1  # original preserved once
+
+
+def test_next_prints_first_auto_strategy(tmp_path):
+    p = _mk_project(tmp_path, drc={"status": "fail", "total_violations": 7,
+                                   "categories": {"METAL7_ANTENNA": {"count": 7}}})
+    out = subprocess.run([sys.executable, str(MOD), str(p), "--check", "drc", "--next"],
+                         capture_output=True, text=True, check=True).stdout.strip()
+    sid, rerun, recheck = out.split("\t")
+    assert sid == "antenna_diode_iters" and rerun == "route" and recheck == "drc"
+
+
+def test_next_prints_stop_when_clean(tmp_path):
+    p = _mk_project(tmp_path, drc={"status": "clean", "total_violations": 0, "categories": {}})
+    out = subprocess.run([sys.executable, str(MOD), str(p), "--check", "drc", "--next"],
+                         capture_output=True, text=True, check=True).stdout.strip()
+    assert out.startswith("STOP\tclean")
+
+
+def test_apply_operator_only_strategy_errors(tmp_path):
+    p = _mk_project(tmp_path, lvs={"status": "fail", "log_info": {"errors": ["don't match"]}},
+                    config="export VERILOG_FILES = /x/fakeram45_64x32.v\n")
+    r = subprocess.run([sys.executable, str(MOD), str(p), "--check", "lvs",
+                        "--apply", "lvs_macro_cdl"], capture_output=True, text=True)
+    assert r.returncode == 3 and "operator-only" in r.stderr
+
+
+# ── verified-effect apply (2026-07-16 agent-logic issue 9) ───────────────────
+
+def _mk_timing_project(tmp_path, *, sdc: str | None):
+    p = tmp_path / "proj"
+    (p / "reports").mkdir(parents=True)
+    (p / "constraints").mkdir(parents=True)
+    (p / "reports" / "timing_check.json").write_text(json.dumps(
+        {"tier": "severe", "wns_ns": -1.2, "clock_period_ns": 4.0}))
+    (p / "constraints" / "config.mk").write_text(
+        "export DESIGN_NAME = t\nexport PLATFORM = nangate45\n"
+        "export CORE_UTILIZATION = 30\n")
+    if sdc is not None:
+        (p / "constraints" / "constraint.sdc").write_text(sdc)
+    return p
+
+
+def _isolated_knowledge_env(tmp_path):
+    return {**os.environ,
+            "R2G_KNOWLEDGE_DB": str(tmp_path / "isolated_knowledge.sqlite")}
+
+
+def test_apply_period_relax_missing_sdc_precondition_failed(tmp_path):
+    """rc=0 with ZERO project effect reran a full backend stage and charged the
+    unchanged failure against a never-applied recipe (issue 9). A missing
+    constraint.sdc must now be a NON-ZERO precondition failure with no writes."""
+    p = _mk_timing_project(tmp_path, sdc=None)
+    cfg_before = (p / "constraints" / "config.mk").read_text()
+    r = subprocess.run([sys.executable, str(MOD), str(p), "--check", "timing",
+                        "--apply", "period_relax"], capture_output=True, text=True,
+                       env=_isolated_knowledge_env(tmp_path))
+    assert r.returncode == 4
+    out = json.loads(r.stdout)
+    assert out["status"] == "precondition_failed" and out["applied"] is None
+    assert not (p / "constraints" / "constraint.sdc").exists()
+    assert (p / "constraints" / "config.mk").read_text() == cfg_before
+
+
+def test_apply_period_relax_unmatchable_sdc_precondition_failed(tmp_path):
+    """An SDC with neither `set clk_period N` nor a literal `-period N` (e.g. the
+    var-indirect `-period $clk_period` with the set-line stripped) is a silent
+    regex no-op — must fail precondition, file untouched."""
+    sdc = "create_clock -name clk -period $clk_period [get_ports clk]\n"
+    p = _mk_timing_project(tmp_path, sdc=sdc)
+    r = subprocess.run([sys.executable, str(MOD), str(p), "--check", "timing",
+                        "--apply", "period_relax"], capture_output=True, text=True,
+                       env=_isolated_knowledge_env(tmp_path))
+    assert r.returncode == 4
+    assert json.loads(r.stdout)["status"] == "precondition_failed"
+    assert (p / "constraints" / "constraint.sdc").read_text() == sdc
+
+
+def test_apply_period_relax_templated_sdc_verified(tmp_path):
+    """Templated SDC (`set clk_period N`): apply must land AND verify the edit."""
+    p = _mk_timing_project(
+        tmp_path, sdc="set clk_period 4.0\n"
+                      "create_clock -name clk -period $clk_period [get_ports clk]\n")
+    r = subprocess.run([sys.executable, str(MOD), str(p), "--check", "timing",
+                        "--apply", "period_relax"], capture_output=True, text=True,
+                       env=_isolated_knowledge_env(tmp_path))
+    assert r.returncode == 0
+    out = json.loads(r.stdout)
+    assert out["status"] == "applied" and out["applied"] == "period_relax"
+    new_p = out["sdc_edits"]["CLOCK_PERIOD"]
+    assert f"set clk_period {new_p}" in (p / "constraints" / "constraint.sdc").read_text()
+
+
+def test_apply_period_relax_literal_period_rewritten(tmp_path):
+    """Harvested/promoted RTL brings its own SDC style: a literal
+    `create_clock -period N` (no set-var) must now be rewritable, not a no-op."""
+    p = _mk_timing_project(
+        tmp_path, sdc="create_clock -name clk -period 4.0 [get_ports clk]\n")
+    r = subprocess.run([sys.executable, str(MOD), str(p), "--check", "timing",
+                        "--apply", "period_relax"], capture_output=True, text=True,
+                       env=_isolated_knowledge_env(tmp_path))
+    assert r.returncode == 0
+    out = json.loads(r.stdout)
+    assert out["status"] == "applied"
+    text = (p / "constraints" / "constraint.sdc").read_text()
+    assert f"-period {out['sdc_edits']['CLOCK_PERIOD']}" in text
+    assert "-period 4.0" not in text
+
+
+def _mk_sky130hd_setup_margin_project(tmp_path):
+    p = _mk_project(
+        tmp_path,
+        config=("export DESIGN_NAME = t\n"
+                "export PLATFORM = sky130hd\n"
+                "export CORE_UTILIZATION = 30\n"))
+    (p / "reports" / "timing_check.json").write_text(json.dumps(
+        {"tier": "minor", "wns_ns": -0.018, "clock_period_ns": 10.0}))
+    (p / "reports" / "route.json").write_text(json.dumps(
+        {"status": "clean", "total_violations": 0, "completed": True}))
+    sdc = "create_clock -name clk -period 10.0 [get_ports clk]\n"
+    (p / "constraints" / "constraint.sdc").write_text(sdc)
+    return p, sdc
+
+
+def test_apply_setup_margin_changes_config_but_not_registered_clock(
+        tmp_path, monkeypatch, capsys):
+    """The A/B arm may force the candidate, but its material effect must be only
+    ORFS setup headroom.  The registered clock objective is immutable."""
+    p, sdc_before = _mk_sky130hd_setup_margin_project(tmp_path)
+    monkeypatch.setattr(d, "_annotate_live_gates",
+                        _fake_annotate(status="candidate"))
+    rc = d.main([str(p), "--check", "timing", "--apply", "setup_slack_margin",
+                 "--rank-first", "setup_slack_margin"])
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert out["status"] == "applied"
+    assert out["config_edits"] == {"SETUP_SLACK_MARGIN": "0.2"}
+    assert "export SETUP_SLACK_MARGIN = 0.2" in (
+        p / "constraints" / "config.mk").read_text()
+    assert (p / "constraints" / "constraint.sdc").read_text() == sdc_before
+
+
+def test_setup_margin_requires_promoted_lifecycle_for_live_apply(
+        tmp_path, monkeypatch, capsys):
+    p, _ = _mk_sky130hd_setup_margin_project(tmp_path)
+    monkeypatch.setattr(d, "_annotate_live_gates",
+                        _fake_annotate(status="candidate"))
+    rc = d.main([str(p), "--check", "timing", "--apply", "setup_slack_margin"])
+    assert rc == 5
+    blocked = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert blocked["status"] == "lifecycle_blocked"
+    assert "SETUP_SLACK_MARGIN" not in (p / "constraints" / "config.mk").read_text()
+
+    monkeypatch.setattr(d, "_annotate_live_gates",
+                        _fake_annotate(status="promoted"))
+    rc = d.main([str(p), "--check", "timing", "--apply", "setup_slack_margin"])
+    assert rc == 0
+    applied = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert applied["status"] == "applied"
+
+
+def test_apply_config_strategy_reports_applied_status(tmp_path):
+    """A config-edit apply now self-verifies and stamps status=applied."""
+    p = _mk_project(tmp_path, drc={"status": "fail", "total_violations": 7,
+                                   "categories": {"METAL7_ANTENNA": {"count": 7}}})
+    r = subprocess.run([sys.executable, str(MOD), str(p), "--check", "drc",
+                        "--apply", "antenna_diode_iters"],
+                       capture_output=True, text=True)
+    assert r.returncode == 0
+    out = json.loads(r.stdout)
+    assert out["status"] == "applied" and out["applied"] == "antenna_diode_iters"
+
+
+def test_apply_no_edit_strategy_is_explicit_no_op(tmp_path):
+    """lvs_resolve_unknown declares NO edits by design (recheck-only): rc stays 0
+    for the live path but the status says so — never a masqueraded intervention."""
+    p = _mk_project(tmp_path, lvs={"status": "unknown"},
+                    config="export DESIGN_NAME = t\nexport PLATFORM = nangate45\n")
+    r = subprocess.run([sys.executable, str(MOD), str(p), "--check", "lvs",
+                        "--apply", "lvs_resolve_unknown"],
+                       capture_output=True, text=True)
+    assert r.returncode == 0
+    out = json.loads(r.stdout)
+    assert out["status"] == "applied_no_op" and out["applied"] == "lvs_resolve_unknown"
+
+
+DRIVER = Path(__file__).resolve().parents[1] / "scripts" / "flow" / "fix_signoff.sh"
+
+
+def _stub_dir(tmp_path, counts):
+    """Build stub run_orfs/run_drc + a python extract that pops `counts` into drc.json."""
+    sd = tmp_path / "stubs"
+    sd.mkdir()
+    (sd / "counts.txt").write_text("\n".join(str(c) for c in counts) + "\n")
+    (sd / "run_orfs.sh").write_text("#!/usr/bin/env bash\nexit 0\n")
+    (sd / "run_drc.sh").write_text("#!/usr/bin/env bash\nexit 0\n")
+    extract = '''#!/usr/bin/env python3
+import sys, json, pathlib
+proj, out = sys.argv[1], sys.argv[2]
+cf = pathlib.Path(__file__).with_name("counts.txt")
+lines = cf.read_text().splitlines()
+n = lines[0] if lines else "0"
+cf.write_text("\\n".join(lines[1:]) + ("\\n" if lines[1:] else ""))
+n = int(n or 0)
+if n == 0:
+    json.dump({"status":"clean","total_violations":0,"categories":{}}, open(out,"w"))
+else:
+    json.dump({"status":"fail","total_violations":n,"categories":{"METAL7_ANTENNA":{"count":n}}}, open(out,"w"))
+'''
+    (sd / "extract_drc.py").write_text(extract)
+    for f in ("run_orfs.sh", "run_drc.sh", "extract_drc.py"):
+        os.chmod(sd / f, 0o755)
+    return sd
+
+
+def _run_driver(proj, sd, max_iters=3):
+    env = dict(os.environ,
+               R2G_RUN_ORFS=str(sd / "run_orfs.sh"),
+               R2G_RUN_DRC=str(sd / "run_drc.sh"),
+               R2G_EXTRACT_DRC=str(sd / "extract_drc.py"),
+               # The real capability probe has its own tests below.  Keep this
+               # synthetic driver test independent of the host toolchain state.
+               R2G_ANTENNA_PRECHECK="0",
+               # Isolate the negative-evidence/lifecycle gates from the SHIPPED store:
+               # this is a functional strategy-application test, not a lifecycle test, so
+               # it must not depend on the committed recipe_status (which happens to hold
+               # antenna_diode_repair as 'candidate' — P1-10 now blocks that live).
+               R2G_KNOWLEDGE_DB=str(Path(proj).parent / "isolated_knowledge.sqlite"))
+    return subprocess.run(["bash", str(DRIVER), str(proj), "nangate45",
+                           "--check", "drc", "--max-iters", str(max_iters)],
+                          capture_output=True, text=True, env=env)
+
+
+def test_driver_stops_when_cleaned(tmp_path):
+    # seeded fail=7, first re-check returns 0 → cleaned in 1 applied iter
+    p = _mk_project(tmp_path, drc={"status": "fail", "total_violations": 7,
+                                   "categories": {"METAL7_ANTENNA": {"count": 7}}})
+    sd = _stub_dir(tmp_path, counts=[0])
+    r = _run_driver(p, sd)
+    assert r.returncode == 0, r.stderr
+    log = (p / "reports" / "fix_log.jsonl").read_text().strip().splitlines()
+    assert len(log) >= 1
+    assert (p / "reports" / "fix_summary.md").exists()
+    final = json.loads((p / "reports" / "drc.json").read_text())
+    assert final["status"] == "clean"
+
+
+def test_driver_nangate45_antenna_applies_diode_repair_then_cleans(tmp_path):
+    # nangate45 now applies antenna_diode_repair (diode-forced) and, when the re-route
+    # clears the antenna, finishes CLEAN in one applied iteration.
+    p = _mk_project(tmp_path,
+                    drc={"status": "fail", "total_violations": 7,
+                         "categories": {"METAL7_ANTENNA": {"count": 7}}},
+                    config="export DESIGN_NAME = t\nexport CORE_UTILIZATION = 10\nexport PLATFORM = nangate45\n")
+    sd = _stub_dir(tmp_path, counts=[0])  # first re-check after diode repair → clean
+    r = _run_driver(p, sd)
+    assert r.returncode == 0, r.stderr
+    lines = (p / "reports" / "fix_log.jsonl").read_text().strip().splitlines()
+    row0 = json.loads(lines[0])
+    assert row0["strategy"] == "antenna_diode_repair"
+    # the strategy's edits were written to config.mk
+    cfg_text = (p / "constraints" / "config.mk").read_text()
+    assert "export SKIP_ANTENNA_REPAIR = 1" in cfg_text
+    assert "export MAX_REPAIR_ANTENNAS_ITER_DRT = 10" in cfg_text
+    final = json.loads((p / "reports" / "drc.json").read_text())
+    assert final["status"] == "clean"
+
+
+def test_driver_nangate45_antenna_residual_when_unfixed(tmp_path):
+    # If the diode repair does NOT clear it (model not installed / calibration gap), the
+    # driver applies once (no_improvement) then STOPs residual on the next --next.
+    p = _mk_project(tmp_path,
+                    drc={"status": "fail", "total_violations": 7,
+                         "categories": {"METAL7_ANTENNA": {"count": 7}}},
+                    config="export DESIGN_NAME = t\nexport CORE_UTILIZATION = 10\nexport PLATFORM = nangate45\n")
+    sd = _stub_dir(tmp_path, counts=[7, 7, 7])
+    r = _run_driver(p, sd)
+    lines = (p / "reports" / "fix_log.jsonl").read_text().strip().splitlines()
+    # This fixture has no lyrdb, so deck_driven_antenna_diode cannot map the deck's
+    # verdict to a net and its apply returns precondition_failed (rc=4) WITHOUT
+    # writing anything. The driver must then fall through to antenna_diode_repair
+    # rather than recording a zero-effect apply as evidence against the recipe.
+    assert json.loads(lines[0])["strategy"] == "antenna_diode_repair"
+    assert any("stop" in json.loads(l)["verdict"] for l in lines)
+    # summary table must exist
+    assert "| check |" in (p / "reports" / "fix_summary.md").read_text()
+
+
+# ── apply-time lifecycle re-validation (2026-07-16 agent-logic issue 6) ──────
+
+def _fake_annotate(status=None, gate_ok=True):
+    def fake(plan, proj, **kw):
+        for s in plan.get("strategies", []):
+            if status is not None:
+                s["lifecycle_status"] = status
+        plan["lifecycle_gate_ok"] = gate_ok
+        return plan
+    return fake
+
+
+def _antenna_project(tmp_path):
+    return _mk_project(tmp_path, drc={"status": "fail", "total_violations": 7,
+                                      "categories": {"METAL7_ANTENNA": {"count": 7}}})
+
+
+def test_apply_refuses_lifecycle_blocked_strategy(tmp_path, monkeypatch, capsys):
+    """A recipe demoted between --next (selection) and --apply still applied —
+    the explicit-apply branch never re-read the lifecycle (2026-07-16 issue 6).
+    The gate now re-validates INSIDE --apply."""
+    p = _antenna_project(tmp_path)
+    monkeypatch.setattr(d, "_annotate_live_gates", _fake_annotate(status="shadow"))
+    rc = d.main([str(p), "--check", "drc", "--apply", "antenna_diode_iters"])
+    assert rc == 5
+    out = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert out["status"] == "lifecycle_blocked" and out["applied"] is None
+    assert "r2g signoff-fix" not in (p / "constraints" / "config.mk").read_text()
+
+
+def test_apply_rank_first_bypasses_lifecycle_gate(tmp_path, monkeypatch, capsys):
+    """Arm B of an A/B trial MUST be able to force the candidate under test."""
+    p = _antenna_project(tmp_path)
+    monkeypatch.setattr(d, "_annotate_live_gates", _fake_annotate(status="candidate"))
+    rc = d.main([str(p), "--check", "drc", "--apply", "antenna_diode_iters",
+                 "--rank-first", "antenna_diode_iters"])
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert out["status"] == "applied"
+    assert "MAX_REPAIR_ANTENNAS_ITER_GRT" in (p / "constraints" / "config.mk").read_text()
+
+
+def test_apply_fails_closed_when_lifecycle_unreadable(tmp_path, monkeypatch, capsys):
+    """P0-15 direction: an unreadable lifecycle store cannot prove the strategy is
+    safe to auto-apply — block (an operator can still force via --rank-first)."""
+    p = _antenna_project(tmp_path)
+    monkeypatch.setattr(d, "_annotate_live_gates", _fake_annotate(gate_ok=False))
+    rc = d.main([str(p), "--check", "drc", "--apply", "antenna_diode_iters"])
+    assert rc == 5
+    out = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert out["status"] == "lifecycle_blocked"
+    assert out["lifecycle_gate_ok"] is False
+
+
+# ---- antenna-model precondition (pilot P1-1, 2026-07-21) ---------------------
+# The pilot selected antenna_diode_repair while OpenROAD reported GRT-0246 (no
+# usable diode): the reroute produced a byte-identical DEF and a ~5,200s full
+# DRC was burned re-grading it. Diode-inserting strategies must not be ranked
+# when the platform's antenna model is PROVABLY unusable; an uninspectable
+# environment fails OPEN.
+
+_ANT_FAIL = {"status": "fail", "total_violations": 4,
+             "categories": {"M2_ANTENNA": {"count": 4}}}
+
+
+def test_antenna_precondition_unusable_blocks_diode_repair(monkeypatch):
+    monkeypatch.setattr(d, "_antenna_precondition",
+                        lambda p: (False, "no usable diode (test)"))
+    plan = d._drc_plan(dict(_ANT_FAIL), {"PLATFORM": "nangate45"}, set())
+    assert plan["strategies"] == []
+    assert plan["status"] == "residual"
+    assert "antenna_model_unusable" in (plan["residual_reason"] or "")
+    assert plan["antenna_model_unusable"] == "no usable diode (test)"
+
+
+def test_antenna_precondition_unknown_fails_open(monkeypatch):
+    monkeypatch.setattr(d, "_antenna_precondition",
+                        lambda p: (None, "cannot inspect (test)"))
+    plan = d._drc_plan(dict(_ANT_FAIL), {"PLATFORM": "nangate45"}, set())
+    assert [s["id"] for s in plan["strategies"]] == [
+        "deck_driven_antenna_diode", "deck_driven_antenna_diode_accumulate",
+        "antenna_ratio_overconstrain", "antenna_diode_repair"]
+
+
+def test_antenna_precondition_keeps_density_relief_elsewhere(monkeypatch):
+    """On non-diode-forced platforms only the diode-inserting strategy is
+    dropped; density relief is a genuine layout change and survives."""
+    monkeypatch.setattr(d, "_antenna_precondition", lambda p: (False, "x"))
+    plan = d._drc_plan(dict(_ANT_FAIL),
+                       {"PLATFORM": "sky130hd", "CORE_UTILIZATION": "40"}, set())
+    ids = [s["id"] for s in plan["strategies"]]
+    assert "antenna_density_relief" in ids and "antenna_diode_iters" not in ids
+
+
+def test_apply_period_relax_records_fmax_relaxation_chain(tmp_path):
+    """Fmax-mode project: a period_relax loosening is appended to fmax_search.json
+    so the signoff manifest can bind the stamped period back to the winner."""
+    p = _mk_timing_project(
+        tmp_path, sdc="set clk_period 4.0\n"
+                      "create_clock -name clk -period $clk_period [get_ports clk]\n")
+    (p / "reports" / "fmax_search.json").write_text(json.dumps(
+        {"status": "ok", "winner": {"period": 4.0}}))
+    r = subprocess.run([sys.executable, str(MOD), str(p), "--check", "timing",
+                        "--apply", "period_relax"], capture_output=True, text=True,
+                       env=_isolated_knowledge_env(tmp_path))
+    assert r.returncode == 0, r.stderr
+    new_p = float(json.loads(r.stdout)["sdc_edits"]["CLOCK_PERIOD"])
+    rep = json.loads((p / "reports" / "fmax_search.json").read_text())
+    [step] = rep["relaxations"]
+    assert step["from"] == 4.0 and step["to"] == new_p and step["source"] == "period_relax"
+
+
+def test_apply_period_relax_without_fmax_search_writes_no_report(tmp_path):
+    """Fixed-period task (no Fmax search): nothing to extend, no report invented."""
+    p = _mk_timing_project(
+        tmp_path, sdc="set clk_period 4.0\n"
+                      "create_clock -name clk -period $clk_period [get_ports clk]\n")
+    r = subprocess.run([sys.executable, str(MOD), str(p), "--check", "timing",
+                        "--apply", "period_relax"], capture_output=True, text=True,
+                       env=_isolated_knowledge_env(tmp_path))
+    assert r.returncode == 0, r.stderr
+    assert not (p / "reports" / "fmax_search.json").exists()
+
+
+# ── LVS port-feedthrough recipe (2026-10-01) ─────────────────────────────────
+
+def test_top_pin_mismatch_offers_ab_gated_feedthrough_buffer():
+    """AIC Fmax cohort: 8 Netgen 'Top level cell failed pin matching' residuals had no
+    strategy (status 'mismatch' was not even actionable). The port-alias hook exists."""
+    lvs = {"status": "mismatch", "tool": "netgen", "mismatch_class": "top_pin_mismatch"}
+    plan = d.build_plan({}, lvs, {"PLATFORM": "sky130hd"}, check="lvs")
+    [s] = [s for s in plan["strategies"] if s["id"] == "lvs_port_feedthrough_buffer"]
+    assert s["config_edits"]["POST_GLOBAL_PLACE_TCL"].endswith("buffer_port_feedthroughs.tcl")
+    assert s["rerun_from"] == "place" and s["recheck"] == "lvs"
+    assert s["requires_ab_promotion"] is True
+
+
+def test_feedthrough_buffer_not_offered_for_other_lvs_classes_or_when_hooked():
+    cfg = {"PLATFORM": "sky130hd"}
+    short = {"status": "mismatch", "tool": "netgen", "mismatch_class": "pin_pdn_short"}
+    assert not [s for s in d.build_plan({}, short, cfg, check="lvs")["strategies"]
+                if s["id"] == "lvs_port_feedthrough_buffer"]
+    hooked = {**cfg, "POST_GLOBAL_PLACE_TCL": "/x/buffer_port_feedthroughs.tcl"}
+    pin = {"status": "mismatch", "tool": "netgen", "mismatch_class": "top_pin_mismatch"}
+    assert not [s for s in d.build_plan({}, pin, hooked, check="lvs")["strategies"]
+                if s["id"] == "lvs_port_feedthrough_buffer"]
+
+
+def test_feedthrough_buffer_detected_from_netgen_report(tmp_path):
+    rpt = tmp_path / "netgen_lvs.rpt"
+    rpt.write_text("...\nFinal result: Top level cell failed pin matching.\n")
+    lvs = {"status": "mismatch", "tool": "netgen", "log_info": {"report_file": str(rpt)}}
+    plan = d.build_plan({}, lvs, {"PLATFORM": "sky130hd"}, check="lvs")
+    assert [s["id"] for s in plan["strategies"]] == ["lvs_port_feedthrough_buffer"]
+
+
+def test_feedthrough_buffer_has_an_ab_application_path():
+    """A new catalog recipe missing from engineer_loop's known-apply set is PARKED as
+    a guaranteed no-op by ab-drain and can never be validated (2026-10-01)."""
+    import engineer_loop
+    assert engineer_loop._known_apply_strategy(None, "lvs_port_feedthrough_buffer")
+    assert "lvs_port_feedthrough_buffer" in engineer_loop._KNOWN_APPLY_STRATEGIES
+
+
+def test_ab_enqueue_refuses_lvs_recipe_under_timing_symptom(tmp_path):
+    import engineer_loop
+    import knowledge_db
+    conn = knowledge_db.connect(tmp_path / "k.sqlite")
+    knowledge_db.ensure_schema(conn)
+    conn.execute("INSERT INTO symptoms(symptom_id, check_type, class) VALUES "
+                 "('t1','timing','clean'), ('l1','lvs','top_pin_mismatch')")
+    why = engineer_loop._enqueue_check_mismatch(conn, "t1", "lvs_port_feedthrough_buffer")
+    assert why and "timing|clean" in why
+    assert engineer_loop._enqueue_check_mismatch(conn, "l1", "lvs_port_feedthrough_buffer") is None
+    assert engineer_loop._enqueue_check_mismatch(conn, "t1", "pin_side_rebalance") is None
+    assert engineer_loop._enqueue_check_mismatch(conn, "unknown", "lvs_x") is None
+
+
+def test_apply_edits_stacks_on_accepted_fixes():
+    """A later fix (timing) must not erase an earlier accepted one (LVS hook)."""
+    cfg = "export DESIGN_NAME = t\nexport CORE_UTILIZATION = 20\n"
+    lvs = d.apply_edits(cfg, {"POST_GLOBAL_PLACE_TCL": "/hooks/ft.tcl"})
+    both = d.apply_edits(lvs, {"CORE_UTILIZATION": "15"})
+    assert "export POST_GLOBAL_PLACE_TCL = /hooks/ft.tcl" in both
+    assert "export CORE_UTILIZATION = 15" in both
+    again = d.apply_edits(both, {"CORE_UTILIZATION": "12"})       # same key: override
+    assert again.count("CORE_UTILIZATION = 1") == 1 and "= 12" in again
+    assert again.count(d.BLOCK_START) == 1

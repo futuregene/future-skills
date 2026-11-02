@@ -1,0 +1,280 @@
+"""Guards tools/check_db_integrity.py — the BOTH-DBs cross-check that proves the
+journal + knowledge stores agree after every move (driven by /r2g-debug each wave).
+
+Severity contract under test (the reason this tool exists alongside honesty.py):
+  * knowledge.sqlite is the source of truth -> its dishonesty is ALARM (exit 1).
+  * journal.sqlite is a best-effort ledger -> a move it failed to record is WARN
+    (exit 0): a lead to chase, never a corrupted lesson.
+
+The knowledge-side gates are NOT re-implemented here; the tool imports
+knowledge/honesty.py::run_all, so this test also pins that delegation (a fail run
+with no failure_event must ALARM, exactly as honesty.py's own test asserts)."""
+import importlib.util
+import sqlite3
+from pathlib import Path
+
+import knowledge_db        # on sys.path via tests/conftest.py
+import journal_db
+
+ROOT = Path(__file__).resolve().parents[3]
+_TOOL = ROOT / "tools" / "check_db_integrity.py"
+
+_spec = importlib.util.spec_from_file_location("check_db_integrity", _TOOL)
+cdi = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(cdi)
+
+
+# --------------------------------------------------------------------------- #
+# fixture builders — real schema, real journal writer                          #
+# --------------------------------------------------------------------------- #
+def _kdb(tmp_path, *, runs=(), fail_events=(), ab_trials=(), recipes=(), escalations=()):
+    """runs: (run_id, project_path, orfs_status, orfs_fail_stage, platform)."""
+    p = tmp_path / "knowledge.sqlite"
+    con = knowledge_db.connect(p)
+    knowledge_db.ensure_schema(con)
+    for rid, proj, status, fstage, plat in runs:
+        con.execute("INSERT INTO runs (run_id, project_path, ingested_at, orfs_status,"
+                    " orfs_fail_stage, platform) VALUES (?,?,?,?,?,?)",
+                    (rid, proj, "2026-06-30T00:00:00", status, fstage, plat))
+    for rid, sig in fail_events:
+        con.execute("INSERT INTO failure_events (run_id, signature) VALUES (?,?)", (rid, sig))
+    for sym, dclass, plat, strat, verdict in ab_trials:
+        con.execute("INSERT INTO ab_trials (symptom_id, design_class, platform, strategy,"
+                    " verdict) VALUES (?,?,?,?,?)", (sym, dclass, plat, strat, verdict))
+    for sym, dclass, plat, strat, status in recipes:
+        con.execute("INSERT INTO recipe_status (symptom_id, design_class, platform, strategy,"
+                    " status) VALUES (?,?,?,?,?)", (sym, dclass, plat, strat, status))
+    for sym, reason, status in escalations:
+        con.execute("INSERT INTO escalations (symptom_id, reason, status) VALUES (?,?,?)",
+                    (sym, reason, status))
+    con.commit()
+    con.close()
+    return p
+
+
+def _jdb(tmp_path, actions=()):
+    """actions: (project_path, action_type, run_id, symptom_id)."""
+    p = tmp_path / "journal.sqlite"
+    con = journal_db.connect(p)
+    journal_db.ensure_schema(con)
+    for proj, atype, rid, sym in actions:
+        journal_db.append_action(con, project_path=proj, actor="loop",
+                                 action_type=atype, run_id=rid, symptom_id=sym)
+    con.close()
+    return p
+
+
+def _run(kdb, jdb, *extra):
+    return cdi.main(["--kdb", str(kdb), "--jdb", str(jdb), *extra])
+
+
+# --------------------------------------------------------------------------- #
+def test_consistent_stores_pass(tmp_path, capsys):
+    """A fail run with its event + an ab_launch'd/promoted recipe whose moves are
+    journaled = no ALARM, no WARN."""
+    kdb = _kdb(
+        tmp_path,
+        runs=[("R1", "/p/clean", "pass", None, "nangate45"),
+              ("R2", "/p/abort", "fail", "place", "nangate45")],
+        fail_events=[("R2", "orfs-fail-place-DPL-0024")],
+        ab_trials=[("S1", "logic/small", "nangate45", "core_util_relief", "win")],
+        recipes=[("S1", "logic/small", "nangate45", "core_util_relief", "promoted")],
+    )
+    jdb = _jdb(tmp_path, actions=[
+        ("/p/abort", "ab_launch", "R2", "S1"),   # links project /p/abort -> J2 ok, J4 ok
+        ("/p/abort", "promote", None, "S1"),      # the promotion move IS in the ledger
+    ])
+    rc = _run(kdb, jdb)
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "verdict: PASS" in out
+    assert "[ALARM]" not in out and "[warn]" not in out
+
+
+def test_fail_run_without_event_alarms(tmp_path, capsys):
+    """Delegated honesty: a fail run missing its failure_event is a HARD knowledge lie."""
+    kdb = _kdb(tmp_path,
+               runs=[("R1", "/p/x", "fail", "place", "nangate45")],
+               fail_events=[],   # the lie
+               ab_trials=[("S", "c", "nangate45", "s", "win")])  # satisfy K2 so the ALARM is H, not K2
+    jdb = _jdb(tmp_path, actions=[("/p/x", "stage_rerun", "R1", "S")])
+    rc = _run(kdb, jdb)
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert "[ALARM]" in out and "H:every_fail_has_event" in out
+
+
+def test_unlinked_journal_actions_alarm_J2(tmp_path, capsys):
+    """A project with a knowledge run AND journal actions but ZERO back-filled run_id:
+    ingest never linked the ledger to the result -> HARD."""
+    kdb = _kdb(tmp_path, runs=[("R1", "/p/x", "pass", None, "nangate45")])
+    jdb = _jdb(tmp_path, actions=[("/p/x", "tool_invoke", None, None)])  # run_id never back-filled
+    rc = _run(kdb, jdb)
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert "ALARM" in out and "J2" in out
+
+
+def test_promote_without_action_warns_L2(tmp_path, capsys):
+    """A promoted recipe whose symptom has no `promote` action: knowledge committed a
+    move the ledger never recorded. WARN (trend), not ALARM — knowledge is honest."""
+    kdb = _kdb(tmp_path,
+               runs=[("R1", "/p/x", "pass", None, "nangate45")],
+               recipes=[("S9", "logic/small", "nangate45", "core_util_relief", "promoted")])
+    jdb = _jdb(tmp_path, actions=[("/p/x", "tool_invoke", "R1", None)])  # alive, linked, but no promote
+    rc = _run(kdb, jdb)
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "[warn] L2" in out
+    assert "[ALARM]" not in out
+
+
+def test_dangling_journal_run_id_warns_J4(tmp_path, capsys):
+    """A journal action whose run_id is absent from knowledge.runs (wiped/re-ingested
+    project): cross-DB referential break, but benign residue -> WARN."""
+    kdb = _kdb(tmp_path, runs=[("R1", "/p/x", "pass", None, "nangate45")])
+    jdb = _jdb(tmp_path, actions=[
+        ("/p/x", "tool_invoke", "R1", None),       # keeps /p/x linked so J2 stays clean
+        ("/p/gone", "tool_invoke", "GHOST", None),  # GHOST not in runs -> J4
+    ])
+    rc = _run(kdb, jdb)
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "[warn] J4" in out
+    assert "[ALARM]" not in out
+
+
+def test_J4_classifies_dangling_by_mechanism(tmp_path, capsys):
+    """J4's WARN text promises 'benign residue if flat, a writer bug if growing' but
+    the tool keeps no history, so a bare count leaves the operator to hand-run the
+    forensics (2026-07-18 /r2g-debug finding). The dangle must be classified IN-BAND
+    by the two benign mechanisms:
+
+      * wiped/renamed project -> its rows are frozen history, nothing can re-mint them
+      * re-ingest residue     -> run_id keys on ppa.json mtime, so a re-ingest re-mints
+                                 it; the project carries a NEWER action that DOES resolve
+
+    Anything else -- a LIVE project whose newest run_id-bearing action resolves to no
+    run -- is the writer bug the WARN exists to surface, and must be counted apart."""
+    live = tmp_path / "live_proj"
+    live.mkdir()
+    reing = tmp_path / "reingested_proj"
+    reing.mkdir()
+    kdb = _kdb(tmp_path, runs=[("R1", "/p/x", "pass", None, "nangate45"),
+                               ("RNEW", str(reing), "pass", None, "nangate45")])
+    jdb = _jdb(tmp_path, actions=[
+        ("/p/x", "tool_invoke", "R1", None),          # keeps J2 clean
+        ("/p/wiped", "tool_invoke", "GONE", None),     # project dir absent -> frozen history
+        (str(reing), "tool_invoke", "OLD", None),      # orphaned by the re-ingest below...
+        (str(reing), "tool_invoke", "RNEW", None),     # ...which minted RNEW (newer, resolves)
+        (str(live), "tool_invoke", "NOPE", None),      # live project, newest action dangles
+    ])
+    rc = _run(kdb, jdb)
+    out = capsys.readouterr().out
+    j4 = [ln for ln in out.splitlines() if "J4" in ln][0]
+    assert rc == 0                      # severity contract unchanged: journal gaps stay WARN
+    assert "[warn] J4" in j4
+    assert "3 dangling" in j4           # GONE + OLD + NOPE
+    assert "1 wiped/renamed" in j4      # GONE
+    assert "1 re-ingest residue" in j4  # OLD, superseded by RNEW
+    assert "1 UNEXPLAINED" in j4        # NOPE -- the real lead
+    assert "[ALARM]" not in out
+
+
+def test_J4_all_benign_dangles_read_as_flat(tmp_path, capsys):
+    """With every dangle explained, J4 must say so explicitly -- a permanently-yellow
+    check the operator cannot clear is one they stop reading."""
+    kdb = _kdb(tmp_path, runs=[("R1", "/p/x", "pass", None, "nangate45")])
+    jdb = _jdb(tmp_path, actions=[
+        ("/p/x", "tool_invoke", "R1", None),
+        ("/p/wiped", "tool_invoke", "GONE", None),
+    ])
+    assert _run(kdb, jdb) == 0
+    j4 = [ln for ln in capsys.readouterr().out.splitlines() if "J4" in ln][0]
+    assert "0 UNEXPLAINED" in j4
+    assert "flat residue" in j4
+
+
+def _stamp(jdb, project_path, run_id, ts):
+    """Insert one journal action at an EXACT timestamp (append_action stamps its
+    own), so the mixed-regime ordering below is reproducible."""
+    con = sqlite3.connect(jdb)
+    con.execute("INSERT INTO actions (ts, project_path, actor, action_type, run_id)"
+                " VALUES (?,?,?,?,?)", (ts, project_path, "loop", "tool_invoke", run_id))
+    con.commit()
+    con.close()
+
+
+def test_J4_orders_mixed_timezone_timestamps_by_instant(tmp_path, capsys):
+    """J4 compared ISO timestamps as STRINGS (2026-07-19 audit P1-N2). The journal
+    mixes regimes at scale -- the production store holds ~42k 'Z' rows beside ~14k
+    '+HH:MM' offset rows -- and lexically '...T10:00:00+08:00' (02:00Z) sorts ABOVE
+    '...T03:00:00Z' (03:00Z). So a resolving action that is really OLDER than the
+    dangle looked newer, and a LIVE writer failure was written off as benign
+    re-ingest residue: a false clean on the one distinction J4 exists to draw."""
+    live = tmp_path / "tz_proj"
+    live.mkdir()
+    kdb = _kdb(tmp_path, runs=[("RRESOLVE", str(live), "pass", None, "nangate45")])
+    jdb = _jdb(tmp_path)
+    # Resolving action at 02:00Z, written as +08:00 -- lexically the LARGER string.
+    _stamp(jdb, str(live), "RRESOLVE", "2026-07-18T10:00:00+08:00")
+    # Dangling action at 03:00Z -- the genuinely NEWER instant.
+    _stamp(jdb, str(live), "MISSING", "2026-07-18T03:00:00Z")
+    assert _run(kdb, jdb) == 0
+    j4 = [ln for ln in capsys.readouterr().out.splitlines() if "J4" in ln][0]
+    assert "1 UNEXPLAINED" in j4, f"newer dangle misread as residue: {j4}"
+    assert "0 re-ingest residue" in j4
+
+
+def test_J4_equal_instant_across_regimes_is_still_residue(tmp_path, capsys):
+    """The '>= not >' contemporaneity rule must survive normalization: the SAME
+    instant spelled in two regimes is still proof the writer recovered."""
+    live = tmp_path / "tz_eq"
+    live.mkdir()
+    kdb = _kdb(tmp_path, runs=[("RRESOLVE", str(live), "pass", None, "nangate45")])
+    jdb = _jdb(tmp_path)
+    _stamp(jdb, str(live), "RRESOLVE", "2026-07-18T11:00:00+08:00")   # 03:00Z
+    _stamp(jdb, str(live), "MISSING", "2026-07-18T03:00:00Z")         # 03:00Z
+    assert _run(kdb, jdb) == 0
+    j4 = [ln for ln in capsys.readouterr().out.splitlines() if "J4" in ln][0]
+    assert "1 re-ingest residue" in j4
+    assert "0 UNEXPLAINED" in j4
+
+
+def test_J4_unparseable_timestamp_is_never_silently_benign(tmp_path, capsys):
+    """A ts we cannot order cannot be EXPLAINED — it must surface as a lead, not
+    be waved through as residue."""
+    live = tmp_path / "tz_bad"
+    live.mkdir()
+    kdb = _kdb(tmp_path, runs=[("RRESOLVE", str(live), "pass", None, "nangate45")])
+    jdb = _jdb(tmp_path)
+    _stamp(jdb, str(live), "RRESOLVE", "2026-07-18T23:00:00Z")
+    _stamp(jdb, str(live), "MISSING", "not-a-timestamp")
+    assert _run(kdb, jdb) == 0
+    j4 = [ln for ln in capsys.readouterr().out.splitlines() if "J4" in ln][0]
+    assert "1 UNEXPLAINED" in j4
+
+
+def test_platform_scope_isolates_correspondence(tmp_path, capsys):
+    """--platform must scope L1/L2: a sky130hd-only ledger gap is invisible when the
+    run under test is nangate45 (the campaign /r2g-debug drives)."""
+    kdb = _kdb(tmp_path,
+               runs=[("R1", "/p/x", "pass", None, "nangate45")],
+               recipes=[("Ssky", "logic/small", "sky130hd", "density_relief", "promoted")])
+    jdb = _jdb(tmp_path, actions=[("/p/x", "tool_invoke", "R1", None)])  # no promote for Ssky
+    # global: L2 warns about the sky130hd gap
+    assert _run(kdb, jdb) == 0
+    assert "[warn] L2" in capsys.readouterr().out
+    # nangate45-scoped: that gap is out of scope -> L2 clean
+    assert _run(kdb, jdb, "--platform", "nangate45") == 0
+    assert "[ok  ] L2" in capsys.readouterr().out
+
+
+def test_missing_journal_is_warn_not_alarm(tmp_path, capsys):
+    """A fresh clone has no journal (gitignored). Honesty still runs; cross-DB is just
+    not verifiable -> WARN, exit 0 (never a false ALARM)."""
+    kdb = _kdb(tmp_path, runs=[("R1", "/p/x", "pass", None, "nangate45")])
+    rc = cdi.main(["--kdb", str(kdb), "--jdb", str(tmp_path / "nope.sqlite")])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "J*" in out and "journal DB absent" in out

@@ -1,0 +1,41 @@
+{
+  "_comment": "Conservative curation: explicit anchored (^prefix_) pins make the dominant underscore-separated IP families intentional and drift-protected, and stop unanchored prefixes from silently swallowing unrelated future designs. Ambiguous run-together names (e.g. spimemio, axildouble) deliberately fall through to the split('_')[0] singleton fallback rather than being force-merged. We never merge across behavior boundaries — bus-heavy designs are protected by suggest_config's bus_heavy CORE_UTILIZATION clamp, not by family taxonomy.",
+  "mappings": {
+    "aes128_core":   "aes_xcrypt",
+    "ibex_core":     "ibex",
+    "riscv_top":     "riscv32i",
+    "RocketTile":    "tinyRocket",
+    "vga_enh_top":   "vga_enh_top",
+    "swerv_wrapper": "swerv",
+    "black_parrot":  "bp_multi_top",
+    "ChipTop":       "boom_chiptop",
+    "frisc":         "faraday_risc",
+    "DSP_CORE":      "faraday_dsp",
+    "dma_top":       "faraday_dma"
+  },
+  "patterns": [
+    {"regex": "^aes",                       "family": "aes_xcrypt"},
+    {"regex": "^ibex",                      "family": "ibex"},
+    {"regex": "^riscv",                     "family": "riscv32i"},
+    {"regex": "^rocket",                    "family": "tinyRocket"},
+    {"regex": "^swerv",                     "family": "swerv"},
+    {"regex": "^(bp_|black_parrot)",        "family": "bp_multi_top"},
+    {"regex": "^vga",                       "family": "vga_enh_top"},
+    {"regex": "^ChipTop",                   "family": "boom_chiptop"},
+    {"regex": "^DSP_CORE",                  "family": "faraday_dsp"},
+    {"regex": "^dma_top",                   "family": "faraday_dma"},
+    {"regex": "^frisc",                     "family": "faraday_risc"},
+
+    {"regex": "^axis_",                     "family": "axis"},
+    {"regex": "^axil_",                     "family": "axil"},
+    {"regex": "^axi_",                      "family": "axi"},
+    {"regex": "^eth_",                      "family": "eth"},
+    {"regex": "^udp_",                      "family": "udp"},
+    {"regex": "^ip[_0-9]",                  "family": "ip"},
+    {"regex": "^i2c_",                      "family": "i2c"},
+    {"regex": "^spi_",                      "family": "spi"},
+    {"regex": "^uart_",                     "family": "uart"},
+    {"regex": "^can_",                      "family": "can"},
+    {"regex": "^sha256_",                   "family": "sha256"}
+  ]
+}
