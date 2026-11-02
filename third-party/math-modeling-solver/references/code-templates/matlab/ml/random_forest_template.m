@@ -26,8 +26,9 @@ function [model, metrics] = rf_template()
         'NumPredictorsToSample', 'all', ...
         'OOBPrediction', 'on');
 
-    % 预测
-    y_pred = str2double(predict(model, X_test));
+    % 预测：回归模式下 predict 直接返回数值列向量
+    % （TreeBagger 用 'regression' 训练时输出 double；只有分类模式才返回字符标签）
+    y_pred = predict(model, X_test);
 
     % 评估
     r2 = 1 - sum((y_test - y_pred).^2) / sum((y_test - mean(y_test)).^2);
