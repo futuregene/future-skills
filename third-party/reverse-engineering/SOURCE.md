@@ -12,17 +12,25 @@
 
 ## 增量合并（2026-11-02）
 
-本技能原有内容来自 reverse-skill；下列文件来自 ljagiello/ctf-skills 的 ctf-reverse/
-（commit 6106aaf5f1f4eeb6b95908f11c2314c7150dfac，MIT），因其在本技能中没有对应物：
+本技能原有内容来自 reverse-skill；下列文件来自 ljagiello/ctf-skills 的 `ctf-reverse/`
+（commit `a6106aaf5f1f4eeb6b95908f11c2314c7150dfac`，MIT），因其在本技能中没有对应物：
 
-- 	ools-mcp.md（44.6 KB）—— 逆向/调试类 MCP 工具索引
-- unicorn-emulation.md（50.8 KB）—— Unicorn 模拟执行
-- adare2-r2pipe.md（17.8 KB）—— r2pipe 脚本接口
-- mba-simplification.md（4.6 KB）—— 混合布尔算术化简
+- `tools-mcp.md`（44.6 KB）—— 逆向/调试类 MCP 工具索引
+- `unicorn-emulation.md`（50.8 KB）—— Unicorn 模拟执行
+- `radare2-r2pipe.md`（17.8 KB）—— r2pipe 脚本接口
+- `mba-simplification.md`（4.6 KB）—— 混合布尔算术化简
 
-同时把 ctf-malware、ctf-pwn 中指向未导入的 ../ctf-reverse/ 的链接改指向本技能对应文件。
+同时把 `ctf-malware`、`ctf-pwn` 中指向未导入的 `../ctf-reverse/` 的链接改指向本技能对应文件。
 
 ## 未导入的引用（2026-11-02 清理）
 
-上游 \ield-journal/\、\ops/\ 两个技能不在本库，正文里指向它们的链接已去掉、只保留文字。
-按"文档不承诺不存在的东西"处理，刻意不导入。
+上游的 `field-journal/`、`ops/` 两个技能不在本库；`unicorn-emulation.md` 里指向的三个
+ctf-reverse 兄弟文件也未导入。这些引用已改为指向本技能中**确实包含对应小节**的文件：
+
+| 原引用 | 改为 |
+| --- | --- |
+| `tools-emulation.md#qiling-framework-cross-platform-emulation` | `tools-dynamic.md#qiling-framework-cross-platform-emulation` |
+| `anti-analysis-ctf.md#instruction-trace-inversion-with-keystone-and-unicorn-meepwn-ctf-2017` | `anti-analysis.md#instruction-trace-inversion-with-keystone-and-unicorn-meepwn-ctf-2017` |
+| `patterns-runtime.md#multi-stage-shellcode-loaders` | `field-notes.md#multi-stage-shellcode-loaders` |
+
+`field-journal/`、`ops/` 本身刻意不导入，相关引用已去掉、只保留文字。

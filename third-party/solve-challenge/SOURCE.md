@@ -18,6 +18,6 @@
 
 ## 增量合并（2026-11-02）
 
-scripts/install_ctf_tools.sh 取自上游仓库根目录（commit 6106aaf5f1f4eeb6b95908f11c2314c7150dfac，MIT），
-因为本技能正文按 ash scripts/install_ctf_tools.sh <group> 的方式调用它，而导入时只取了技能目录。
+`scripts/install_ctf_tools.sh` 取自上游仓库根目录（commit `a6106aaf5f1f4eeb6b95908f11c2314c7150dfac`，MIT），
+因为本技能正文按 `bash scripts/install_ctf_tools.sh <group>` 的方式调用它，而导入时只取了技能目录。
 运行前请把工作目录切到本技能目录。
