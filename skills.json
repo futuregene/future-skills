@@ -1254,5 +1254,390 @@
     "enabled": true,
     "name_zh": "数模论文写作",
     "description_zh": "数模论文结构、模型检验、参考文献规范与终稿格式检查"
+  },
+  "dcf-model": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "DCF 估值模型",
+    "description_zh": "按投行口径搭建 DCF 股权估值模型：历史财务与驱动假设、Bear/Base/Bull 三情景现金流预测、WACC 与终值、5×5 敏感性表，全部以 Excel 公式写出而非写死数值，交付前用 validate_dcf.py 校验公式错误、终值占比与 g<WACC。"
+  },
+  "3-statement-model": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "三表联动模型填充",
+    "description_zh": "在既有 Excel 模板中补全并连通利润表、资产负债表、现金流量表：先映射模板结构再逐块填充，历史数与假设驱动分离，预测一律写公式，每完成一块就给出资产负债表平衡与现金勾稽检查。"
+  },
+  "comps-analysis": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "可比公司分析",
+    "description_zh": "构建可比公司估值表：选样与口径统一、企业价值桥、EV/EBITDA 与 P/E 等倍数、统计分位与离群值标注，输出可逐格复核的 Excel 表和结论。"
+  },
+  "audit-xls": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "Excel 模型审计",
+    "description_zh": "按选区/单表/整本模型三级范围审计电子表格：公式错误、公式内硬编码、范围偏移、跨表断链、单位与隐藏行；模型级再查资产负债表平衡、留存收益滚动、现金勾稽与 DCF/LBO/并购/三表模型的常见错误，输出带严重度的问题表。"
+  },
+  "roll-forward": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "科目滚动表",
+    "description_zh": "为资产负债表科目编制「期初＋本期增加＋计提－冲回－付款±重分类±汇率折算＝期末」的滚动表，每行追到总账口径并注明查询条件，表必须自洽；差额只能作为未解释项暴露，不得轧平。"
+  },
+  "unit-economics": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "单位经济分析",
+    "description_zh": "分析订阅与交易类业务的单位经济：ARR 桥（新签/扩张/收缩/流失）、队列留存与净留存、CAC 与 LTV 及回本期、收入集中度、毛利瀑布，用于尽调、定价与增长质量判断。"
+  },
+  "revenue-recognition": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "收入确认（IFRS 15 / ASC 606）",
+    "description_zh": "按五步法处理收入确认：识别履约义务、确定交易价格（含可变对价与重大融资成分）、按单独售价分摊、判断时点或时段确认，并给出合同资产/负债与分期确认分录、分摊工作底稿。口径为 IFRS 15 / US GAAP ASC 606，不适用于中国大陆 CAS 14 报表。"
+  },
+  "lease-accounting": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "租赁会计（IFRS 16 / ASC 842）",
+    "description_zh": "识别租赁与嵌入租赁，用增量借款利率折现计量租赁负债与使用权资产，处理后续折旧与利息、重新计量与变更、短期与低价值豁免，输出起租日摘要与分录。"
+  },
+  "deferred-tax": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "递延所得税（IAS 12 / ASC 740）",
+    "description_zh": "用资产负债表法计算暂时性差异与递延税资产/负债，评估 DTA 可回收性与估值备抵，编制有效税率到法定税率的桥表，并处理未使用亏损、税收抵免与税率变更。"
+  },
+  "corporate-consolidation": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "合并报表",
+    "description_zh": "合并母子公司报表：判断控制与合并范围、权益法适用、内部交易与存货未实现利润抵销、少数股东权益（含部分商誉口径）、外币报表折算，输出抵销分录与合并要点。"
+  },
+  "inventory-costing": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "存货成本（IAS 2 / ASC 330）",
+    "description_zh": "存货计价与成本归集：FIFO / 移动加权 / 标准成本的选用与一致应用、正常产能下的固定制造费用分摊、成本与可变现净值孰低及陈旧与减值计提。"
+  },
+  "fixed-asset-accounting": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "固定资产（IAS 16 / IAS 36 / ASC 360）",
+    "description_zh": "固定资产全周期处理：资本化与费用化判断（含后续支出）、折旧方法与起止时点、组件化、处置与减值迹象，以及资产台账的维护与滚动。"
+  },
+  "audit-checklist": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "财务审计清单",
+    "description_zh": "组织内审与外审准备：按存在与发生、完整性、权利与义务、计价与分摊、列报与披露五类认定设计程序，覆盖收入截止性、三单匹配、未记录负债、资产盘点与折旧重算，输出带风险与建议的发现表。"
+  },
+  "variance-analysis": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "标准成本差异分析",
+    "description_zh": "制造业与产品成本差异：材料价差与量差、人工工资率与效率差、固定制造费用耗费差与产量差，定位根因（采购、停机、培训）并给出纠正措施与差异报告。"
+  },
+  "budget-forecast": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "预算与预测",
+    "description_zh": "搭建预算与滚动预测：识别收入/成本驱动、历史基数与增长率、情景与敏感性、预算对比实际与差异解释，输出可复算的预测表与假设清单。"
+  },
+  "working-capital-analysis": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "营运资本分析",
+    "description_zh": "量化营运资本占用：DSO / DIO / DPO 与现金转换周期（季节性业务用 countback）、AR 账龄、每提前一天的现金影响、营运资本 peg 与释放路径，给出可执行改善措施。"
+  },
+  "close-management": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "月末关账管理",
+    "description_zh": "编排月结与年结：5 天关账骨架、任务依赖与关键路径、RAG 状态跟踪、阻塞升级与关账后复盘，输出关账日历、关键路径与阻塞日志。"
+  },
+  "intercompany-accounting": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "内部往来与抵销",
+    "description_zh": "管理集团内部往来：双方同期入账与对账容差、差异定位、转让定价与合同留痕、期末抵销（含存货未实现利润）、净额结算与超龄往来清理。"
+  },
+  "compensation-benchmarking": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "薪酬对标",
+    "description_zh": "用公开数据与用户提供的调研报告做岗位薪酬对标：选可比岗位与地域、取中位数与四分位、建薪酬带宽与中点、做公平性与偏离分析、给出调薪与 Offer 建议。"
+  },
+  "interview-kit-builder": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "面试套件",
+    "description_zh": "为岗位搭建结构化面试套件：4–6 项胜任力与行为指标、各轮次问题与追问、评分卡与量级描述、面试官指引与评分校准，降低评价偏差。"
+  },
+  "job-description-writer": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "职位描述撰写",
+    "description_zh": "按结构撰写或改写职位描述：职责（行动+影响）、必要与优先资格、薪酬透明、包容性用语替换表、申请说明与可访问性，输出可直接发布的版本与改写说明。"
+  },
+  "seo-content-optimizer": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "SEO 内容优化",
+    "description_zh": "优化网页内容的自然搜索表现：种子词与主题聚类、搜索意图匹配、标题与 meta 描述、内链与结构、内容缺口与更新计划，并给出可量化验收点。"
+  },
+  "email-marketing": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "邮件营销",
+    "description_zh": "设计邮件营销：按目标分型（欢迎/培育/挽回/交易）、分群策略、主题行公式与 A/B 测试矩阵、滴灌序列时序、指标基准与合规要素。"
+  },
+  "brand-voice-enforcement": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "品牌口吻约束",
+    "description_zh": "把品牌指南落到成稿：定位品牌指南（会话内/本地文件/用户粘贴）、区分恒定口吻与按渠道变调、逐句改写并解释取舍，输出符合品牌口吻的文案与修改理由。"
+  },
+  "sop-builder": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "SOP 编写",
+    "description_zh": "编写标准作业程序：流程边界与触发、分步操作与责任人、RACI 矩阵、审批链、ASCII 流程与判定点、异常处理、版本与修订记录。"
+  },
+  "incident-postmortem": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "事故复盘",
+    "description_zh": "组织无责事后复盘：时间线重建、5 Whys 根因分析、瑞士奶酪贡献因素、区分根因与近因、按 0–7 天/1–4 周/1–3 月分层的行动项与责任人。"
+  },
+  "supplier-scorecard": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "供应商评分卡",
+    "description_zh": "建供应商评分卡：质量 30% / 交付 25% / 成本 20% / 服务 15% / 合规 10% 的加权模型、各档评分锚点、总分计算、趋势跟踪与落后供应商改进计划。"
+  },
+  "inventory-forecasting": {
+    "category": "business",
+    "category_zh": "金融与管理",
+    "enabled": true,
+    "name_zh": "库存预测与补货参数",
+    "description_zh": "预测需求并设定库存参数：历史趋势与季节调整、回归与需求驱动、安全库存（服务水平×需求波动×提前期）、再订货点、经济订货批量、预测准确度指标与优化决策。"
+  },
+  "design-debt-audit": {
+    "category": "docs",
+    "category_zh": "文档与设计",
+    "enabled": true,
+    "name_zh": "设计债审计",
+    "description_zh": "盘点产品累积的视觉/结构/无障碍/文档/实现五类设计债，按 严重度×频次/工作量 打分排序，产出可执行的清理计划与长期债登记表。适用改版前的现状摸底与清理排期。"
+  },
+  "survey-design": {
+    "category": "docs",
+    "category_zh": "文档与设计",
+    "enabled": true,
+    "name_zh": "问卷设计",
+    "description_zh": "设计无偏问卷：题序、问句反例、题型对照表、Likert/NPS/SUS 量表数值（NPS 公式、SUS 均值 68/优秀 80）、样本量（±5%@95% 约 385 份）与分析汇报口径。用于在规模上量化用户态度。"
+  },
+  "motion-system": {
+    "category": "docs",
+    "category_zh": "文档与设计",
+    "enabled": true,
+    "name_zh": "动效系统",
+    "description_zh": "定义产品级动效 token：时长表（50/100/200/300/400/600ms）、缓动曲线（含 cubic-bezier 数值）、错峰编排规则与 prefers-reduced-motion 处理，并给出可直接使用的 CSS 自定义属性写法。"
+  },
+  "form-design": {
+    "category": "docs",
+    "category_zh": "文档与设计",
+    "enabled": true,
+    "name_zh": "表单设计",
+    "description_zh": "端到端表单设计：单列布局、标签与辅助文本位置、按数据类型选输入控件的对照表、失焦校验与错误就近提示、多步流程与数据保全、ARIA 关联要求。"
+  },
+  "heuristic-evaluation": {
+    "category": "docs",
+    "category_zh": "文档与设计",
+    "enabled": true,
+    "name_zh": "启发式评估",
+    "description_zh": "按 Nielsen 十项启发式做专家走查：七步流程、问题记录字段（启发式/位置/证据/建议）、0-4 严重度标度与优先级排序。用于不招用户也能先拿到问题清单。"
+  },
+  "platform-conventions": {
+    "category": "docs",
+    "category_zh": "文档与设计",
+    "enabled": true,
+    "name_zh": "平台设计规范（iOS/Android）",
+    "description_zh": "iOS HIG 与 Material 3 在导航、控件、字体缩放、手势分区、图标与模态上的差异对照表，以及何时分平台实现、何时统一设计、混合方案的取舍与禁忌清单。"
+  },
+  "service-blueprint": {
+    "category": "docs",
+    "category_zh": "文档与设计",
+    "enabled": true,
+    "name_zh": "服务蓝图",
+    "description_zh": "用五条泳道（实体证据/用户行为/前台/后台/支撑流程）与三条分界线绘制服务交付全貌，含九步绘制流程与四类断点读图法，用于多渠道服务的协调与故障定位。"
+  },
+  "critique-color": {
+    "category": "docs",
+    "category_zh": "文档与设计",
+    "enabled": true,
+    "name_zh": "单屏配色评审",
+    "description_zh": "对单屏截图做色彩评审：按 WCAG 阈值（正文 4.5:1、大字与控件 3:1）逐对量测对比度，检查调色板是否只用 token、语义色是否单靠颜色传达、色盲与强制色彩模式下的稳健性，输出 pass/minor/major 与具体改法。"
+  },
+  "bim-validation-report": {
+    "category": "engineering",
+    "category_zh": "工程与硬件",
+    "enabled": true,
+    "name_zh": "BIM 模型校验报告",
+    "description_zh": "用可配置规则校验导出的 BIM 构件表（必填属性、命名、分类码、非零体积、包围盒合法性），输出按严重度与类别汇总的多页 Excel 合规报告，含完整 ValidationEngine 实现。"
+  },
+  "ifc-qto-extraction": {
+    "category": "engineering",
+    "category_zh": "工程与硬件",
+    "enabled": true,
+    "name_zh": "IFC/Revit 工程量提取（QTO）",
+    "description_zh": "从 IFC/Revit/DWG 导出表提取工程量：按类别/类型/楼层/分区聚合构件数、面积、体积、长度、重量，作为造价算量的输入，含分组与 Excel 导出实现。"
+  },
+  "bim-to-schedule-4d": {
+    "category": "engineering",
+    "category_zh": "工程与硬件",
+    "enabled": true,
+    "name_zh": "BIM 与进度 4D 关联",
+    "description_zh": "把 BIM 构件与进度活动关联，按日期推导应可见构件集合以支撑 4D 施工顺序模拟，并给出链接覆盖率、未链接构件/活动清单与 Excel 链接表。"
+  },
+  "batch-cad-converter": {
+    "category": "engineering",
+    "category_zh": "工程与硬件",
+    "enabled": true,
+    "name_zh": "CAD/BIM 批量转换",
+    "description_zh": "批量把 RVT/RFA/IFC/DWG/DGN 通过外部转换器导出为 Excel：逐文件状态、线程池执行、进度回调、失败继续与汇总报表，含转换器路径解析与 PATH 回退。"
+  },
+  "labor-allocation": {
+    "category": "engineering",
+    "category_zh": "工程与硬件",
+    "enabled": true,
+    "name_zh": "劳动力分配与考勤",
+    "description_zh": "把工种工人分配到项目活动：双重占用冲突检测、出勤与加班记录、按工种/活动的成本汇总，用于现场人力计划与周资源平衡。"
+  },
+  "pattern-making": {
+    "category": "engineering",
+    "category_zh": "工程与硬件",
+    "enabled": true,
+    "name_zh": "服装打版（纸样与放码）",
+    "description_zh": "按职业打版方法把需求/照片/草图/技术图变成真实纸样：量体与松量、原型与整体服装生成、省道转移、缝份与刀眼与纱向、放码、1:1 SVG/DXF/CLO3D 导出，含纯标准库 Python 几何引擎与自检报告。"
+  },
+  "ctf-web": {
+    "category": "security",
+    "category_zh": "安全与取证",
+    "enabled": true,
+    "name_zh": "CTF Web 漏洞利用",
+    "description_zh": "按 HTTP 应用 / API / 浏览器客户端 / 模板引擎 / 反序列化等攻击面组织的 Web 利用技术库，覆盖认证与会话（JWT、OAuth、SAML）、客户端（XSS、原型污染、CSP 绕过）、服务端（SQLi、SSTI、SSRF、文件上传、反序列化）、已知 CVE 利用与请求侧工程化（requests / 异步探测）。含上游自订的「登录爆破硬性规则」以防止无边界枚举。"
+  },
+  "ctf-pwn": {
+    "category": "security",
+    "category_zh": "安全与取证",
+    "enabled": true,
+    "name_zh": "CTF 二进制利用（栈/堆/内核）",
+    "description_zh": "二进制漏洞利用技术库：栈溢出与 ROP、格式化字符串、堆（tcache/unsortedbin/FSOP/house-of-*）、整数与竞争条件、seccomp 沙箱逃逸、SROP、ret2dlresolve、内核与 QEMU 逃逸、以及常见防护（PIE/ASLR/Canary）绕过。附 5 个 pwntools 载荷生成脚本。"
+  },
+  "ctf-crypto": {
+    "category": "security",
+    "category_zh": "安全与取证",
+    "enabled": true,
+    "name_zh": "CTF 密码学攻击",
+    "description_zh": "密码学题目攻击技术库，体量最大：古典密码与编码、RSA 常见打点（小指数、共模、Coppersmith、Wiener、padding oracle）、AES/分组模式与 GCM、椭圆曲线（无效曲线、奇异曲线、smart's attack）、Diffie-Hellman、PRNG 预测、格与 LWE、ZKP 缺陷、以及非常规/自造密码。"
+  },
+  "ctf-forensics": {
+    "category": "security",
+    "category_zh": "安全与取证",
+    "enabled": true,
+    "name_zh": "CTF 取证与信号分析",
+    "description_zh": "数字取证与信号分析技术库：磁盘镜像与文件系统恢复、内存转储、Windows 事件日志（.evtx）与日志清除检测、网络流量（PCAP/协议/隧道）、隐写（图像/音频/文档/PDF）、USB 与外围设备采集重建、功率与信号侧信道、3D 打印与硬件类题目。"
+  },
+  "ctf-misc": {
+    "category": "security",
+    "category_zh": "安全与取证",
+    "enabled": true,
+    "name_zh": "CTF 杂项（编码/沙箱逃逸/杂类）",
+    "description_zh": "杂项题目技术库：编码与 IEEE-754/数据隐藏、DNS 类题目、pyjail/bash jail 逃逸、约束求解与游戏/VM 类题目、音频分析、CTFd 平台与 API 交互（含 Playwright MCP 驱动）、以及 Linux 提权兜底步骤。"
+  },
+  "ctf-osint": {
+    "category": "security",
+    "category_zh": "安全与取证",
+    "enabled": true,
+    "name_zh": "CTF 开源情报（公开信息检索）",
+    "description_zh": "OSINT 题目技术库：用户名跨平台枚举、Twitter/X 数字 ID 与 Snowflake 时间戳、Tumblr/BlueSky/Discord 接口、图片反查与地理定位（含中国境内源）、EXIF 与元数据、Google dorking、Wayback/CDX、DNS 与 WHOIS（含反向 WHOIS）、Tor relay 与 FEC 记录、坐标/MGRS/Plus Code 与街景比对。"
+  },
+  "ctf-malware": {
+    "category": "security",
+    "category_zh": "安全与取证",
+    "enabled": true,
+    "name_zh": "CTF 恶意样本分析",
+    "description_zh": "恶意代码类题目技术库：混淆脚本（JS/PowerShell/批处理）去混淆、垃圾代码识别、PE 与 .NET 样本分析、自造加密协议与 C2 流量识别、PCAP 侧分析、以及分析工具与 MCP 服务器集成。"
+  },
+  "ctf-ai-ml": {
+    "category": "security",
+    "category_zh": "安全与取证",
+    "enabled": true,
+    "name_zh": "CTF 机器学习与模型攻击",
+    "description_zh": "AI/ML 类题目技术库：模型权重文件分析（safetensors/pt/onnx）、对抗样本与梯度方法、模型抽取与推理侧信道、LLM 类题目（提示注入、越狱、工具滥用、RAG/记忆污染）以及在受限算力下复现题目的取舍。"
+  },
+  "ctf-writeup": {
+    "category": "security",
+    "category_zh": "安全与取证",
+    "enabled": true,
+    "name_zh": "CTF Writeup 生成（提交格式）",
+    "description_zh": "把已解出的题目整理成标准化 writeup：元数据 frontmatter（赛事/类别/难度/分值/flag 格式）、单路径解题说明、一段「从题目数据到打印 flag」的完整脚本、以及交付前检查清单（可复现、无敏感数据、长度克制）。无技术库，纯输出规范。"
+  },
+  "solve-challenge": {
+    "category": "security",
+    "category_zh": "安全与取证",
+    "enabled": true,
+    "name_zh": "CTF 解题入口（分诊与路由）",
+    "description_zh": "CTF 解题入口技能：环境准备（工具分组安装）、首轮侦察、按文件类型/描述关键词/服务行为三维度判断题目类别、路由到对应专项技能、卡住时的换道策略（多类别组合模式）、flag 格式校验与交卷；并含难度分级与止损规则。"
+  },
+  "dwsim": {
+    "category": "engineering",
+    "category_zh": "工程与硬件",
+    "enabled": true,
+    "name_zh": "DWSIM 化工流程模拟",
+    "description_zh": "用 Python 驱动 DWSIM 搭化工流程：物性方法选择与自动推荐（22 种）、PT/PH 闪蒸与泡露点、精馏/换热/反应/分离等单元操作、flowsheet 收敛排错与报告出图；无 DWSIM 引擎时仍可用其物性方法目录与 21 个常见组分内置物性做选型判断"
+  },
+  "coolprop-db": {
+    "category": "engineering",
+    "category_zh": "工程与硬件",
+    "enabled": true,
+    "name_zh": "CoolProp 流体物性查询",
+    "description_zh": "用 CoolProp 的 Helmholtz 状态方程查 100+ 纯/伪纯流体的热物性与输运性质：密度、焓熵、比热、粘度、导热系数、表面张力、饱和线与临界点，覆盖水、制冷剂、烃类、低温气体；含物性代码表、输入对适用区间、报错处理与制冷循环示例"
+  },
+  "thermo-package": {
+    "category": "engineering",
+    "category_zh": "工程与硬件",
+    "enabled": true,
+    "name_zh": "thermo 化工热力学物性库",
+    "description_zh": "用 `thermo`/`chemicals` 库算纯组分与混合物的热力学性质：温度相关粘度/密度/导热、蒸气压与潜热、Cp/Cv、焓熵、PR/SRK 立方状态方程与 VLE 闪蒸、流股能量平衡；含 8 个可复跑示例，覆盖温变粘度、混合物相平衡与泵工况修正"
   }
 }
