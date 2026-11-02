@@ -15,3 +15,9 @@
 - 与被导入的 9 个专项技能是「入口 vs 深度参考」关系，不构成重复（与全部 160 个既有技能实测相似度 ≤0.001）。
 - `SKILL.md` 中 `/ctf-reverse` 指向的逆向技能本批未导入（重复度原因，见 REPORT）；该能力由已安装的 `reverse-engineering` 提供。
 - 正文引用 `../scripts/install_ctf_tools.sh`（上游仓库根），为使引用不悬空，已把该脚本一并收录到 `scripts/install_ctf_tools.sh`；在上游它需要以仓库根为 cwd 运行，本目录下以技能目录为 cwd 运行即可。脚本为系统级安装器，只应在用户明确要求时执行。
+
+## 增量合并（2026-11-02）
+
+scripts/install_ctf_tools.sh 取自上游仓库根目录（commit 6106aaf5f1f4eeb6b95908f11c2314c7150dfac，MIT），
+因为本技能正文按 ash scripts/install_ctf_tools.sh <group> 的方式调用它，而导入时只取了技能目录。
+运行前请把工作目录切到本技能目录。
