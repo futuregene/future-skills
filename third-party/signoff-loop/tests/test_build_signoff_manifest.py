@@ -1,0 +1,214 @@
+"""build_signoff_manifest.py — the strict signoff evidence binding (pilot P0-2/H3).
+
+The round-2 pilot failed every CONSTRAINT/SIGNOFF gate because route.json /
+rcx.json / timing_check.json were never emitted and nothing bound the evidence:
+Fmax winners stayed placement proxies. The manifest must (a) enumerate what is
+missing — including the absent FINAL timing confirmation (H3), never just the
+matching proxy/SDC periods — (b) call the bundle strict-clean only when every
+subject is clean, and (c) bind SDC digest + winner + confirming run identity.
+"""
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+import build_signoff_manifest as bsm
+
+from .conftest import production_toolchain_env
+
+MOD = Path(bsm.__file__).resolve()
+
+
+def _nangate45_not_strict_here() -> str | None:
+    """Why the resolved ORFS checkout cannot back a strict nangate45 bundle, if so.
+
+    build() cross-checks strict_clean against the capability probe of the checkout
+    _env.sh resolves (RMD3-P1-02), so the clean-bundle tests need a checkout where
+    nangate45 is strict_signoff_ready (tools/install_nangate45_{lvs,antenna}.sh).
+    """
+    import platform_capability as pc
+    with production_toolchain_env():     # this machine's toolchain, pins honoured
+        env = pc.resolve_signoff_env()
+    flow_dir = pc.find_flow_dir(env=env)
+    if not flow_dir:
+        return "no ORFS flow dir resolves on this machine"
+    caps = pc.probe_platform(flow_dir, "nangate45", env=env)
+    if caps.get("strict_signoff_ready"):
+        return None
+    hints = [str((caps.get(k) or {}).get("hint") or k) for k in caps.get("missing") or []]
+    return f"nangate45 is not strict_signoff_ready in {flow_dir}: {'; '.join(hints)}"
+
+
+_NOT_STRICT = _nangate45_not_strict_here()
+needs_strict_nangate45 = pytest.mark.skipif(_NOT_STRICT is not None,
+                                            reason=_NOT_STRICT or "")
+
+
+def _proj(tmp_path, *, drc="clean", lvs="clean", route=0, rcx="complete",
+          tier="clean", winner=1.0243910000000003, stamped="1.02439",
+          omit=()):
+    proj = tmp_path / "proj"
+    rep = proj / "reports"
+    rep.mkdir(parents=True)
+    (proj / "constraints").mkdir()
+    (proj / "constraints" / "config.mk").write_text(
+        "export DESIGN_NAME = demo\nexport PLATFORM = nangate45\n")
+    (proj / "constraints" / "constraint.sdc").write_text(
+        f"set clk_period {stamped}\n")
+    run = proj / "backend" / "RUN_2026-07-21_00-00-00" / "results"
+    run.mkdir(parents=True)
+    (run / "6_final.def").write_text("DESIGN demo ;\n")
+    docs = {
+        "drc.json": {"status": drc, "total_violations": 0},
+        "lvs.json": {"status": lvs, "mismatch_count": 0},
+        "route.json": {"status": "clean" if route == 0 else "fail",
+                       "total_violations": route},
+        "rcx.json": {"status": rcx},
+        "timing_check.json": {"tier": tier, "wns": 0.01},
+        "ppa.json": {"summary": {"timing": {"setup_wns": 0.01}}},
+        "fmax_search.json": {"status": "ok", "winner": {"period": winner}},
+    }
+    for fn, doc in docs.items():
+        if fn not in omit:
+            json.dump(doc, open(rep / fn, "w"))
+    return proj
+
+
+@needs_strict_nangate45
+@pytest.mark.usefixtures("production_toolchain")
+def test_clean_bundle_is_strict_and_qualified(tmp_path):
+    man = bsm.build(str(_proj(tmp_path)))
+    assert man["strict_clean"] and not man["strict_missing"], man["strict_missing"]
+    c = man["constraint"]
+    # The pilot's rounding case: stamped 1.02439 vs winner 1.0243910000000003
+    # is a MATCH (the stamp rounds), and with a clean final tier -> qualified.
+    assert c["period_match"] is True and c["qualified"] is True, c
+    assert man["confirming_run"]["run_tag"] == "RUN_2026-07-21_00-00-00"
+    assert man["confirming_run"]["def_sha256"]
+    assert man["reports"]["drc.json"]["sha256"]
+
+
+def test_missing_final_timing_is_enumerated(tmp_path):
+    """H3: the failure must NAME the absent final-timing confirmation."""
+    man = bsm.build(str(_proj(tmp_path, omit=("timing_check.json",))))
+    c = man["constraint"]
+    assert c["qualified"] is False
+    assert any("FINAL timing confirmation" in m for m in c["missing"]), c["missing"]
+    assert not man["strict_clean"]
+
+
+def test_lvs_skipped_is_not_strict(tmp_path):
+    """P0-2: 'skipped' LVS never counts as strict-clean."""
+    man = bsm.build(str(_proj(tmp_path, lvs="skipped")))
+    assert not man["strict_clean"]
+    assert any(m.startswith("lvs:") for m in man["strict_missing"])
+
+
+def test_missing_route_and_rcx_block_strict(tmp_path):
+    man = bsm.build(str(_proj(tmp_path, omit=("route.json", "rcx.json"))))
+    missing = "\n".join(man["strict_missing"])
+    assert "route:" in missing and "rcx:" in missing
+
+
+def test_period_mismatch_disqualifies(tmp_path):
+    man = bsm.build(str(_proj(tmp_path, winner=2.0, stamped="1.0")))
+    c = man["constraint"]
+    assert c["period_match"] is False and c["qualified"] is False
+    assert man["strict_clean"] is False
+    assert any(reason.startswith("constraint:") for reason in man["strict_missing"])
+
+
+def test_promoted_project_requires_complete_task_provenance(tmp_path):
+    proj = _proj(tmp_path)
+    (proj / "metadata.json").write_text(json.dumps({
+        "promoted_from": "/corpus/demo",
+        "source_bytes_verified": True,
+        "compile_inputs_verified": False,
+        "rtl_readiness": "ready",
+        "collateral_verified": True,
+        "source_kind": "cloned_repo",
+        "source_commit": "abc123",
+    }))
+    man = bsm.build(str(proj))
+    assert man["task_provenance"]["status"] == "failed"
+    assert "compile inputs are not digest-verified" in man[
+        "task_provenance"]["missing"]
+    assert man["strict_clean"] is False
+
+
+@needs_strict_nangate45
+@pytest.mark.usefixtures("production_toolchain")
+def test_cli_writes_manifest_and_strict_exit(tmp_path):
+    proj = _proj(tmp_path, drc="fail")
+    r = subprocess.run([sys.executable, str(MOD), str(proj), "--strict"],
+                       capture_output=True, text=True, timeout=60)
+    assert r.returncode == 1
+    out = json.load(open(proj / "reports" / "signoff_manifest.json"))
+    assert out["strict_clean"] is False
+    proj2 = _proj(tmp_path / "ok")
+    r = subprocess.run([sys.executable, str(MOD), str(proj2), "--strict"],
+                       capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
+# ── Fmax relaxed-period chain (2026-09-27) ───────────────────────────────────
+# A confirming flow that misses timing at the proxy winner gets its SDC loosened
+# by the repair path. The manifest must qualify that ONLY through an unbroken,
+# recorded, strictly-loosening chain from the winner to the stamped period.
+
+def _with_relax(proj, steps):
+    rep = proj / "reports" / "fmax_search.json"
+    doc = json.load(open(rep))
+    doc["relaxations"] = steps
+    json.dump(doc, open(rep, "w"))
+    return proj
+
+
+def test_recorded_relaxation_chain_qualifies(tmp_path):
+    proj = _with_relax(_proj(tmp_path, winner=2.0, stamped="2.6"),
+                       [{"from": 2.0, "to": 2.3, "source": "check_timing_minor"},
+                        {"from": 2.3, "to": 2.6, "source": "period_relax"}])
+    man = bsm.build(str(proj))
+    c = man["constraint"]
+    assert c["period_match"] is False
+    assert c["period_source"] == "relaxed_chain" and c["qualified"] is True, c
+    assert c["confirmed_period"] == 2.6 and abs(c["relax_ratio"] - 1.3) < 1e-9
+    # Environment-independent: the relaxed period adds no constraint blocker (the
+    # overall strict_clean also depends on this machine's capability probe).
+    assert not [m for m in man["strict_missing"] if m.startswith("constraint:")], man["strict_missing"]
+
+
+def test_winner_match_reports_search_winner_source(tmp_path):
+    c = bsm.build(str(_proj(tmp_path)))["constraint"]
+    assert c["period_source"] == "search_winner" and c["relax_ratio"] == 1.0
+
+
+def test_unrecorded_relaxation_still_disqualifies(tmp_path):
+    c = bsm.build(str(_proj(tmp_path, winner=2.0, stamped="2.6")))["constraint"]
+    assert c["qualified"] is False and c["period_source"] is None
+    assert any("no recorded relaxation" in m for m in c["missing"]), c["missing"]
+
+
+def test_broken_chain_disqualifies(tmp_path):
+    proj = _with_relax(_proj(tmp_path, winner=2.0, stamped="2.6"),
+                       [{"from": 2.2, "to": 2.6, "source": "period_relax"}])
+    c = bsm.build(str(proj))["constraint"]
+    assert c["qualified"] is False and any("starts at 2.2" in m for m in c["missing"])
+
+
+def test_tightening_step_disqualifies(tmp_path):
+    proj = _with_relax(_proj(tmp_path, winner=2.0, stamped="1.8"),
+                       [{"from": 2.0, "to": 1.8, "source": "hand"}])
+    c = bsm.build(str(proj))["constraint"]
+    assert c["qualified"] is False and any("not a loosening" in m for m in c["missing"])
+
+
+def test_hand_edit_after_chain_disqualifies(tmp_path):
+    proj = _with_relax(_proj(tmp_path, winner=2.0, stamped="3.0"),
+                       [{"from": 2.0, "to": 2.6, "source": "period_relax"}])
+    c = bsm.build(str(proj))["constraint"]
+    assert c["qualified"] is False and any("chain ends at 2.6" in m for m in c["missing"])

@@ -1871,5 +1871,85 @@
     "name_zh": "thermo 化工热力学物性库",
     "description_zh": "用 `thermo`/`chemicals` 库算纯组分与混合物的热力学性质：温度相关粘度/密度/导热、蒸气压与潜热、Cp/Cv、焓熵、PR/SRK 立方状态方程与 VLE 闪蒸、流股能量平衡；含 8 个可复跑示例，覆盖温变粘度、混合物相平衡与泵工况修正",
     "scope": "cross-school:zjut"
+  },
+  "signoff-loop": {
+    "category": "engineering",
+    "category_zh": "工程与硬件",
+    "enabled": true,
+    "name_zh": "开源 EDA 签核闭环",
+    "description_zh": "RTL→GDS 全流程上的签核与验证：DRC/LVS/RCX 提取、WNS/TNS 时序门、Fmax 搜索、违规自动修复与经验回流（Yosys/OpenROAD/ORFS/KLayout/Magic/Netgen/OpenRCX）",
+    "scope": "hdu"
+  },
+  "eda-install": {
+    "category": "engineering",
+    "category_zh": "工程与硬件",
+    "enabled": true,
+    "name_zh": "开源 EDA 工具链安装与自检",
+    "description_zh": "探测机器环境并无 root 安装/校验 OpenROAD、Yosys、iverilog、verilator、KLayout、Magic、Netgen、OpenSTA 与 sky130/GF180 PDK，并把路径写回签核技能的 env.local.sh",
+    "scope": "hdu"
+  },
+  "claude-skill-verilog": {
+    "category": "engineering",
+    "category_zh": "工程与硬件",
+    "enabled": true,
+    "name_zh": "Verilog/SystemVerilog 编码规范与 Verilator 流程",
+    "description_zh": "RTL 写法规范：命名与位宽、always_ff/always_comb 分工、防锁存、同步复位与 CDC、存储器推断、SVA、Yosys 可综合性禁忌，以及 Verilator lint/仿真命令",
+    "scope": "hdu"
+  },
+  "software-defined-radio": {
+    "category": "engineering",
+    "category_zh": "工程与硬件",
+    "enabled": true,
+    "name_zh": "软件定义无线电（SDR）",
+    "description_zh": "用 SDR 收、看、解调、解码无线信号：先钉住中心频率/复采样率/带宽/增益/ppm/采样格式六个参数，再按任务路由进 14 篇参考；含 8 个纯 numpy 工具（链路预算与天线计算、IQ 文件体检、PSD+瀑布图、格式互转与频移抽取、WBFM/NBFM/AM 解调出 WAV、盲估符号率与调制阶数、SigMF 元数据、设备枚举）、9 款主流硬件的型号参数与怪癖、GNU Radio 3.10 流图要点，以及 33 条协议/系统条目（ADS-B、AIS、POCSAG、DMR、LoRa、rtl_433、卫星等）的频率/调制/最小采样率/原样命令/法务提示",
+    "scope": "hdu"
+  },
+  "stm32f411-blackpill": {
+    "category": "engineering",
+    "category_zh": "工程与硬件",
+    "enabled": true,
+    "name_zh": "STM32F411 Black Pill 固件开发",
+    "description_zh": "WeAct \"Black Pill\"（STM32F411CEU6，Cortex-M4F）板级固件知识：48 脚封装的完整引脚/复用功能表、25 MHz HSE + 32.768 kHz LSE 的时钟树（PLLM25/N192/P2/Q4 → 96 MHz、USB 48 MHz、FLASH_LATENCY_3）、PC13 LED 低电平点亮、PA0 按键上拉、USB CDC 虚拟串口（无 USB-serial 芯片）、LSE 后备域 RTC、ADC 通道 18 内部温度传感器与工厂校准、ROM DFU 烧写与救砖、PlatformIO + STM32Cube HAL 工程配置，附一份可直接 `pio run` 的参考工程（`--minimal` 3476 B、`--full` 19816 B）",
+    "scope": "hdu"
+  },
+  "atmega328p-nano": {
+    "category": "engineering",
+    "category_zh": "工程与硬件",
+    "enabled": true,
+    "name_zh": "Arduino Nano（ATmega328P）固件开发",
+    "description_zh": "Arduino Nano（A000005，ATmega328P @16 MHz / 5 V）板级固件知识：修正过的 30 针引脚表（官方手册的引脚表本身有错）、2 KB SRAM 预算与 `F()`/PROGMEM 取舍、三个定时器的归属（Timer0 归 millis/delay 绝不可改，Timer1 归 Servo，Timer2 归 tone）与 PWM 频率、A6/A7 只能做模拟输入、D0/D1 与 USB-serial 芯片共享、ADC 参考电压与 AREF 禁忌、老/新 bootloader 代际与 `not in sync` 上传失败、熔丝位 lfuse 0xFF / hfuse 0xDA / efuse 0xFD、ICSP 救砖与 WDT 自锁，附两个可直接 `pio run` 的工程（924 B / 2874 B）",
+    "scope": "hdu"
+  },
+  "nrf52840-promicro": {
+    "category": "engineering",
+    "category_zh": "工程与硬件",
+    "enabled": true,
+    "name_zh": "nRF52840 ProMicro 板级固件与 BLE",
+    "description_zh": "ProMicro nRF52840 V1940（nice!nano v2 克隆，nRF52840 QIAA）固件与无线开发：为什么这块板在 PlatformIO 与 Adafruit core 里都不存在、必须 vendor 板定义与 variant（含 `variants_dir` 这个致命 JSON 键）、Pro Micro 丝印 → Arduino 号 → P0.xx/P1.xx 全映射、出厂 UF2 bootloader + SoftDevice S140 6.1.1 的固件/链接地址预算（815104 B flash / 237568 B RAM）、LSE 晶振常缺货时 `USE_LFRC` 与 `USE_LFXO` 的死锁差异、TinyUSB 下 `Serial` 必须 include 才存在、SAADC 满量程 3.6 V 与 A0 无 ADC 通道、NFC 引脚当 GPIO 的 `CONFIG_NFCT_PINS_AS_GPIOS`（少一个 S 就整段不编译）、Bluefruit BLE 自动连接代价与绑定清理、Zephyr 板目标对照，附三个可构建变体（blink 20196 B / full 55320 B / BLE 128692 B）",
+    "scope": "hdu"
+  },
+  "nuedc-workflow": {
+    "category": "engineering",
+    "category_zh": "工程与硬件",
+    "enabled": true,
+    "name_zh": "全国大学生电子设计竞赛流程",
+    "description_zh": "NUEDC 赛前准备、选题、指标分解、调试与测评流程，附测试记录表与设计报告结构",
+    "scope": "hdu"
+  },
+  "huabei-cup-paper": {
+    "category": "research",
+    "category_zh": "科研与建模",
+    "enabled": true,
+    "name_zh": "华为杯数模论文规范",
+    "description_zh": "研究生数模竞赛的匿名要求、论文结构与模型检验写法，强调可检验结论",
+    "scope": "hdu"
+  },
+  "cn-academic-format": {
+    "category": "docs",
+    "category_zh": "文档与设计",
+    "enabled": true,
+    "name_zh": "中文论文格式规范",
+    "description_zh": "GB/T 7714-2015 参考文献、图表公式编号、学位论文版式与投稿前自检",
+    "scope": "general"
   }
 }

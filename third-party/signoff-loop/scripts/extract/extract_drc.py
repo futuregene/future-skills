@@ -1,0 +1,280 @@
+#!/usr/bin/env python3
+"""
+Extract DRC results from KLayout lyrdb and count report.
+Produces a JSON summary with violation counts and categories.
+"""
+from pathlib import Path
+import json
+import re
+import sys
+import xml.etree.ElementTree as ET
+
+# Category names must be normalized the same way the symptom index normalizes
+# violation classes (knowledge/symptom.py): KLayout <category> names arrive
+# wrapped in literal quotes ("'m3.2'") or as full rule prose, which fragments
+# the learned-repair index into single-use buckets (2026-07-04).
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "knowledge"))
+import symptom as _symptom
+
+# Atomic report writes: a kill -9/OOM mid-write must never leave a torn
+# reports/*.json for ingest to misread (2026-07-04 robustness audit M1).
+import report_io
+
+
+def parse_drc_count(drc_dir: Path) -> int:
+    """Parse 6_drc_count.rpt for total violation count."""
+    count_file = drc_dir / '6_drc_count.rpt'
+    if count_file.exists():
+        text = count_file.read_text(encoding='utf-8', errors='ignore').strip()
+        try:
+            return int(text)
+        except ValueError:
+            pass
+    return -1
+
+
+def parse_lyrdb(drc_dir: Path) -> dict:
+    """Parse KLayout lyrdb (XML) for DRC violation categories."""
+    lyrdb_file = drc_dir / '6_drc.lyrdb'
+    if not lyrdb_file.exists():
+        return {}
+
+    categories = {}
+    try:
+        tree = ET.parse(lyrdb_file)
+        root = tree.getroot()
+
+        # Parse categories
+        cat_map = {}
+        for cat in root.iter('category'):
+            name_el = cat.find('name')
+            desc_el = cat.find('description')
+            if name_el is not None and name_el.text:
+                cat_name = _symptom.normalize_class(name_el.text) or 'unknown'
+                cat_desc = desc_el.text.strip() if desc_el is not None and desc_el.text else ''
+                cat_map[cat_name] = cat_desc
+
+        # Count violations per category
+        for item in root.iter('item'):
+            cat_el = item.find('category')
+            if cat_el is not None and cat_el.text:
+                cat_name = _symptom.normalize_class(cat_el.text) or 'unknown'
+                if cat_name not in categories:
+                    categories[cat_name] = {
+                        'count': 0,
+                        'description': cat_map.get(cat_name, ''),
+                    }
+                categories[cat_name]['count'] += 1
+
+    except ET.ParseError:
+        # Fallback: count <value> tags
+        text = lyrdb_file.read_text(encoding='utf-8', errors='ignore')
+        count = text.count('<value>')
+        if count > 0:
+            categories['unknown'] = {'count': count, 'description': 'Parsed via fallback'}
+
+    return categories
+
+
+def parse_drc_log(drc_dir: Path) -> dict:
+    """Parse DRC log for runtime info."""
+    info = {}
+    log_file = drc_dir / '6_drc.log'
+    if not log_file.exists():
+        log_file = drc_dir / 'drc_run.log'
+    if not log_file.exists():
+        return info
+
+    text = log_file.read_text(encoding='utf-8', errors='ignore')
+
+    # Look for elapsed time
+    m = re.search(r'(?:real|elapsed|Total time)[:\s]+([\d.]+)', text)
+    if m:
+        info['elapsed_seconds'] = float(m.group(1))
+
+    # Look for errors
+    if 'error' in text.lower():
+        error_lines = [l.strip() for l in text.splitlines() if 'error' in l.lower()]
+        info['errors'] = error_lines[:5]
+
+    return info
+
+
+def artifacts_stale(drc_dir: Path, tol: float = 2.0) -> bool:
+    """True when a fresh drc_run.log post-dates the local DRC count/lyrdb.
+
+    run_drc.sh writes drc_run.log FIRST, then copies the fresh 6_drc.lyrdb /
+    6_drc_count.rpt over it — so in a healthy run the artifacts are at least as
+    new as the log. If that copy is skipped (a pre-copytree-fix A/B arm dir whose
+    stale drc/ was inherited, or an interrupted run), the LOCAL artifacts stay
+    OLDER than the log while the real violations were written only to the
+    ORFS-side reports/ dir. Reading the stale local artifacts then certifies a
+    false 'clean' — the 2026-06-30 asap7 arm fabricated-clean bug (6 arms recorded
+    drc=clean while the real asap7.lydrc run found 25 violations). This mirrors
+    extract_lvs.py's mtime-precedence guard (commit b710905).
+
+    Returns False when no drc_run.log exists (offline/unit fixtures that never
+    invoked run_drc.sh) so those callers are unaffected.
+    """
+    runlog = drc_dir / 'drc_run.log'
+    if not runlog.exists():
+        return False
+    run_m = runlog.stat().st_mtime
+    arts = [drc_dir / '6_drc_count.rpt', drc_dir / '6_drc.lyrdb']
+    present = [p.stat().st_mtime for p in arts if p.exists()]
+    if not present:
+        # A run happened but left no local count/lyrdb -> not a fresh clean.
+        return True
+    return max(present) < run_m - tol
+
+
+def main():
+    # Optional explicit run binding (RMD-P0-02): a caller that already resolved
+    # the backend run passes --run-dir so the provenance envelope is stamped
+    # source=explicit instead of being re-discovered.
+    argv = list(sys.argv[1:])
+    run_dir = None
+    if '--run-dir' in argv:
+        i = argv.index('--run-dir')
+        try:
+            run_dir = argv[i + 1]
+        except IndexError:
+            print('usage: extract_drc.py <project-root> <output.json> [--run-dir DIR]',
+                  file=sys.stderr)
+            sys.exit(1)
+        del argv[i:i + 2]
+    if len(argv) < 2:
+        print('usage: extract_drc.py <project-root> <output.json> [--run-dir DIR]',
+              file=sys.stderr)
+        sys.exit(1)
+
+    project_root = Path(argv[0])
+    out_path = Path(argv[1])
+
+    drc_dir = project_root / 'drc'
+
+    raw = parse_drc_count(drc_dir)
+    categories = parse_lyrdb(drc_dir)
+    log_info = parse_drc_log(drc_dir)
+
+    # Prefer the true item count (sum of parsed category counts from the lyrdb)
+    # over the inflated count.rpt value.  count.rpt is produced by
+    # `grep -c "<value>"` over the lyrdb, which counts polygon value-tags
+    # (~7 per violation), NOT actual violations.  The lyrdb item count is
+    # exact; fall back to count.rpt only when no lyrdb is present.
+    cat_sum = sum(c['count'] for c in categories.values()) if categories else None
+    if cat_sum is not None:
+        total_count = cat_sum
+    elif raw >= 0:
+        total_count = raw
+    else:
+        total_count = -1
+
+    # Prefer the structured drc_result.json written by run_drc.sh — it carries
+    # explicit status="stuck"/"timeout" markers that are more informative than
+    # what we can infer from violation counts alone.
+    drc_result_path = drc_dir / 'drc_result.json'
+    drc_result = None
+    if drc_result_path.exists():
+        try:
+            drc_result = json.loads(drc_result_path.read_text(encoding='utf-8', errors='ignore'))
+        except (ValueError, OSError):
+            drc_result = None
+
+    # BEOL-only runs disable BOTH the FEOL and ANTENNA rule groups (run_drc.sh,
+    # commit 56a1175), so a 0-violation result only proves metal/via/cut routing
+    # is clean — it does NOT cover FEOL geometry or antenna ratios.  Mark it with
+    # the qualified status 'clean_beol' (cf. LVS 'clean_algorithmic') so that
+    # status-based aggregation cannot silently miscount it as a full clean.
+    # Any BEOL-class mode (beol_only, beol_only_no_contact) skips ≥2 rule groups, so
+    # a 0-violation result is the qualified status clean_beol, never plain clean.
+    beol_only = bool(drc_result) and str(drc_result.get('drc_mode') or '').startswith('beol_only')
+
+    stale = artifacts_stale(drc_dir)
+
+    if drc_result and drc_result.get('status') in ('stuck', 'timeout', 'failed', 'skipped'):
+        status = drc_result['status']
+    elif total_count == 0:
+        status = 'clean_beol' if beol_only else 'clean'
+    elif total_count > 0:
+        status = 'fail'
+    else:
+        status = 'unknown'
+
+    # HONESTY GUARD: never certify clean from DRC artifacts that are older than
+    # the run that just executed. A fresh drc_run.log over a stale local
+    # count/lyrdb means the fresh count was not copied in (run_drc.sh copy step
+    # skipped) — the real result lives only in the ORFS-side reports/ dir. Emit
+    # 'stale' rather than a fabricated 'clean' so ingest never records a lie.
+    # (2026-06-30 asap7 arm fabricated-clean regression; see failure-patterns.md.)
+    if stale and status in ('clean', 'clean_beol'):
+        status = 'stale'
+        total_count = -1  # -> total_violations serialized as None
+
+    result = {
+        'status': status,
+        'total_violations': total_count if total_count >= 0 else None,
+        'raw_marker_count': raw if raw >= 0 else None,
+        'categories': categories,
+        'log_info': log_info,
+    }
+    if stale:
+        result['note'] = ('stale local DRC artifacts (older than drc_run.log); '
+                          'fresh 6_drc_count.rpt/6_drc.lyrdb not copied in')
+    if drc_result:
+        # Carry through extra context (stuck_at_rule, reason, timeout_s, drc_mode)
+        # plus the strong-provenance fields run_drc.sh records (RMD-P0-02): the
+        # run tag, exact layout/deck digests, and checker toolchain — the
+        # def-graph gate matches gds_sha256 against the layout it publishes.
+        # LIM-HO-01: the scale/telemetry quad (cell_count, gds_bytes, wall_s,
+        # peak_rss_kb) must reach reports/drc.json — a stuck full-deck run is
+        # only characterizable if the verdict carries its size and cost.
+        for k in ('stuck_at_rule', 'reason', 'timeout_s', 'exit_code', 'note', 'drc_mode',
+                  'checker', 'run_tag', 'gds_path', 'gds_sha256',
+                  'deck_path', 'deck_sha256', 'klayout_version',
+                  'started_at', 'ended_at',
+                  'cell_count', 'gds_bytes', 'wall_s', 'peak_rss_kb'):
+            if k in drc_result and k not in result:
+                result[k] = drc_result[k]
+
+    # Advisory Magic DRC cross-check (sky130 only; NON-authoritative). When run with
+    # R2G_MAGIC_ADVISORY=1, run_drc.sh runs Magic alongside the KLayout signoff and
+    # run_magic_drc.sh writes magic_drc_result.json. Surface its count here for VISIBILITY
+    # ONLY — it NEVER changes `status`. KLayout stays the authoritative gate: naive Magic
+    # on a flattened P&R GDS over-reports std-cell li/mcon geometry (see failure-patterns.md
+    # "Magic DRC Failure"), so it must not gate pass/fail or promotion.
+    magic_path = drc_dir / 'magic_drc_result.json'
+    if magic_path.exists():
+        try:
+            m = json.loads(magic_path.read_text(encoding='utf-8', errors='ignore'))
+        except (ValueError, OSError):
+            m = None
+        if isinstance(m, dict) and m.get('tool') == 'magic':
+            adv = {
+                'engine': 'magic',
+                'status': m.get('status'),
+                'total_violations': m.get('total_violations'),
+                'authoritative': False,
+            }
+            # Flag if the Magic verdict predates this DRC run (advisory may be stale).
+            try:
+                runlog = drc_dir / 'drc_run.log'
+                if runlog.exists() and magic_path.stat().st_mtime < runlog.stat().st_mtime:
+                    adv['stale'] = True
+            except OSError:
+                pass
+            result['magic_advisory'] = adv
+
+    # Which backend run's layout this verdict judges (P0-R7): a project-level
+    # report must be attributable, or a clean bundle from one run can certify
+    # another run's DEF in the def-graph signoff gate. An explicit --run-dir
+    # wins; otherwise the shared signoff record resolves it (RMD-P0-02).
+    report_io.stamp_run_provenance(result, project_root, run_dir)
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    report_io.write_json_atomic(out_path, result)
+    print(out_path)
+
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,608 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description/>
+ <version/>
+ <category>lvs</category>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>false</autorun>
+ <autorun-early>false</autorun-early>
+ <shortcut/>
+ <show-in-menu>true</show-in-menu>
+ <group-name>lvs_scripts</group-name>
+ <menu-path>tools_menu.lvs.end</menu-path>
+ <interpreter>dsl</interpreter>
+ <dsl-interpreter-name>lvs-dsl-xml</dsl-interpreter-name>
+ <text>#
+# Extraction for SKY130
+#
+############################
+
+# optionnal for a batch launch :   klayout -b -rd in_gds=my_layout.gds -rd report_file=my_report.lyrdb -rd cdl_file=reference_netlist.cir -rd target_netlist=extracted_netlist.cir -r sky130.lylvs
+if $in_gds
+  source($in_gds)
+end
+
+if $report_file
+  report($report_file)
+else
+  report_lvs("lvs_report.lvsdb")
+end
+
+# r2g: short zero-ohm tie/power resistors (sky130 conb_1 etc.) so they do not
+# appear as unmatched schematic-only devices (the layout rule extracts no resistors).
+class R2GShortReader &lt; RBA::NetlistSpiceReaderDelegate
+  def element(circuit, el, name, model, value, nets, params)
+    if el == "R" and value.to_f == 0.0 and nets.size == 2
+      circuit.join_nets(nets[0], nets[1])
+      return true
+    end
+    return super
+  end
+end
+__r2g_reader = RBA::NetlistSpiceReader::new(R2GShortReader::new)
+if $cdl_file
+#reference netlist
+   schematic($cdl_file, __r2g_reader)
+else 
+   schematic("sky130hd.cdl", __r2g_reader)
+end
+
+# true: use net names instead of numbers
+# false: use numbers for nets
+spice_with_net_names = true
+
+# true: put in comments with details
+# false: no comments
+spice_with_comments = false
+
+if $target_netlist
+  target_netlist($target_netlist)
+else
+   # target_netlist("netlist.cir", write_spice(spice_with_net_names, spice_with_comments), "The netlist comment goes here.") 
+   target_netlist(File.join(File.dirname(RBA::CellView::active.filename), source.cell_name+"_extracted.cir"), write_spice(spice_with_net_names, spice_with_comments),  "Extracted by KLayout on : #{Time.now.strftime("%d/%m/%Y %H:%M")}")
+end
+
+# Hierarchical mode
+deep
+# Use 4 CPU cores
+threads(4)
+# Print details
+verbose(true)
+
+
+# layers definitions
+########################
+BOUND  = polygons(235, 4)
+DNWELL  = polygons(64, 18)
+PWRES  = polygons(64, 13)
+NWELL  = polygons(64, 20)
+NWELLTXT  = input(64, 5)
+NWELLPIN  = polygons(64, 16)
+SUBTXT  = input(122, 5)
+SUBPIN  = input(64, 59)
+DIFF  = polygons(65, 20)
+TAP  = polygons(65, 44)
+PSDM  = polygons(94, 20)
+NSDM  = polygons(93, 44)
+LVTN  = polygons(125, 44)
+HVTR  = polygons(18, 20)
+HVTP  = polygons(78, 44)
+SONOS  = polygons(80, 20)
+COREID  = polygons(81, 2)
+STDCELL  = polygons(81, 4)
+NPNID  = polygons(82, 20)
+PNPID  = polygons(82, 44)
+RPM  = polygons(86, 20)
+URPM  = polygons(79, 20)
+LDNTM  = polygons(11, 44)
+HVNTM  = polygons(125, 20)
+POLY  = polygons(66, 20)
+POLYTXT  = input(66, 5)
+POLYPIN  = polygons(66, 16)
+HVI  = polygons(75, 20)
+LICON  = polygons(66, 44)
+NPC  = polygons(95, 20)
+DIFFRES  = polygons(65, 13)
+POLYRES  = polygons(66, 13)
+POLYSHO  = polygons(66, 15)
+DIODE  = polygons(81, 23)
+LI  = polygons(67, 20)
+LITXT  = input(67, 5)
+LIPIN  = polygons(67, 16)
+LIRES  = polygons(67, 13)
+MCON  = polygons(67, 44)
+MET1  = polygons(68, 20)
+MET1TXT  = input(68, 5)
+MET1PIN  = polygons(68, 16)
+MET1RES  = polygons(68, 13)
+VIA1  = polygons(68, 44)
+MET2  = polygons(69, 20)
+MET2TXT  = input(69, 5)
+MET2PIN  = polygons(69, 16)
+MET2RES  = polygons(69, 13)
+VIA2  = polygons(69, 44)
+MET3  = polygons(70, 20)
+MET3TXT  = input(70, 5)
+MET3PIN  = polygons(70, 16)
+MET3RES  = polygons(70, 13)
+VIA3  = polygons(70, 44)
+MET4  = polygons(71, 20)
+MET4TXT  = input(71, 5)
+MET4PIN  = polygons(71, 16)
+MET4RES  = polygons(71, 13)
+VIA4  = polygons(71, 44)
+MET5  = polygons(72, 20)
+MET5TXT  = input(72, 5)
+MET5PIN  = polygons(72, 16)
+MET5RES  = polygons(72, 13)
+RDL  = polygons(74, 20)
+RDLTXT  = input(74, 5)
+RDLPIN  = polygons(74, 16)
+GLASS  = polygons(76, 20)
+CAPM  = polygons(89, 44)
+CAPM2  = polygons(97, 44)
+LOWTAPD  = polygons(81, 14)
+FILLOBSM1  = polygons(62, 24)
+FILLOBSM2  = polygons(105, 52)
+FILLOBSM3  = polygons(107, 24)
+FILLOBSM4  = polygons(112, 4)
+NCM = polygons(92, 44)
+
+# Bulk layer for terminal provisioning
+# R2G 2026-10-07: sky130 standard cells do not draw 236/0, so the original
+# `SUB = polygons(236, 0)` was an EMPTY layer. Every nfet took its bulk from it
+# ("W" =&gt; SUB), so all of them landed on a global net with no geometry and no
+# path to the ground metal, and `connect(SUB, PTAP)` below had nothing to
+# connect. Extraction then reported substrate and ground as two separate nets
+# while the schematic ties each cell's VNB pin to VSS -- one net on one side,
+# two on the other -- and every subcircuit mismatched even though the cells
+# compared clean at transistor level. The substrate is physically the area
+# outside the n-well, contacted by the p+ taps.
+# See references/failure-patterns.md "sky130hd KLayout LVS".
+SUB = extent - NWELL
+# SUB = polygon_layer
+
+# Computed layers
+PDIFF = DIFF &amp; NWELL &amp; PSDM
+NTAP = TAP &amp; NWELL &amp; NSDM
+PGATE = PDIFF &amp; POLY
+PSD = PDIFF - PGATE
+STD_PGATE = PGATE - HVTP - NCM - HVI
+HVT_PGATE = PGATE &amp; HVTP - NCM - HVI
+HV5_PGATE = PGATE - HVTP - NCM &amp; HVI
+  
+NDIFF = DIFF - NWELL &amp; NSDM
+PTAP = TAP - NWELL &amp; PSDM
+NGATE = NDIFF &amp; POLY
+NSD = NDIFF - NGATE
+STD_NGATE = NGATE - NCM - LVTN - HVI
+LVT_NGATE = NGATE - NCM &amp; LVTN - HVI
+HV5_NGATE = NGATE - NCM - LVTN &amp; HVI
+HV5NA_NGATE = NGATE - NCM &amp; LVTN &amp; HVI
+
+# drawing to physical
+device_scaling(1000000)
+
+# PMOS transistor device extraction
+extract_devices(mos4("pfet_01v8"), { "SD" =&gt; PSD, "G" =&gt; STD_PGATE, "tS" =&gt; PSD, "tD" =&gt; PSD, "tG" =&gt; POLY, "W" =&gt; NWELL })
+extract_devices(mos4("pfet_01v8_hvt"), { "SD" =&gt; PSD, "G" =&gt; HVT_PGATE, "tS" =&gt; PSD, "tD" =&gt; PSD, "tG" =&gt; POLY, "W" =&gt; NWELL })
+extract_devices(mos4("pfet_g5v0d10v5"), { "SD" =&gt; PSD, "G" =&gt; HV5_PGATE, "tS" =&gt; PSD, "tD" =&gt; PSD, "tG" =&gt; POLY, "W" =&gt; NWELL })
+
+# NMOS transistor device extraction
+extract_devices(mos4("nfet_01v8"), { "SD" =&gt; NSD, "G" =&gt; STD_NGATE, "tS" =&gt; NSD, "tD" =&gt; NSD, "tG" =&gt; POLY, "W" =&gt; SUB })
+extract_devices(mos4("nfet_01v8_lvt"), { "SD" =&gt; NSD, "G" =&gt; LVT_NGATE, "tS" =&gt; NSD, "tD" =&gt; NSD, "tG" =&gt; POLY, "W" =&gt; SUB })
+extract_devices(mos4("nfet_g5v0d10v5"), { "SD" =&gt; NSD, "G" =&gt; HV5_NGATE, "tS" =&gt; NSD, "tD" =&gt; NSD, "tG" =&gt; POLY, "W" =&gt; SUB })
+extract_devices(mos4("nfet_01v8_nvt"), { "SD" =&gt; NSD, "G" =&gt; HV5NA_NGATE, "tS" =&gt; NSD, "tD" =&gt; NSD, "tG" =&gt; POLY, "W" =&gt; SUB })
+
+
+# Define connectivity for netlist extraction
+
+# Inter-layer
+connect(SUB,  PTAP)
+connect(NWELL,  NTAP)
+connect(LICON,   PTAP)
+connect(LICON,   NTAP)
+connect(PSD,    LICON)
+connect(NSD,    LICON)
+connect(POLY,   LICON)
+connect(LICON,   LI)
+connect(LI, MCON)
+connect(MCON,   MET1)
+connect(MET1,VIA1)
+connect(VIA1,   MET2)
+connect(MET2, VIA2)
+connect(VIA2,   MET3)
+connect(MET3, VIA3)
+connect(VIA3,   MET4)
+connect(MET4, VIA4)
+connect(VIA4,   MET5)
+# Attaching labels
+connect(SUB, SUBTXT)
+connect(SUB, SUBPIN)
+connect(NWELL, NWELLTXT)
+connect(POLY, POLYTXT)
+connect(LI, LITXT)
+connect(MET1, MET1TXT)
+connect(MET2, MET2TXT)
+connect(MET3, MET3TXT)
+connect(MET4, MET4TXT)
+connect(MET5, MET5TXT)
+
+# Global
+connect_global(SUB, "VNB")
+
+# Actually performs the extraction
+netlist # ... not really required
+
+# Flatten cells which are present in one netlist only
+align
+
+# R2G 2026-10-07: device-less cells (fill, tap, decap, diode ties) extract to NO
+# layout circuit, yet write_cdl lists them as subcircuit instances, so they
+# survive as schematic-only circuits and the top cell's comparison never runs --
+# its status came back Skipped, not Mismatch. `align` covers circuits present on
+# one side only and did flatten the layout-only VIA cells, but not these.
+#
+# Collect NAMES first: flatten_circuit destroys the Circuit object, so a loop
+# holding the object dies on the next iteration with "Object has been destroyed
+# already in Circuit::name". flatten_circuit is a Netlist method, not an
+# LVS-engine one.
+begin
+  # Match on the PROPERTY, not on a name list. A leaf circuit with no devices
+  # and no subcircuits cannot have a layout counterpart -- extraction finds
+  # nothing to extract. Fill and tap cells are the obvious cases; the cross-size
+  # check also turned up CONB_1, a constant cell with no transistors at all,
+  # which a FILL|TAP|DECAP|DIODE|ANTENNA pattern missed.
+  r2g_names = []
+  schematic.each_circuit do |c|
+    ndev = 0
+    c.each_device { |d| ndev = ndev + 1 }
+    nsub = 0
+    c.each_subcircuit { |s| nsub = nsub + 1 }
+    r2g_names.push(c.name) if ndev == 0 if nsub == 0
+  end
+  r2g_names.each do |n|
+    begin
+      c = schematic.circuit_by_name(n)
+      schematic.flatten_circuit(c) if c
+    rescue =&gt; e
+      puts "R2G-LVS: flatten #{n} raised: #{e}"
+    end
+  end
+  puts "R2G-LVS: flattened #{r2g_names.size} device-less schematic circuits"
+rescue =&gt; e
+  puts "R2G-LVS: device-less flatten pass raised: #{e}"
+end
+# SIMPLIFICATION of the netlist
+#netlist.make_top_level_pins
+# R2G 2026-10-07: sky130 expresses drive strength as device multiplicity
+# (a21oi_2's master declares `m=2` rather than two instances), so extraction
+# finds parallel transistors where the schematic has one device. Combining them
+# on both sides is what lets the two correspond.
+netlist.combine_devices
+schematic.combine_devices
+#netlist.purge
+#netlist.purge_nets
+netlist.simplify
+# R2G 2026-10-07: simplify BOTH sides. With only the layout simplified, its
+# internal nets are purged while the schematic keeps them, so cells whose master
+# has internal nodes stop corresponding -- a21oi_2 reported NoMatch with
+# layout=(none) for A1, A2 and the internal SNDA1 on two designs in the
+# cross-size check.
+schematic.simplify
+
+# Tolerances for the devices extracted parameters
+#  tolerance(device_class_name, parameter_name [, :absolute =&gt; absolute_tolerance] [, :relative =&gt; relative_tolerance])
+tolerance("pfet_01v8", "W", :absolute =&gt; 1.nm, :relative =&gt; 0.001)
+tolerance("pfet_01v8", "L", :absolute =&gt; 1.nm, :relative =&gt; 0.001)
+tolerance("pfet_01v8_hvt", "W", :absolute =&gt; 1.nm, :relative =&gt; 0.001)
+tolerance("pfet_01v8_hvt", "L", :absolute =&gt; 1.nm, :relative =&gt; 0.001)
+tolerance("nfet_01v8", "W", :absolute =&gt; 1.nm, :relative =&gt; 0.001)
+tolerance("nfet_01v8", "L", :absolute =&gt; 1.nm, :relative =&gt; 0.001)
+tolerance("nfet_01v8_lvt", "W", :absolute =&gt; 1.nm, :relative =&gt; 0.001)
+tolerance("nfet_01v8_lvt", "L", :absolute =&gt; 1.nm, :relative =&gt; 0.001)
+
+# NangateOpenCellLibrary Digital gates input equivalence :
+# R2G 2026-10-07: sky130's own commutative inputs, generated from the
+# liberty by scripts/flow/gen_sky130_equivalent_pins.py. What was here
+# named NANGATE cells ("*AND2_1"), inherited from ORFS's sky130hd.lylvs,
+# so no sky130 cell matched and no input was ever swappable -- a21oi_2
+# reported NoMatch on designs that are correct.
+# Groups only: a21oi declares ("A1","A2"), never B1 as well.
+equivalent_pins("*A2111O_1", "A1", "A2")
+equivalent_pins("*A2111O_2", "A1", "A2")
+equivalent_pins("*A2111O_4", "A1", "A2")
+equivalent_pins("*A2111OI_0", "A1", "A2")
+equivalent_pins("*A2111OI_1", "A1", "A2")
+equivalent_pins("*A2111OI_2", "A1", "A2")
+equivalent_pins("*A2111OI_4", "A1", "A2")
+equivalent_pins("*A211O_1", "A1", "A2")
+equivalent_pins("*A211O_2", "A1", "A2")
+equivalent_pins("*A211O_4", "A1", "A2")
+equivalent_pins("*A211OI_1", "A1", "A2")
+equivalent_pins("*A211OI_2", "A1", "A2")
+equivalent_pins("*A211OI_4", "A1", "A2")
+equivalent_pins("*A21BO_1", "A1", "A2")
+equivalent_pins("*A21BO_2", "A1", "A2")
+equivalent_pins("*A21BO_4", "A1", "A2")
+equivalent_pins("*A21BOI_0", "A1", "A2")
+equivalent_pins("*A21BOI_1", "A1", "A2")
+equivalent_pins("*A21BOI_2", "A1", "A2")
+equivalent_pins("*A21BOI_4", "A1", "A2")
+equivalent_pins("*A21O_1", "A1", "A2")
+equivalent_pins("*A21O_2", "A1", "A2")
+equivalent_pins("*A21O_4", "A1", "A2")
+equivalent_pins("*A21OI_1", "A1", "A2")
+equivalent_pins("*A21OI_2", "A1", "A2")
+equivalent_pins("*A21OI_4", "A1", "A2")
+equivalent_pins("*A221O_1", "A1", "A2")
+equivalent_pins("*A221O_1", "B1", "B2")
+equivalent_pins("*A221O_2", "A1", "A2")
+equivalent_pins("*A221O_2", "B1", "B2")
+equivalent_pins("*A221O_4", "A1", "A2")
+equivalent_pins("*A221O_4", "B1", "B2")
+equivalent_pins("*A221OI_1", "A1", "A2")
+equivalent_pins("*A221OI_1", "B1", "B2")
+equivalent_pins("*A221OI_2", "A1", "A2")
+equivalent_pins("*A221OI_2", "B1", "B2")
+equivalent_pins("*A221OI_4", "A1", "A2")
+equivalent_pins("*A221OI_4", "B1", "B2")
+equivalent_pins("*A222OI_1", "A1", "A2")
+equivalent_pins("*A222OI_1", "B1", "B2")
+equivalent_pins("*A222OI_1", "C1", "C2")
+equivalent_pins("*A22O_1", "A1", "A2")
+equivalent_pins("*A22O_1", "B1", "B2")
+equivalent_pins("*A22O_2", "A1", "A2")
+equivalent_pins("*A22O_2", "B1", "B2")
+equivalent_pins("*A22O_4", "A1", "A2")
+equivalent_pins("*A22O_4", "B1", "B2")
+equivalent_pins("*A22OI_1", "A1", "A2")
+equivalent_pins("*A22OI_1", "B1", "B2")
+equivalent_pins("*A22OI_2", "A1", "A2")
+equivalent_pins("*A22OI_2", "B1", "B2")
+equivalent_pins("*A22OI_4", "A1", "A2")
+equivalent_pins("*A22OI_4", "B1", "B2")
+equivalent_pins("*A2BB2O_1", "B1", "B2")
+equivalent_pins("*A2BB2O_2", "B1", "B2")
+equivalent_pins("*A2BB2O_4", "B1", "B2")
+equivalent_pins("*A2BB2OI_1", "B1", "B2")
+equivalent_pins("*A2BB2OI_2", "B1", "B2")
+equivalent_pins("*A2BB2OI_4", "B1", "B2")
+equivalent_pins("*A311O_1", "A1", "A2", "A3")
+equivalent_pins("*A311O_2", "A1", "A2", "A3")
+equivalent_pins("*A311O_4", "A1", "A2", "A3")
+equivalent_pins("*A311OI_1", "A1", "A2", "A3")
+equivalent_pins("*A311OI_2", "A1", "A2", "A3")
+equivalent_pins("*A311OI_4", "A1", "A2", "A3")
+equivalent_pins("*A31O_1", "A1", "A2", "A3")
+equivalent_pins("*A31O_2", "A1", "A2", "A3")
+equivalent_pins("*A31O_4", "A1", "A2", "A3")
+equivalent_pins("*A31OI_1", "A1", "A2", "A3")
+equivalent_pins("*A31OI_2", "A1", "A2", "A3")
+equivalent_pins("*A31OI_4", "A1", "A2", "A3")
+equivalent_pins("*A32O_1", "A1", "A2", "A3")
+equivalent_pins("*A32O_1", "B1", "B2")
+equivalent_pins("*A32O_2", "A1", "A2", "A3")
+equivalent_pins("*A32O_2", "B1", "B2")
+equivalent_pins("*A32O_4", "A1", "A2", "A3")
+equivalent_pins("*A32O_4", "B1", "B2")
+equivalent_pins("*A32OI_1", "A1", "A2", "A3")
+equivalent_pins("*A32OI_1", "B1", "B2")
+equivalent_pins("*A32OI_2", "A1", "A2", "A3")
+equivalent_pins("*A32OI_2", "B1", "B2")
+equivalent_pins("*A32OI_4", "A1", "A2", "A3")
+equivalent_pins("*A32OI_4", "B1", "B2")
+equivalent_pins("*A41O_1", "A1", "A2", "A3", "A4")
+equivalent_pins("*A41O_2", "A1", "A2", "A3", "A4")
+equivalent_pins("*A41O_4", "A1", "A2", "A3", "A4")
+equivalent_pins("*A41OI_1", "A1", "A2", "A3", "A4")
+equivalent_pins("*A41OI_2", "A1", "A2", "A3", "A4")
+equivalent_pins("*A41OI_4", "A1", "A2", "A3", "A4")
+equivalent_pins("*AND2_0", "A", "B")
+equivalent_pins("*AND2_1", "A", "B")
+equivalent_pins("*AND2_2", "A", "B")
+equivalent_pins("*AND2_4", "A", "B")
+equivalent_pins("*AND3_1", "A", "B", "C")
+equivalent_pins("*AND3_2", "A", "B", "C")
+equivalent_pins("*AND3_4", "A", "B", "C")
+equivalent_pins("*AND4_1", "A", "B", "C", "D")
+equivalent_pins("*AND4_2", "A", "B", "C", "D")
+equivalent_pins("*AND4_4", "A", "B", "C", "D")
+equivalent_pins("*NAND2_1", "A", "B")
+equivalent_pins("*NAND2_2", "A", "B")
+equivalent_pins("*NAND2_4", "A", "B")
+equivalent_pins("*NAND2_8", "A", "B")
+equivalent_pins("*NAND3_1", "A", "B", "C")
+equivalent_pins("*NAND3_2", "A", "B", "C")
+equivalent_pins("*NAND3_4", "A", "B", "C")
+equivalent_pins("*NAND4_1", "A", "B", "C", "D")
+equivalent_pins("*NAND4_2", "A", "B", "C", "D")
+equivalent_pins("*NAND4_4", "A", "B", "C", "D")
+equivalent_pins("*NOR2_1", "A", "B")
+equivalent_pins("*NOR2_2", "A", "B")
+equivalent_pins("*NOR2_4", "A", "B")
+equivalent_pins("*NOR2_8", "A", "B")
+equivalent_pins("*NOR3_1", "A", "B", "C")
+equivalent_pins("*NOR3_2", "A", "B", "C")
+equivalent_pins("*NOR3_4", "A", "B", "C")
+equivalent_pins("*NOR4_1", "A", "B", "C", "D")
+equivalent_pins("*NOR4_2", "A", "B", "C", "D")
+equivalent_pins("*NOR4_4", "A", "B", "C", "D")
+equivalent_pins("*O2111A_1", "A1", "A2")
+equivalent_pins("*O2111A_2", "A1", "A2")
+equivalent_pins("*O2111A_4", "A1", "A2")
+equivalent_pins("*O2111AI_1", "A1", "A2")
+equivalent_pins("*O2111AI_2", "A1", "A2")
+equivalent_pins("*O2111AI_4", "A1", "A2")
+equivalent_pins("*O211A_1", "A1", "A2")
+equivalent_pins("*O211A_2", "A1", "A2")
+equivalent_pins("*O211A_4", "A1", "A2")
+equivalent_pins("*O211AI_1", "A1", "A2")
+equivalent_pins("*O211AI_2", "A1", "A2")
+equivalent_pins("*O211AI_4", "A1", "A2")
+equivalent_pins("*O21A_1", "A1", "A2")
+equivalent_pins("*O21A_2", "A1", "A2")
+equivalent_pins("*O21A_4", "A1", "A2")
+equivalent_pins("*O21AI_0", "A1", "A2")
+equivalent_pins("*O21AI_1", "A1", "A2")
+equivalent_pins("*O21AI_2", "A1", "A2")
+equivalent_pins("*O21AI_4", "A1", "A2")
+equivalent_pins("*O21BA_1", "A1", "A2")
+equivalent_pins("*O21BA_2", "A1", "A2")
+equivalent_pins("*O21BA_4", "A1", "A2")
+equivalent_pins("*O21BAI_1", "A1", "A2")
+equivalent_pins("*O21BAI_2", "A1", "A2")
+equivalent_pins("*O21BAI_4", "A1", "A2")
+equivalent_pins("*O221A_1", "A1", "A2")
+equivalent_pins("*O221A_1", "B1", "B2")
+equivalent_pins("*O221A_2", "A1", "A2")
+equivalent_pins("*O221A_2", "B1", "B2")
+equivalent_pins("*O221A_4", "A1", "A2")
+equivalent_pins("*O221A_4", "B1", "B2")
+equivalent_pins("*O221AI_1", "A1", "A2")
+equivalent_pins("*O221AI_1", "B1", "B2")
+equivalent_pins("*O221AI_2", "A1", "A2")
+equivalent_pins("*O221AI_2", "B1", "B2")
+equivalent_pins("*O221AI_4", "A1", "A2")
+equivalent_pins("*O221AI_4", "B1", "B2")
+equivalent_pins("*O22A_1", "A1", "A2")
+equivalent_pins("*O22A_1", "B1", "B2")
+equivalent_pins("*O22A_2", "A1", "A2")
+equivalent_pins("*O22A_2", "B1", "B2")
+equivalent_pins("*O22A_4", "A1", "A2")
+equivalent_pins("*O22A_4", "B1", "B2")
+equivalent_pins("*O22AI_1", "A1", "A2")
+equivalent_pins("*O22AI_1", "B1", "B2")
+equivalent_pins("*O22AI_2", "A1", "A2")
+equivalent_pins("*O22AI_2", "B1", "B2")
+equivalent_pins("*O22AI_4", "A1", "A2")
+equivalent_pins("*O22AI_4", "B1", "B2")
+equivalent_pins("*O2BB2A_1", "B1", "B2")
+equivalent_pins("*O2BB2A_2", "B1", "B2")
+equivalent_pins("*O2BB2A_4", "B1", "B2")
+equivalent_pins("*O2BB2AI_1", "B1", "B2")
+equivalent_pins("*O2BB2AI_2", "B1", "B2")
+equivalent_pins("*O2BB2AI_4", "B1", "B2")
+equivalent_pins("*O311A_1", "A1", "A2", "A3")
+equivalent_pins("*O311A_2", "A1", "A2", "A3")
+equivalent_pins("*O311A_4", "A1", "A2", "A3")
+equivalent_pins("*O311AI_0", "A1", "A2", "A3")
+equivalent_pins("*O311AI_1", "A1", "A2", "A3")
+equivalent_pins("*O311AI_2", "A1", "A2", "A3")
+equivalent_pins("*O311AI_4", "A1", "A2", "A3")
+equivalent_pins("*O31A_1", "A1", "A2", "A3")
+equivalent_pins("*O31A_2", "A1", "A2", "A3")
+equivalent_pins("*O31A_4", "A1", "A2", "A3")
+equivalent_pins("*O31AI_1", "A1", "A2", "A3")
+equivalent_pins("*O31AI_2", "A1", "A2", "A3")
+equivalent_pins("*O31AI_4", "A1", "A2", "A3")
+equivalent_pins("*O32A_1", "A1", "A2", "A3")
+equivalent_pins("*O32A_1", "B1", "B2")
+equivalent_pins("*O32A_2", "A1", "A2", "A3")
+equivalent_pins("*O32A_2", "B1", "B2")
+equivalent_pins("*O32A_4", "A1", "A2", "A3")
+equivalent_pins("*O32A_4", "B1", "B2")
+equivalent_pins("*O32AI_1", "A1", "A2", "A3")
+equivalent_pins("*O32AI_1", "B1", "B2")
+equivalent_pins("*O32AI_2", "A1", "A2", "A3")
+equivalent_pins("*O32AI_2", "B1", "B2")
+equivalent_pins("*O32AI_4", "A1", "A2", "A3")
+equivalent_pins("*O32AI_4", "B1", "B2")
+equivalent_pins("*O41A_1", "A1", "A2", "A3", "A4")
+equivalent_pins("*O41A_2", "A1", "A2", "A3", "A4")
+equivalent_pins("*O41A_4", "A1", "A2", "A3", "A4")
+equivalent_pins("*O41AI_1", "A1", "A2", "A3", "A4")
+equivalent_pins("*O41AI_2", "A1", "A2", "A3", "A4")
+equivalent_pins("*O41AI_4", "A1", "A2", "A3", "A4")
+equivalent_pins("*OR2_0", "A", "B")
+equivalent_pins("*OR2_1", "A", "B")
+equivalent_pins("*OR2_2", "A", "B")
+equivalent_pins("*OR2_4", "A", "B")
+equivalent_pins("*OR3_1", "A", "B", "C")
+equivalent_pins("*OR3_2", "A", "B", "C")
+equivalent_pins("*OR3_4", "A", "B", "C")
+equivalent_pins("*OR4_1", "A", "B", "C", "D")
+equivalent_pins("*OR4_2", "A", "B", "C", "D")
+equivalent_pins("*OR4_4", "A", "B", "C", "D")
+equivalent_pins("*XNOR2_1", "A", "B")
+equivalent_pins("*XNOR2_2", "A", "B")
+equivalent_pins("*XNOR2_4", "A", "B")
+equivalent_pins("*XNOR3_1", "A", "B", "C")
+equivalent_pins("*XNOR3_2", "A", "B", "C")
+equivalent_pins("*XNOR3_4", "A", "B", "C")
+equivalent_pins("*XOR2_1", "A", "B")
+equivalent_pins("*XOR2_2", "A", "B")
+equivalent_pins("*XOR2_4", "A", "B")
+equivalent_pins("*XOR3_1", "A", "B", "C")
+equivalent_pins("*XOR3_2", "A", "B", "C")
+equivalent_pins("*XOR3_4", "A", "B", "C")
+
+#max_res(1000000)
+#min_caps(1e-15)
+
+r2g_matched = compare
+if ! r2g_matched
+  puts "ERROR : Netlists don't match"
+else
+  puts "INFO : Congratulations! Netlists match."
+end
+
+# R2G 2026-10-07: the deck never called report_lvs, so `report_file` -- passed
+# in by the Makefile -- was ignored and a mismatch left nothing to inspect.
+begin
+  if $report_file
+    report_lvs($report_file)
+  end
+rescue =&gt; e
+  puts "R2G-LVS: report_lvs raised: #{e}"
+end
+
+# On a mismatch, say WHAT differs. Four designs were investigated with only the
+# verdict to go on before this existed. each_net_pair and friends live on the
+# NetlistCrossReference and take ONE argument (the circuit pair); the deck's own
+# earlier dump guessed otherwise and died on `undefined method `device_count''.
+if ! r2g_matched
+  begin
+    x = lvs_data.xref
+    if x.nil?
+      puts "R2G-LVS: no cross-reference available"
+    else
+      x.each_circuit_pair do |cp|
+        la = cp.first ? cp.first.name : "(none)"
+        sa = cp.second ? cp.second.name : "(none)"
+        st = cp.status.to_s
+        next if st == "Match"
+        puts "R2G-LVS: circuit layout=#{la} schematic=#{sa} status=#{st}"
+        next if cp.first.nil?
+        next if cp.second.nil?
+        shown = 0
+        x.each_net_pair(cp) do |np|
+          s = np.status.to_s
+          next if s == "Match"
+          next if s == "MatchWithWarning"
+          shown = shown + 1
+          next if shown &gt; 10
+          na = np.first ? np.first.expanded_name : "(none)"
+          nb = np.second ? np.second.expanded_name : "(none)"
+          puts "R2G-LVS:   net [#{s}] layout=#{na} schematic=#{nb}"
+        end
+        shown = 0
+        x.each_device_pair(cp) do |dp|
+          s = dp.status.to_s
+          next if s == "Match"
+          next if s == "MatchWithWarning"
+          shown = shown + 1
+          next if shown &gt; 6
+          da = dp.first ? dp.first.expanded_name : "(none)"
+          db = dp.second ? dp.second.expanded_name : "(none)"
+          puts "R2G-LVS:   device [#{s}] layout=#{da} schematic=#{db}"
+        end
+      end
+    end
+  rescue =&gt; e
+    puts "R2G-LVS: cross-reference dump raised: #{e}"
+  end
+end</text>
+</klayout-macro>
