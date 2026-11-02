@@ -2,6 +2,11 @@
 
 A collection of AI-assisted skills for scientific research, built for [FutureOS](https://github.com/futuregene/future-os/tree/main).
 
+> **默认服务对象是杭州电子科技大学。** 注册表里的 `scope` 字段区分三种口径：`general`（学科通用）与
+> `hdu`（按杭电 9 个一级学科博士点选取）构成默认集合；其他学校的条目带
+> `cross-school:<school>`，单独列在 [docs/school-scope.md](docs/school-scope.md)，不会混进默认视图。
+> 默认集合的取法与每个 `cross-school:*` 条目对应的学校/学科见该文件。
+
 [中文版](README.zh-CN.md)
 
 ## What is a Skill?
