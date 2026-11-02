@@ -1,0 +1,30 @@
+# SOURCE
+
+| 项目 | 内容 |
+|---|---|
+| 上游仓库 | https://github.com/Owl-Listener/designer-skills |
+| 上游路径 | `ux-strategy/skills/service-blueprint/SKILL.md` |
+| 固定 commit | `9a6930cf84a822eb458624bd11c61aac5bbdf224`（2026-09-05，仓库 111 个技能时的 HEAD） |
+| 许可证 | MIT License，Copyright (c) 2026 MC Dean（见上游 `LICENSE`） |
+| 导入日期 | 2026-11-02 |
+| 上游域 | `ux-strategy`（9 个域之一） |
+| 本库分类 | docs（设计方法与评审） |
+
+## 抽取范围
+
+整份 SKILL.md（五条泳道定义、三条分界线、适用场景、与旅程图的对照表、九步绘制流程、读图的四类断点、实践规则）。未取同域 information-architecture / business-design / metrics-definition 等 11 个技能。
+
+## 我们的改动
+
+frontmatter 重写（license / category / metadata + 本库 description）；删 persona 首句；原交叉引用 `experience-map`（未接入）删除；泳道、分界线、九步流程原样保留；中文触发词补入正文。
+
+## 使用边界
+
+系统梳理方法，不含运营系统集成与真实后台数据采集；泳道内容依赖与运营团队访谈，单靠设计稿画不出来。不产出可执行的服务流程规范（SOP），也不替代 BPMN 建模。
+
+## 复核方式
+
+- 上游为只读检出：`D:/future-os/.future/tmp/hdu-upstream/designer-skills`，未做任何修改。
+- 本目录 `SKILL.md` 内引用的表、数值、流程均可在上述 `src` 路径逐条对照。
+- 上游不含脚本与可执行资产（该仓库 111 个技能均为单文件 Markdown），因此本技能无可编译代码；
+  校验方式为 frontmatter 与引用路径检查，见 stage 根目录 `REPORT.md`。
