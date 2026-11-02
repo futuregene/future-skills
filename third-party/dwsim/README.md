@@ -294,7 +294,7 @@ Please open an issue before submitting large pull requests.
 
 ## License
 
-MIT License. See [LICENSE](LICENSE).
+MIT License. See LICENSE.
 
 ---
 
