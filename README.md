@@ -14,11 +14,18 @@ A skill is a lightweight AI instruction package defined by a `SKILL.md` file tha
 future-skills/
 ├── builtin/          # FutureOS built-in skills
 ├── third-party/      # Curated third-party skills
+├── docs/             # Coverage notes and the evaluation backlog
+├── tests/            # Offline validators and regressions
 ├── skills.json       # Skill metadata configuration
 ├── README.md
 ├── README.zh-CN.md
 └── LICENSE
 ```
+
+Every skill belongs to exactly one of nine categories — `engineering`, `computing`,
+`life-science`, `chemistry-materials`, `research`, `security`, `business`, `docs`,
+`platform`. [docs/discipline-coverage.md](docs/discipline-coverage.md) maps them to the
+disciplines we serve and lists what is evaluated but deliberately not shipped.
 
 ## Skill Format
 
@@ -42,8 +49,8 @@ Usage guidance...
 ```json
 {
   "future-paper": {
-    "category": "tools",
-    "category_zh": "工具",
+    "category": "research",
+    "category_zh": "科研与建模",
     "builtin": true,
     "enabled": true,
     "name_zh": "文献搜索与获取",
@@ -51,6 +58,10 @@ Usage guidance...
   }
 }
 ```
+
+`category` must be one of the nine categories above; `tests/check_registry.py` rejects
+anything else, a missing skill directory, or a frontmatter `name` that differs from the
+registry key.
 
 ## Contributing
 
