@@ -1,7 +1,7 @@
 ---
-version: 5.4.0
+version: 5.5.0
 name: future-goal
-description: FutureOS goal control plane — manage long-running goals, todos, human gates, workers, monitors, validated completion, and multi-model ensembles (one brief run by different models, judged blind, then synthesized — "让不同模型分别做再合成", "取长补短"). Use for cross-session work, ongoing task status, "keep working", "run overnight", or /future-goal; an explicit /future-goal that carries work dispatches that work to workers instead of doing it inline. A message with no work to dispatch needs no goal.
+description: FutureOS goal control plane — manage long-running goals, todos, human gates, workers, monitors, validated completion, multi-model ensembles (one brief run by different models, judged blind, then synthesized — "让不同模型分别做再合成", "取长补短"), and exploration mode (a scout returns a direction proposal instead of an artifact — "该往哪个方向走"). Use for cross-session work, ongoing task status, "keep working", "run overnight", or /future-goal; an explicit /future-goal that carries work dispatches that work to workers instead of doing it inline. A message with no work to dispatch needs no goal.
 allowed-tools: Bash(future:*)
 category: tools
 ---
@@ -77,6 +77,10 @@ puts the work in a worker session.
      when a high-value deliverable's quality justifies N independent candidates.
      Different methods or prompts on ONE model is Heavy, not Ensemble; N runs of
      the same model is neither — say which of the three you are doing.
+   - **Exploration:** when the next step is a CHOICE rather than execution, the
+     unit of work is a scout and the deliverable is a direction proposal, not an
+     artifact (§8). Use it when a stalled slice needs a different direction or
+     when the user asks "which way should we go".
 4. Set budget checkpoints in wall time, cost and/or attempts. `--max-turns`
    bounds outer loop iterations, NOT tokens or inner model/tool calls. Do not
    advertise a hard monetary cap unless the underlying runtime enforces it.
@@ -382,3 +386,41 @@ checks actually run), and keep the candidate directories until the final artifac
 is verified — they are the reproduction evidence for the comparison, not scratch
 space. Brief, task-text, judging-packet and provenance templates:
 `references/ensemble.md`.
+
+## 8. Exploration mode: a scout delivers a direction, not an artifact
+
+When the question is *which way to go* rather than *do this*, the unit of work is
+a **scout** (`todo add --class scout`) and its deliverable is a **direction
+proposal**: a small set of candidate directions, each with acceptance items and
+its own termination condition.
+
+- `--kill-when "stop exploring this direction when <X>"` is REQUIRED. A scout
+  without a termination condition is an unbounded budget sink, so `todo add`
+  refuses it. The kill_when reaches the worker through the turn envelope.
+- The worker records the proposal with one command (the envelope prints this
+  exact line, including the field syntax — do not improvise it):
+  `future goal direction propose --goal G --scout-todo T --trigger stall --question "..." --observation "..." --evidence PATH --candidate "title|class|route|kill_when|acceptance1;acceptance2"`
+  `class` is `scout` (a deeper exploration; then `kill_when` is required) or
+  `advancement` (kill_when may be empty, acceptance carries the contract);
+  `route` is `fork` or `revise:<TODO_ID>`. The legacy four-field spec
+  `title|route|kill_when|acceptance` still means `class=advancement`.
+- **A proposal never creates a todo.** `direction accept --proposal P --candidate
+  C` is the decision that turns a candidate into work (`advancement`) or a deeper
+  exploration (`scout`); `revise:T` makes the new todo continue AFTER T
+  (`blocked_by_gate = T`) instead of editing T in place. The todo carries
+  `origin_proposal`, and `status --format json` exposes it — that is the only
+  machine-readable link from the decision to the work.
+- Completion gate: `todo complete` refuses a scout that no proposal names. Check
+  the ledger with `direction list`; `reject` requires a reason; `expire` frees the
+  direction, and an expired or rejected proposal cannot be accepted.
+- The scout turn is a READ-ONLY contract: no edits to existing files, no
+  implementation, and the only permitted writes are evidence notes inside the
+  declared scope (none declared means no file writes at all). Its fixed text is
+  capped at 1500 bytes because every scout turn re-sends it, so add constraints
+  instead of prose.
+- Known limitation: dedupe normalizes titles only (English verb prefixes plus
+  containment), so a Chinese and an English phrasing of one direction are not
+  recognised as duplicates.
+- When a slice stalls twice, the kernel raises an `exploration_gap` obligation —
+  a report that the goal owes an exploration, not an automatically created scout.
+  Creating the scout is your call.
