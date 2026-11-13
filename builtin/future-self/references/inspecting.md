@@ -15,6 +15,8 @@ interchangeable and are not.
 | `future workspace list --json` | The desktop app's workspaces (see `desktop-app.md`) |
 | `future version --json` | Which build this is: version, **commit**, target, dirty |
 | `future doctor` | Whether login, agent, sandbox, providers, sessions and skills are healthy |
+| `future models providers [--json]` | Every provider and model setting (keys never shown, only `hasApiKey`) |
+| `future models probe <provider>/<model> --json` | Which thinking levels the endpoint accepts, measured through the Agent's own adapters |
 | `future models --json` | Which models are available to this agent |
 | `future auth status` | Whether the user is signed in (and to which platform) |
 | `future remote status [--json]` | Whether this machine's remote desktop is serving, and which paired device is in control (`remote.md`) |
