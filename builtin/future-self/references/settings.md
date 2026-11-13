@@ -315,6 +315,51 @@ the agent will reach for — say which one you are installing and why.
 `future skills list` is a catalogue of the platform's skills, not an inventory of
 this machine's: `future doctor` is the full list (`inspecting.md`).
 
+## Providers and models
+
+```bash
+future models providers [--json]                 # every provider and model setting
+future models provider set <id> --key <key>      # a built-in provider's credential
+future models provider set <id> --base-url https://proxy.example.com/v1
+future models provider set <id> --clear-key
+future models provider set acme --name "Acme" --api openai-completions --base-url https://api.acme.example/v1
+future models model set acme/acme-large --context-window 128000 --max-tokens 16384 --thinking-levels low,high
+future models model remove acme/old-model
+future models provider remove acme
+future models probe acme/acme-large               # which thinking levels the endpoint accepts
+future models probe acme/acme-large --level high  # one level; a refusal is an answer
+```
+
+These are the same writes the desktop's Settings -> Providers page and the
+phone's provider editor make, through the same Agent commands, so every client
+shares one configuration and one set of field rules. They need a running Agent:
+the Agent is the only writer (see the next section for the hand-edit case).
+
+- `providers` answers "what is configured here": built-in providers (whether a
+  key is set, the base URL, the model count) and every custom provider's models
+  with their limits, image input, thinking levels and per-1M-token prices.
+- `provider set` on a **built-in** provider accepts only a credential and an
+  address: `--key`/`--clear-key`, `--base-url`/`--clear-base-url`. `--name` or
+  `--api` would redefine a provider whose models come from the catalog and are
+  refused. The account provider `future` is signed in through `future auth
+  login` and is refused here too.
+- `model set` edits one model of a **custom** provider and adds it when it is
+  not there yet. Settings you do not name keep their value; an untouched
+  model's thinking-level list is left alone, so an inherited provider-level
+  list is not frozen into a model-level one. `--clear-thinking-levels` declares
+  none beyond the implicit `default`.
+- `probe` asks the Agent which thinking levels the endpoint really accepts,
+  using the same adapters a real call uses, and saves nothing. A refused level
+  is the provider's answer (exit 0); a failed **calibration** call — the first
+  probe, which sends no thinking parameter at all — means the base URL, key or
+  model id is wrong and exits non-zero. With no flags it probes `default` and
+  then every level the editors offer; `--api`/`--base-url`/`--key` are only
+  needed for a model that is not configured yet.
+
+The desktop dialog's "detect thinking levels" button and the phone's provider
+editor run the same probe, so a level accepted here is the level those screens
+will offer.
+
 ## Hand-edited provider or model files need a registry refresh
 
 The Agent builds its model registry at startup and does not watch the provider
