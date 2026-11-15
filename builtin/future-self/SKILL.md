@@ -1,7 +1,7 @@
 ---
-version: 1.13.0
+version: 1.14.0
 name: future-self
-description: Inspect and adjust this FutureOS installation — global agent settings, the desktop app's own settings and workspaces, sessions, skills, tools and models, the account and credit balance, the machines paired to this one's remote desktop, a backup or restore of the local record, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", "what did we do before", "how is my account", "which device is controlling this machine" or "show me my balance", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, slicing one session's own records (including thinking and tool inputs/outputs), reading or changing global agent or desktop-app settings, adding a workspace from the terminal, pruning idle conversations, pairing or unpairing a remote device, backing up or restoring the installation, reloading the model registry after a hand-edited models.json, changing a provider's key, address or models, probing which thinking levels a model accepts (重载/刷新模型), understanding the code behind a behaviour, or account profile and credit balance. Never for reading credentials, and not for ordinary task work on the user's project.
+description: Inspect and adjust this FutureOS installation — global agent settings, the desktop app's own settings and workspaces, sessions, skills, tools and models, the account and credit balance, the machines paired to this one's remote desktop, a backup or restore of the local record, the user's recorded conversations, and the source that implements the agent — to answer "how am I configured", "why do I behave this way", "what do I know about you", "what did we do before", "how is my account", "which device is controlling this machine" or "show me my balance", and to personalise or proactively help. Use for self-inspection, cross-session recall of past conversations, slicing one session's own records (including thinking and tool inputs/outputs), reading or changing global agent or desktop-app settings, adding a workspace from the terminal, pruning idle conversations, pairing or unpairing a remote device, backing up or restoring the installation, reloading the model registry after a hand-edited models.json, changing a provider's key, address or models, probing which thinking levels a model accepts (重载/刷新模型), pinning or unpinning a conversation or workspace, understanding the code behind a behaviour, or account profile and credit balance. Never for reading credentials, and not for ordinary task work on the user's project.
 allowed-tools: Bash(future:*)
 category: tools
 ---
@@ -58,7 +58,7 @@ detail recalled from this page alone is usually a detail missed.
 | What happened in a conversation? Did we ever discuss X? Slice one session's records. | `references/recall.md` |
 | The account, the credit balance, whether a login exists. | `references/account.md` |
 | Change a setting, a session, a skill; stop a run; answer an approval; delete old conversations; refresh the model registry. | `references/settings.md` |
-| The desktop app's own preferences, and its workspaces. | `references/desktop-app.md` |
+| The desktop app's own preferences, its workspaces, and what is pinned. | `references/desktop-app.md` |
 | The devices that drive this machine, the desktops it drives, hosting headless, a self-hosted relay. | `references/remote.md` |
 | Back up, verify or restore the whole local record. | `references/data.md` |
 | Why does it behave this way? Read the code that implements it. | `references/source.md` |
@@ -71,6 +71,8 @@ detail recalled from this page alone is usually a detail missed.
 | `future config get [<key>] [--json]` | The effective global settings, defaults included |
 | `future desktop settings [<key>] [--json]` | The desktop app's own settings, defaults included |
 | `future workspace list --json` | The desktop app's workspaces (see `references/desktop-app.md`) |
+| `future workspace list --pinned` | The app's **pinned** workspaces, in the order the sidebar draws them |
+| `future workspace pin <path\|id\|name>` / `unpin` | Move a workspace in or out of the pinned section |
 | `future version --json` | Which build this is: version, **commit**, target, dirty |
 | `future session list --json` | Every session, newest first, with its `cwd`, model and title |
 | `future session status <id> [--json]` | One session's **live state**: permission, context, runs |
@@ -79,6 +81,7 @@ detail recalled from this page alone is usually a detail missed.
 | `future session reset <id> <selectors> [--yes]` | Delete part of one session's **own** history (dry run unless `--yes`; backed up) |
 | `future session history search --all --query <text> --json` | Whether a topic appears anywhere |
 | `future session prune --older-than <age> [--yes]` | Delete conversations idle longer than `<age>` (dry run unless `--yes`; no undo) |
+| `future session pinned` / `pin <id>` / `unpin <id>` | Which conversations are pinned — and the one thing that changes it |
 | `future remote status --json` | Whether this machine is serving its remote desktop, and who is in control |
 | `future account balance` | Remaining credits (a remote call — see `references/account.md`) |
 | `future doctor` | One pass over login, agent, sandbox, providers, sessions, skills |
@@ -91,14 +94,22 @@ permission while `future config get defaultPermissionLevel` says `all`, and be
 using 40% of its context window while `info` reports 40M lifetime tokens — only
 `status` is correct in either case.
 
+**A pin is the desktop app's flag, not the Agent's.** `future session pinned`,
+`future session pin` and `future session unpin` read and write
+`~/.future/app/app.db`, which is why they work with no Agent running — while
+`future session list` is a gRPC call that carries no pin at all. The two lists
+differ for that reason: the app's holds what it imported, the Agent's holds
+sessions it has never opened. Both rules, and what archiving does to a pin, are
+in `references/desktop-app.md`.
+
 **Most session and model commands need a running Agent.** `future session
 list/info/status/transcript/history/forks/wait/approvals` and `future models` ask
 the Agent over local IPC and fail with `unable to connect to Future Agent` when
 none is reachable, rather than returning an empty result. The reads that work with
 nothing running are `future config get`, `future desktop settings`, `future
-workspace`, `future version`, `future auth status`, `future skills list` and
-`future doctor` — plus the `future remote` commands that only read its pairing
-books (`references/remote.md`).
+workspace`, `future session pinned`, `future version`, `future auth status`, `future
+skills list` and `future doctor` — plus the `future remote` commands that only
+read its pairing books (`references/remote.md`).
 
 ## 4. Building a picture of the user
 
