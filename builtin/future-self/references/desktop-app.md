@@ -85,7 +85,64 @@ happen, and the fix is the one the note names.
 > it is what files the conversation, and the app derives a workspace row by the
 > same rule when it imports an agent session.
 
-Where the code splits, if a question goes deeper: the table and the rules are
+## Pinning
+
+Both workspaces and conversations can be **pinned**, and pinned is a place: the
+app draws a pinned section above the active list, and a row there stays put
+instead of following the recency order. It is the same flag at both scopes, so
+the commands mirror each other — one target, spelled the way the workspace
+commands already take it (a path, an id, or a name only one workspace carries).
+
+```bash
+future session pinned                 # which conversations are pinned
+future session pin <session-id>
+future session unpin <session-id>
+future workspace list --pinned        # which workspaces are pinned
+future workspace pin <path|id|name>
+future workspace unpin <path|id|name>
+```
+
+Two of these read the section back; the other four change it. All six work with
+**no Agent and no desktop app running** — they read and write the same store
+(`~/.future/app/app.db`), and the app plus any paired phone see the change on
+their next read because the write marks the catalogue dirty. `--json` adds
+`pinned` and `inPinnedSection` to the record and names the `database` written
+to.
+
+`future session pinned` takes **the Agent session id** — the id `future session
+list` and `info` print, which is what `pin`/`unpin` accept. It is not the same
+list as `future session list`: the Agent holds sessions the app never imported,
+and `future session list` is a gRPC call carrying no pin, so a session can exist
+there and be absent here.
+
+Three rules decide whether a pin means what it looks like, and each one is a
+wrong answer waiting to be given:
+
+- **A pin orders, it does not record activity.** Neither `updated_at` nor
+  `last_opened_at` is rewritten, so unpinning returns the row to the position its
+  own activity earns rather than sending it to the front. Reading a pinned row's
+  timestamp as "last touched" is therefore correct, not stale.
+- **Archiving clears the pin.** A pinned row on the archived shelf would hide
+  behind it, so `archive` sets `pinned = 0`. **`unpin` is not the inverse of
+  `archive`; `restore` is** — and restoring does not bring the pin back.
+- **A pin can be stored without being shown.** Pinning an archived conversation,
+  or one whose workspace is archived while it is itself active, writes the flag
+  while the pinned section keeps it out of sight until `future session restore`
+  or `future workspace restore` puts the row back. The command says so and names
+  the restore that applies, having read the cause from the row's `status` and its
+  workspace's `archived_at` — so report that note rather than diagnosing the pin
+  from its `pinned: true` alone.
+
+A machine that never ran the desktop app has no store to read: `future session
+pinned` and `future workspace list --pinned` print `count: 0` with an
+empty-state line (or `[]` / `{"sessions": []}` under `--json`), and they do not
+create the database to answer. A `pin` on such a machine, or on a session the
+app never imported, is refused with the reason instead of an empty success.
+
+Where the code splits, if a question goes deeper: the pin commands are
+`cli/src/commands/pin.rs`, over `store::pin_thread` / `store::pin_workspace` and
+the two pinned listings in `host/src/store/threads.rs` and
+`host/src/store/workspaces.rs`. The table and the workspace rules are
 `packages/app-workspaces/src/lib.rs`, the schema is
 `desktop/src-tauri/src/store/schema.rs`, the app's own read/write path is
 `desktop/src-tauri/src/store/workspaces.rs`, and the phone's copy of the
